@@ -151,8 +151,16 @@ begin
 
             s_tdata  <= std_logic_vector(to_unsigned(pix_val, C_DATA_WIDTH));
             s_tvalid <= '1';
-            s_tuser  <= '1' when (row = 0 and col = 0) else '0';
-            s_tlast  <= '1' when col = C_LINE_WIDTH - 1 else '0';
+            if row = 0 and col = 0 then
+                s_tuser <= '1';
+            else
+                s_tuser <= '0';
+            end if;
+            if col = C_LINE_WIDTH - 1 then
+                s_tlast <= '1';
+            else
+                s_tlast <= '0';
+            end if;
 
             -- Wait for the upstream handshake (s_tvalid AND s_tready)
             wait until rising_edge(clk) and s_tready = '1';
@@ -185,8 +193,6 @@ begin
 
                 if m_tdata /= exp_vec then
                     report "MISMATCH at output index " & integer'image(out_count)
-                        & ": got 0x" & to_hstring(m_tdata)
-                        & " expected 0x" & to_hstring(exp_vec)
                         severity error;
                     err_count := err_count + 1;
                 end if;
