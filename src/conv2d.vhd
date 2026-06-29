@@ -76,6 +76,11 @@ architecture rtl of conv2d is
     -- win_buf output
     signal wb_tap_out : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
+    -- 1-cycle delay to let win_buf's p_shift settle before p_out_reg samples tap_out
+    signal pixel_accepted_d1 : std_logic;
+    signal tlast_d1          : std_logic;
+    signal tuser_d1          : std_logic;
+
     -- Registered output stage
     signal m_tdata_r  : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
     signal m_tvalid_r : std_logic;
@@ -141,11 +146,33 @@ begin
     lb_rd_col <= 0 when col_cnt = LINE_WIDTH - 1 else col_cnt + 1;
 
     -- -----------------------------------------------------------------------
+    -- 1-cycle delay stage
+    -- win_buf's p_shift and this process both fire at the same rising edge.
+    -- VHDL delta-cycle ordering means wb_tap_out (combinational on win) still
+    -- reflects the OLD window at delta 0.  Registering pixel_accepted here
+    -- and gating p_out_reg on the delayed version means p_out_reg reads
+    -- wb_tap_out one cycle later, after p_shift has updated win.
+    -- -----------------------------------------------------------------------
+    p_delay : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                pixel_accepted_d1 <= '0';
+                tlast_d1          <= '0';
+                tuser_d1          <= '0';
+            elsif all_ready = '1' then
+                pixel_accepted_d1 <= pixel_accepted;
+                tlast_d1          <= s_tlast and pixel_accepted;
+                tuser_d1          <= s_tuser and pixel_accepted;
+            end if;
+        end if;
+    end process p_delay;
+
+    -- -----------------------------------------------------------------------
     -- Registered output stage
-    -- Captures win_buf output (window for the pixel just accepted) and
-    -- presents it one cycle later alongside m_tvalid_r.
-    -- Held (not updated) whenever all_ready = '0' so the AXI-S rule
-    -- "master must not withdraw TVALID once asserted" is obeyed.
+    -- Reads wb_tap_out one cycle after acceptance so the value is stable
+    -- (win_buf p_shift has already committed the new window in the previous
+    -- clock's delta-1).  Held when all_ready='0' (AXI-S: no TVALID retract).
     -- -----------------------------------------------------------------------
     p_out_reg : process (clk)
     begin
@@ -157,9 +184,9 @@ begin
                 m_tuser_r  <= '0';
             elsif all_ready = '1' then
                 m_tdata_r  <= wb_tap_out;
-                m_tvalid_r <= pixel_accepted;
-                m_tlast_r  <= s_tlast and pixel_accepted;
-                m_tuser_r  <= s_tuser and pixel_accepted;
+                m_tvalid_r <= pixel_accepted_d1;
+                m_tlast_r  <= tlast_d1;
+                m_tuser_r  <= tuser_d1;
             end if;
         end if;
     end process p_out_reg;
