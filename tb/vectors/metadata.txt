@@ -1,0 +1,15 @@
+DATA_WIDTH   = 8
+KERN_ROWS    = 3
+KERN_COLS    = 3
+LINE_WIDTH   = 8
+FRAME_HEIGHT = 8
+NUM_FRAMES   = 3
+Total input pixels  : 192
+Total output events : 192
+
+First 3 input pixels: [0, 1, 2]
+First expected taps:
+  output 0 (row=0, col=0): [0, 0, 0, 0, 0, 0, 0, 0, 0]
+  output 1 (row=0, col=1): [0, 0, 0, 0, 0, 0, 1, 0, 0]
+  output 2 (row=0, col=2): [0, 0, 0, 0, 0, 0, 2, 1, 0]
+  output 3 (row=0, col=3): [0, 0, 0, 0, 0, 0, 3, 2, 1]
