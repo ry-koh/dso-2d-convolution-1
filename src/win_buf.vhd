@@ -6,13 +6,23 @@
 -- M x N is small (e.g. 3x3 = 9 bytes) — BRAM would be wasteful here.
 --
 -- On each valid clock:
---   row[0] shifts in the live pixel from the input stream.
---   row[k] (k>0) shifts in line_buf output for buffer row k-1.
+--   row[KERN_ROWS-1] shifts in the live pixel from the input stream.
+--   row[k] (k<KERN_ROWS-1) shifts in line_buf output for buffer row k.
+--
+-- Zero-extend — two mechanisms:
+--   new_row  : '1' on the first pixel of every row.  Forces positions
+--              1..KERN_COLS-1 to zero instead of shifting old values in,
+--              so out-of-bounds column taps are 0 rather than the previous
+--              row's trailing pixels.
+--   row_valid: bit r = '1' when buf_rows(r) contains a valid older row
+--              (i.e. enough rows have been processed since frame start).
+--              When '0', zero is loaded into position 0 of that row, so
+--              out-of-frame row taps are 0 rather than stale BRAM data.
 --
 -- tap_out is a flattened M x N x DATA_WIDTH vector:
 --   tap[row][col] at bits ((row*N + col + 1)*DATA_WIDTH - 1) downto (row*N + col)*DATA_WIDTH
 --   row 0 = oldest row (top of kernel); row M-1 = newest row (bottom).
---   col 0 = oldest pixel in that row; col N-1 = newest.
+--   col 0 = most recent pixel in that row; col N-1 = oldest.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -29,6 +39,12 @@ entity win_buf is
 
         -- Advance window by one pixel when shift_en = '1'
         shift_en  : in  std_logic;
+
+        -- '1' on the first pixel of each new row; zeroes columns 1..KERN_COLS-1
+        new_row   : in  std_logic;
+
+        -- Bit r = '1' when buf_rows(r) is valid (enough rows seen since frame start)
+        row_valid : in  std_logic_vector(KERN_ROWS - 2 downto 0);
 
         -- Live pixel enters the newest row
         pix_in    : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
@@ -61,19 +77,34 @@ begin
                     end loop;
                 end loop;
             elsif shift_en = '1' then
-                -- Newest row (KERN_ROWS-1): shift in live pixel
-                for c in KERN_COLS - 1 downto 1 loop
-                    win(KERN_ROWS - 1)(c) <= win(KERN_ROWS - 1)(c - 1);
-                end loop;
+                -- Newest row: shift in live pixel at col 0.
+                -- On new_row, zero positions 1..KERN_COLS-1 (col zero-extend).
                 win(KERN_ROWS - 1)(0) <= pix_in;
+                for c in KERN_COLS - 1 downto 1 loop
+                    if new_row = '1' then
+                        win(KERN_ROWS - 1)(c) <= (others => '0');
+                    else
+                        win(KERN_ROWS - 1)(c) <= win(KERN_ROWS - 1)(c - 1);
+                    end if;
+                end loop;
 
-                -- Older rows: shift in corresponding line_buf output
+                -- Older rows: shift in line_buf output at col 0, or 0 if
+                -- this row slot is not yet valid (inter-frame zero-extend).
+                -- On new_row, zero positions 1..KERN_COLS-1 (col zero-extend).
                 for r in 0 to KERN_ROWS - 2 loop
+                    if row_valid(r) = '1' then
+                        win(r)(0) <=
+                            buf_rows((r + 1) * DATA_WIDTH - 1 downto r * DATA_WIDTH);
+                    else
+                        win(r)(0) <= (others => '0');
+                    end if;
                     for c in KERN_COLS - 1 downto 1 loop
-                        win(r)(c) <= win(r)(c - 1);
+                        if new_row = '1' then
+                            win(r)(c) <= (others => '0');
+                        else
+                            win(r)(c) <= win(r)(c - 1);
+                        end if;
                     end loop;
-                    win(r)(0) <=
-                        buf_rows((r + 1) * DATA_WIDTH - 1 downto r * DATA_WIDTH);
                 end loop;
             end if;
         end if;

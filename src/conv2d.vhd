@@ -73,6 +73,10 @@ architecture rtl of conv2d is
     signal lb_rd_col  : natural range 0 to LINE_WIDTH - 1;
     signal lb_rd_data : std_logic_vector(DATA_WIDTH * NUM_BUF_ROWS - 1 downto 0);
 
+    -- win_buf zero-extend control
+    signal new_row   : std_logic;
+    signal row_valid : std_logic_vector(NUM_BUF_ROWS - 1 downto 0);
+
     -- win_buf output
     signal wb_tap_out : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
@@ -144,6 +148,27 @@ begin
     -- -----------------------------------------------------------------------
     lb_wr_col <= col_cnt;
     lb_rd_col <= 0 when col_cnt = LINE_WIDTH - 1 else col_cnt + 1;
+
+    -- -----------------------------------------------------------------------
+    -- Zero-extend control for win_buf
+    -- new_row: '1' on the first pixel of a new row so win_buf zeroes out the
+    --          KERN_COLS-1 stale column positions instead of shifting them in.
+    -- row_valid(r): '1' when the BRAM slot r holds a valid older row within
+    --               the current frame.  When '0', win_buf inserts 0 instead of
+    --               stale BRAM data from the previous frame.
+    -- -----------------------------------------------------------------------
+    new_row <= '1' when col_cnt = 0 and pixel_accepted = '1' else '0';
+
+    p_row_valid : process (row_cnt)
+    begin
+        for r in 0 to NUM_BUF_ROWS - 1 loop
+            if row_cnt >= KERN_ROWS - 1 - r then
+                row_valid(r) <= '1';
+            else
+                row_valid(r) <= '0';
+            end if;
+        end loop;
+    end process p_row_valid;
 
     -- -----------------------------------------------------------------------
     -- 1-cycle delay stage
@@ -223,12 +248,14 @@ begin
             KERN_COLS  => KERN_COLS
         )
         port map (
-            clk      => clk,
-            rst      => rst,
-            shift_en => pixel_accepted,
-            pix_in   => s_tdata,
-            buf_rows => lb_rd_data,
-            tap_out  => wb_tap_out
+            clk       => clk,
+            rst       => rst,
+            shift_en  => pixel_accepted,
+            new_row   => new_row,
+            row_valid => row_valid,
+            pix_in    => s_tdata,
+            buf_rows  => lb_rd_data,
+            tap_out   => wb_tap_out
         );
 
 end architecture rtl;
