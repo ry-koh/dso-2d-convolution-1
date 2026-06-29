@@ -12,6 +12,86 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 
 ---
 
+## Project Status Log
+
+*(Updated at each phase checkpoint. Read this section first when resuming.)*
+
+### Phase 1 — COMPLETE ✓
+- Written survey of 3+ HDL line-buffer/convolution implementations
+- LUT-vs-BRAM storage comparison with synthesis utilisation numbers
+- Architecture proposal approved by owner: 3-subblock split (line_buf / win_buf / conv2d)
+- BRAM inference confirmed: 2× RAMB18 in synthesis, 0 LUT-as-memory
+
+### Phase 2 — COMPLETE ✓
+- RTL: `src/line_buf.vhd`, `src/win_buf.vhd`, `src/conv2d.vhd`
+- Simulation smoke-test passed (manually driven)
+- Three bugs found and fixed during development (see Bug Log below)
+
+### Phase 3 — COMPLETE ✓
+- Self-checking testbench: `tb/conv2d_tb.vhd`
+- Golden vector generator: `scripts/gen_vectors.py`
+- Vectors: `tb/vectors/input_pixels.txt`, `tb/vectors/expected_taps.txt`
+- Result: **PASS: 192 outputs checked, all matched golden vectors** (2095 ns)
+- Back-pressure exercised: m_tready(0) deasserted for 10 cycles post-reset, full recovery confirmed
+
+### Phase 4 — IN PROGRESS
+- Status: not started
+- See Phase 4 section below for scope
+
+---
+
+## Bug Log
+
+*(Bugs found during development. Preserved so the same mistakes are not repeated.)*
+
+### Bug 1 — BRAM row ordering (Phase 2)
+- **Symptom:** Older rows fed to win_buf were swapped on odd-numbered input rows.
+- **Root cause:** Physical BRAM holding the oldest row alternates each row (buf_wr_row cycles 0→1→0→…). Without remapping, odd rows received rows in the wrong age order.
+- **Fix:** Added `row_base` port to `line_buf`. Combinational `p_permute` process rotates `rd_data` output so slot 0 is always the oldest row: `phys := (row_base + slot) mod NUM_ROWS`. `conv2d` passes `buf_wr_row` as `row_base`.
+
+### Bug 2 — Delta-cycle timing (Phase 3)
+- **Symptom:** All outputs from index 1 onwards were the window for the *previous* pixel.
+- **Root cause:** `p_out_reg` and `win_buf`'s `p_shift` both fire at the same rising edge. At delta 0, `wb_tap_out` (combinational on `win`) still reflects the old window; `p_shift` updates `win` at delta 1. So `p_out_reg` captured the wrong (pre-shift) window.
+- **Fix:** Added `pixel_accepted_d1` (1-cycle registered delay of `pixel_accepted`). `p_out_reg` now gates on `pixel_accepted_d1`, reading `wb_tap_out` one cycle later after `p_shift` has settled.
+
+### Bug 3 — Win_buf column boundary stale data (Phase 3)
+- **Symptom:** For cols 0 and 1 of every row after row 0, the two oldest column tap positions contained the previous row's trailing pixels instead of zero.
+- **Root cause:** `win_buf` is a shift register; it does not reset between rows. At the start of each new row, positions 1 and 2 (col−1, col−2) held leftover data.
+- **Fix:** Added `new_row` signal in `conv2d` (high when `col_cnt=0` and `pixel_accepted='1'`). Added `new_row` port to `win_buf`; when asserted, positions 1..KERN_COLS−1 are forced to zero instead of shifting old values.
+
+### Bug 4 — BRAM inter-frame stale data (Phase 3)
+- **Symptom:** Rows 0 and 1 of frames 1 and 2 used the previous frame's last two rows from BRAM instead of zero-padding.
+- **Root cause:** BRAM is not cleared between frames. When a new frame starts, `row_cnt` resets to 0 but BRAM still holds the previous frame's last KERN_ROWS−1 rows. The design relied on Vivado initialising BRAM to 0 at simulation start (correct for frame 0 only).
+- **Fix:** Added `row_valid` vector in `conv2d`: bit r = '1' when `row_cnt >= KERN_ROWS−1−r` (enough rows have been seen within the current frame). Added `row_valid` port to `win_buf`; when bit r = '0', zero is inserted at `win(r)(0)` instead of the stale BRAM value. `row_cnt` resets at each frame boundary so the guard re-arms automatically.
+
+---
+
+## What This Project Is NOT Doing
+
+*(Explicit non-scope. Do not implement any of the following unless the owner explicitly adds them as a new phase.)*
+
+- **No coefficient multiplication or MAC stage.** The design outputs raw window tap values — one pixel per tap port. Multiplying taps by kernel coefficients and accumulating the result is downstream and out of scope.
+- **No bitstream generation or board bring-up.** Simulation only. Never run implementation or generate a bitstream.
+- **No runtime register interface.** All configuration is compile-time generics. No AXI-Lite control plane, no register map.
+- **No PS/FCLK integration.** Free-running testbench clock only.
+- **No mixed-language modules.** VHDL-2008 and IEEE standard packages only.
+- **No shell scripts or Makefile flows.** Copy-paste into Vivado editor only.
+
+---
+
+## Supervisor's Reference Code — Assessment (`Gemini_AI_code_gen.zip`)
+
+*(Reviewed 2026-06-29. Do not copy wholesale — use specific ideas only.)*
+
+### `sliding_window_2d_padded.vhd` — borrow one idea only
+- **Borrow:** The coordinate metasystem (`win_coord_x` / `win_coord_y`). Tracking the original image coordinates of each tap in the window is a clean way to implement edge modes in Phase 4 — detect out-of-bounds by coordinate comparison and dispatch to ZERO / REPLICATE / TOROIDAL without cluttered RTL conditionals.
+- **Do NOT use:** Line buffer implementation. Supervisor's own comment: *"Running synthesis does not lead to BRAM allocation."* 2D array with initialiser + asynchronous read = LUT-as-memory, not BRAM. Also contains known bugs in the REPLICATE clamping logic (supervisor's inline comments flag this), single m_tready (wrong I/O contract), active-low reset (wrong for this project), and rd_ptr = wr_ptr always (no pre-fetch offset).
+
+### `rec_pln_adder_tree_scalable.vhd` — not relevant to current scope
+- The recursive pipelined adder tree structure is correct and would be useful for a MAC stage. However, a MAC stage is explicitly out of scope (see above). File also contains syntax errors (`range 0` instead of `downto 0`).
+
+---
+
 ## Behavioral Baseline
 
 *(Merged from multica-ai/andrej-karpathy-skills — applied at every decision point.)*
@@ -54,8 +134,7 @@ a given decision, ask before proceeding.
 *(Never revise without explicit owner approval.)*
 
 - **Input:** one AXI4-Stream video input port
-- **Output:** M × N AXI4-Stream video output ports, each carrying the input pixel
-  stream weighted/accumulated by its corresponding kernel coefficient position
+- **Output:** M × N AXI4-Stream video output ports, each carrying the **raw pixel value** at the corresponding window tap position (tap[r][c] = pixel at row offset r, column offset c from the current pixel). There is no coefficient multiplication — that is downstream and out of scope.
 - **Signal set (all ports):** TDATA, TVALID, TREADY, TLAST, TUSER[0] (SOF flag)
   — Xilinx standard video AXI4-Stream profile
 
@@ -191,18 +270,35 @@ against Python-generated golden vectors, with back-pressure exercised.
 
 ### Phase 4 — Full Generalization
 
-**Objective:** generalize the design to the full configuration space via VHDL
-generics, retaining the self-checking testbench.
+**Objective:** generalize the window extractor to the full configuration space
+via VHDL generics, retaining the self-checking testbench.
 
-**Generalization axes (all compile-time generics, independently combinable):**
-- Input data width: any positive integer (bits per pixel); 8/16/24-bit are reference cases, not an exhaustive list
-- Window size M × N: no hard upper bound (practical limit = device resources)
-- Edge-case handling: toroidal wrap / zero-extend / boundary-extend
-- End-of-frame pipeline flush: on (dummy-data drain) / off
+**What is already generic and working (no changes needed):**
+- `DATA_WIDTH`: any positive integer — verified at 8-bit, expected to hold for 16/24-bit
+- `KERN_ROWS` / `KERN_COLS`: any size — verified at 3×3, expected to hold for 5×5
 
-**Testbench updates:** Python golden-vector generator must be parametric across
-all four axes. Testbench must exercise at least one non-trivial combination beyond
-the 3×3 / 8-bit / zero-extend / flush-off base case.
+**What needs to be added:**
+
+| Generic | Type | Values | Current state |
+|---|---|---|---|
+| `EDGE_MODE` | string | `"ZERO"` / `"REPLICATE"` / `"TOROIDAL"` | Only `"ZERO"` implemented |
+| `FLUSH` | boolean | `true` / `false` | Only `false` implemented |
+
+**EDGE_MODE implementation plan:**
+- Use a coordinate metasystem (inspired by supervisor's code): track `coord_x` / `coord_y` for each tap position as the window shifts. Out-of-bounds detection is then a coordinate comparison.
+- `"ZERO"`: already working via `new_row` / `row_valid` mechanism (Phase 3 fix). Keep as-is.
+- `"REPLICATE"`: clamp out-of-bounds coordinates to the nearest valid edge pixel. Implementation: in the output stage, when coordinate is out-of-bounds, substitute the nearest in-bounds tap value from the window.
+- `"TOROIDAL"`: wrap out-of-bounds coordinates modulo frame dimensions. Implementation: coordinate mod IMG_WIDTH / IMG_HEIGHT.
+
+**FLUSH implementation plan:**
+- When `FLUSH=true`, after the last pixel of a frame (TLAST asserted), inject `KERN_ROWS−1` dummy rows of zeros to flush the pipeline so every input pixel in the frame produces an output. Currently the bottom `KERN_ROWS−1` rows never get a valid output window.
+- When `FLUSH=false` (current behaviour), no dummy rows injected.
+
+**Testbench and golden vector updates:**
+- `gen_vectors.py` must be parametric: accept `EDGE_MODE`, `FLUSH`, `KERN_ROWS`, `KERN_COLS`, `DATA_WIDTH`, `LINE_WIDTH`, `FRAME_HEIGHT` as arguments
+- Must simulate at least 2 distinct configurations, e.g.:
+  1. 3×3, 8-bit, REPLICATE, FLUSH=false
+  2. 5×5, 8-bit, ZERO, FLUSH=false
 
 **Checkpoint:** at least 2 distinct generic configurations simulate to PASS in
 xsim, with logs attached. If any configuration exceeds the ZedBoard reference
