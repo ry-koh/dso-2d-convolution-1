@@ -116,7 +116,7 @@ No runtime register interface. All axes are independently combinable.
 
 | Axis | Values |
 |---|---|
-| Input data width | 8-bit / 16-bit / 24-bit (per pixel) |
+| Input data width | Any positive integer width (in bits per pixel); 8/16/24-bit are the documented reference cases but the generic must accept any value |
 | Window size M × N | No hard upper bound; practical limit is device resources |
 | Edge-case handling mode | Toroidal wrap / zero-extend / boundary-extend |
 | End-of-frame pipeline flush | On / Off |
@@ -195,7 +195,7 @@ against Python-generated golden vectors, with back-pressure exercised.
 generics, retaining the self-checking testbench.
 
 **Generalization axes (all compile-time generics, independently combinable):**
-- Input data width: 8 / 16 / 24-bit
+- Input data width: any positive integer (bits per pixel); 8/16/24-bit are reference cases, not an exhaustive list
 - Window size M × N: no hard upper bound (practical limit = device resources)
 - Edge-case handling: toroidal wrap / zero-extend / boundary-extend
 - End-of-frame pipeline flush: on (dummy-data drain) / off
@@ -243,7 +243,7 @@ a different convention.]*
 
 | Decision | Value |
 |---|---|
-| Base-case pixel width | 8-bit grayscale |
+| Base-case pixel width | 8-bit grayscale (generic accepts any positive integer width) |
 | AXI4-Stream signal set | TDATA, TVALID, TREADY, TLAST, TUSER[0] (SOF) — Xilinx video profile |
 | Clock domain | Single |
 | Reset style | Synchronous, active-high |
