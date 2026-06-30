@@ -29,6 +29,7 @@ entity line_buf is
         wr_data  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
 
         row_base : in  natural range 0 to NUM_ROWS - 1;
+        rd_en    : in  std_logic;
         rd_col   : in  natural range 0 to LINE_WIDTH - 1;
         -- Slot 0 = oldest row; slot NUM_ROWS-1 = most recently completed row.
         rd_data  : out std_logic_vector(DATA_WIDTH * NUM_ROWS - 1 downto 0)
@@ -57,9 +58,12 @@ begin
                 if wr_en = '1' and wr_row = i then
                     mem(i)(wr_col) <= wr_data;
                 end if;
-                -- Synchronous read — mandatory for BRAM inference.
-                rd_raw((i + 1) * DATA_WIDTH - 1 downto i * DATA_WIDTH)
-                    <= mem(i)(rd_col);
+                -- Gated synchronous read: rd_en holds rd_raw stable during
+                -- back-pressure stalls so win_buf sees the correct column value.
+                if rd_en = '1' then
+                    rd_raw((i + 1) * DATA_WIDTH - 1 downto i * DATA_WIDTH)
+                        <= mem(i)(rd_col);
+                end if;
             end if;
         end process p_bram;
     end generate gen_brams;

@@ -435,6 +435,7 @@ begin
             wr_col   => lb_wr_col,
             wr_data  => push_data,
             row_base => buf_wr_row,
+            rd_en    => all_ready,
             rd_col   => lb_rd_col,
             rd_data  => lb_rd_data
         );
