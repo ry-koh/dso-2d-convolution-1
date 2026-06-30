@@ -109,16 +109,16 @@ architecture rtl of conv2d is
     signal pixel_accepted_d1 : std_logic;
     signal tlast_d1          : std_logic;
     signal tuser_d1          : std_logic;
-    signal col_cnt_d1        : natural range 0 to LINE_WIDTH   - 1;
-    signal row_cnt_d1        : natural range 0 to FRAME_HEIGHT - 1;
+    signal col_cnt_d1        : natural range 0 to LINE_WIDTH               - 1;
+    signal row_cnt_d1        : natural range 0 to FRAME_HEIGHT + KERN_ROWS - 2;
 
     -- Registered output stage
     signal m_tdata_r  : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
     signal m_tvalid_r : std_logic;
     signal m_tlast_r  : std_logic;
     signal m_tuser_r  : std_logic;
-    signal m_col_r    : natural range 0 to LINE_WIDTH   - 1;
-    signal m_row_r    : natural range 0 to FRAME_HEIGHT - 1;
+    signal m_col_r    : natural range 0 to LINE_WIDTH               - 1;
+    signal m_row_r    : natural range 0 to FRAME_HEIGHT + KERN_ROWS - 2;
 
 begin
 
@@ -269,7 +269,14 @@ begin
             elsif all_ready = '1' then
                 pixel_accepted_d1 <= push;
                 col_cnt_d1        <= col_cnt;
-                row_cnt_d1        <= row_cnt;
+                -- During flush, row_cnt has wrapped to 0; supply the virtual
+                -- row (FRAME_HEIGHT + flush_row_cnt) so p_edge_out does not
+                -- mistake flush outputs for top-of-frame and wrongly clamp.
+                if flushing then
+                    row_cnt_d1 <= FRAME_HEIGHT + flush_row_cnt;
+                else
+                    row_cnt_d1 <= row_cnt;
+                end if;
                 if flushing then
                     tuser_d1 <= '0';
                     if flush_col_cnt = LINE_WIDTH - 1 then
