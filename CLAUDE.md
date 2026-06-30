@@ -34,9 +34,23 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 - Result: **PASS: 192 outputs checked, all matched golden vectors** (2095 ns)
 - Back-pressure exercised: m_tready(0) deasserted for 10 cycles post-reset, full recovery confirmed
 
-### Phase 4 — IN PROGRESS
-- Status: not started
-- See Phase 4 section below for scope
+### Phase 4 — COMPLETE ✓
+- RTL: `src/conv2d.vhd` updated with EDGE_MODE and FLUSH generics
+- Coordinate metasystem: col_cnt_d1/row_cnt_d1 delayed in p_delay; captured as m_col_r/m_row_r
+  in p_out_reg; combinational p_edge_out remaps OOB taps per EDGE_MODE
+- FLUSH FSM: injects KERN_ROWS-1 dummy zero-rows after frame end; s_tready stalled during flush;
+  SOF resets row_cnt/buf_wr_row to re-arm row_valid for next frame
+- Golden vector generator: `scripts/gen_vectors.py` fully parametric via argparse; --prefix arg
+  generates per-config filenames; supports ZERO, REPLICATE, TOROIDAL modes
+- Testbench: `tb/conv2d_tb.vhd` — 4 DUT instances in parallel simulation
+- Vectors: `tb/vectors/c[1-4]_{input,expected}.txt` — 4 configs × 192 outputs each
+- Result: **ALL 4 CONFIGURATIONS PASS (3000 ns simulation)**
+  - CFG1 PASS (3x3 ZERO, back-pressure):            192 outputs @ 2095 ns
+  - CFG2 PASS (3x3 REPLICATE):                      192 outputs @ 1995 ns
+  - CFG3 PASS (3x3 TOROIDAL, OOB falls back to 0):  192 outputs @ 1995 ns
+  - CFG4 PASS (5x5 REPLICATE):                      192 outputs @ 1995 ns
+- TOROIDAL note: boundary-wrapped pixels not reachable in causal streaming window; fall back to
+  zero (same as ZERO mode for OOB positions). Full TOROIDAL requires frame buffering (out of scope).
 
 ---
 
