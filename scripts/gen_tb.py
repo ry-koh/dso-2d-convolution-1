@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate the exhaustive Phase 4 testbench and all golden vector files.
+Generate the exhaustive Phase 4 + extended testbench and all golden vector files.
 
 Run from repo root:
     python scripts/gen_tb.py
@@ -10,33 +10,45 @@ Produces:
     tb/vectors/c??_input.txt      -- stimulus pixel values (one per config)
     tb/vectors/c??_expected.txt   -- expected tap values  (one per config)
 
-Configuration matrix (2 x 3 x 3 x 2 = 36 configurations):
+Configuration matrix (58 configurations total):
+
+  Original 36 (Phase 4, cfg01-cfg36):
     DATA_WIDTH : 8, 16
     Kernel     : 3x3, 5x5, 3x5
     EDGE_MODE  : ZERO, REPLICATE, TOROIDAL
     FLUSH      : false, true
+    Frame      : 8x8, 3 frames
 
-Frame parameters (fixed):
-    LINE_WIDTH=8, FRAME_HEIGHT=8, NUM_FRAMES=3  -> 192 real pixels per config
-    FLUSH=true adds (KERN_ROWS-1)*LINE_WIDTH*NUM_FRAMES extra expected outputs.
+  Extended 22 (cfg37-cfg58):
+    Group A (cfg37-41): Non-square wide-short frame LW=16, FH=4
+      3x3 ZERO/REPLICATE/TOROIDAL FLUSH=off, 3x3 ZERO FLUSH=on, 5x5 ZERO FLUSH=on
+    Group B (cfg42-44): Non-square tall-narrow frame LW=4, FH=16
+      3x3 ZERO/REPLICATE/TOROIDAL FLUSH=off
+    Group C (cfg45-49): Degenerate frame = kernel size (every pixel is a border)
+      3x3 ZERO/REPLICATE FLUSH=off, 3x3 ZERO FLUSH=on, 5x5 ZERO/REPLICATE FLUSH=off
+    Group D (cfg50-51): Single-row frame FH=1 with FLUSH=on
+      3x3 ZERO, 5x5 ZERO
+    Group E (cfg52-54): 24-bit data width
+      24b 3x3 ZERO FLUSH=off, 24b 3x3 REPLICATE FLUSH=off, 24b 5x5 ZERO FLUSH=on
+    Group F (cfg55-58): 7x7 kernel
+      ZERO/REPLICATE/TOROIDAL FLUSH=off, ZERO FLUSH=on
+
+Back-pressure scenarios:
+  cfg01: m_tready(0) deasserted 10 cycles post-reset (Phase 3 regression, stall/recovery)
+  cfg55: m_tready(NUM_TAPS-1) deasserted 10 cycles post-reset (last tap port back-pressure)
+  cfg40: m_tready(0) deasserted 15 cycles during flush phase (BP while flush FSM active)
 
 Notes:
-  - TOROIDAL expected vectors are generated with ZERO mode because the RTL's
-    causal streaming pipeline cannot reach wrapped pixels at the far edge of
-    a previous row/frame; those positions fall back to zero.
-  - For 16-bit pixels, frame values are scaled so both bytes are non-zero:
-    scale = 2^(DATA_WIDTH-8) + 1  (e.g. 257 for 16-bit -> values 0x0000..0xFFFF).
-  - Back-pressure (m_tready(0) deasserted for 10 cycles) is applied to
-    config 1 only to preserve the Phase 3 regression test.
+  - TOROIDAL expected vectors use causal wrap model (no far-edge wrap, falls back to zero).
+  - For >8-bit pixels, scale = 2^(DW-8)+1 ensures all bytes non-zero.
+  - Recommended simulation run time: 8000 ns.
 """
 
 import os
-import sys
 import itertools
-import textwrap
 
 # -------------------------------------------------------------------------
-# Frame + tap helper functions (inline; mirrors gen_vectors.py logic)
+# Frame + tap helper functions
 # -------------------------------------------------------------------------
 
 def make_frame(n, fh, lw, dw):
@@ -73,12 +85,10 @@ def compute_taps(frame, row, col, kr, kc, fh, lw, mode):
 
 
 def compute_taps_toroidal(push_history, kr, kc, lw):
-    """Causal TOROIDAL taps from the push history.
+    """Causal TOROIDAL taps from push history.
 
-    Tap (r, c) = pixel pushed (kr-1-r)*lw + c steps before the current push.
-    push_history[-1] is the pixel just pushed; push_history[-1-offset] is
-    offset steps back.  Returns 0 if the history doesn't reach that far
-    (start of stream, before any data was pushed).
+    Tap (r,c) = pixel pushed (kr-1-r)*lw + c steps before current push.
+    Returns 0 if history is too short (start of stream).
     """
     taps = []
     n = len(push_history)
@@ -99,7 +109,7 @@ def gen_vectors(cfg, prefix, out_dir):
 
     all_pixels   = []
     all_taps     = []
-    push_history = []   # running list of every value pushed (real + flush zeros)
+    push_history = []
 
     for fn in range(nf):
         frame = make_frame(fn, fh, lw, dw)
@@ -113,13 +123,12 @@ def gen_vectors(cfg, prefix, out_dir):
                 else:
                     all_taps.append(compute_taps(frame, row, col, kr, kc, fh, lw, mode))
 
-        # FLUSH: KERN_ROWS-1 dummy zero-rows per frame.
         if flush and kr > 1:
             for flush_idx in range(1, kr):
                 vrow = fh - 1 + flush_idx
                 for col in range(lw):
                     if mode == "TOROIDAL":
-                        push_history.append(0)   # flush pixel = zero
+                        push_history.append(0)
                         all_taps.append(compute_taps_toroidal(push_history, kr, kc, lw))
                     else:
                         taps = []
@@ -147,13 +156,11 @@ def gen_vectors(cfg, prefix, out_dir):
 # Configuration matrix
 # -------------------------------------------------------------------------
 
+# Original 36 (Phase 4) — 8x8 frame, 3 frames
 DATA_WIDTHS  = [8, 16]
 KERNEL_SIZES = [(3, 3), (5, 5), (3, 5)]
 EDGE_MODES   = ["ZERO", "REPLICATE", "TOROIDAL"]
 FLUSH_VALUES = [False, True]
-LINE_WIDTH   = 8
-FRAME_HEIGHT = 8
-NUM_FRAMES   = 3
 
 CONFIGS = []
 for dw, (kr, kc), mode, flush in itertools.product(
@@ -164,12 +171,80 @@ for dw, (kr, kc), mode, flush in itertools.product(
         'kern_cols':    kc,
         'edge_mode':    mode,
         'flush':        flush,
-        'line_width':   LINE_WIDTH,
-        'frame_height': FRAME_HEIGHT,
-        'num_frames':   NUM_FRAMES,
+        'line_width':   8,
+        'frame_height': 8,
+        'num_frames':   3,
     })
 
-N = len(CONFIGS)   # 36
+# Group A: Wide-short frame (LW=16, FH=4) — stresses col-boundary and row-sparse cases
+# cfg37-41
+for mode in ["ZERO", "REPLICATE", "TOROIDAL"]:
+    CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': mode,
+                    'flush': False, 'line_width': 16, 'frame_height': 4, 'num_frames': 3})
+# cfg40: 3x3 ZERO FLUSH=on wide-short (back-pressure during flush applied here)
+CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 16, 'frame_height': 4, 'num_frames': 3})
+# cfg41: 5x5 FLUSH=on wide-short (FH=4 < KERN_ROWS=5: no real outputs, all outputs are flush)
+CONFIGS.append({'data_width': 8, 'kern_rows': 5, 'kern_cols': 5, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 16, 'frame_height': 4, 'num_frames': 3})
+
+# Group B: Tall-narrow frame (LW=4, FH=16) — stresses row-depth and short-row TLAST
+# cfg42-44
+for mode in ["ZERO", "REPLICATE", "TOROIDAL"]:
+    CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': mode,
+                    'flush': False, 'line_width': 4, 'frame_height': 16, 'num_frames': 3})
+
+# Group C: Degenerate frame = kernel size (every pixel is a border pixel)
+# cfg45: 3x3 frame, 3x3 ZERO FLUSH=off — only last pixel has fully valid window
+CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "ZERO",
+                'flush': False, 'line_width': 3, 'frame_height': 3, 'num_frames': 3})
+# cfg46: 3x3 frame, 3x3 REPLICATE — all 9 outputs have REPLICATE-padded taps
+CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "REPLICATE",
+                'flush': False, 'line_width': 3, 'frame_height': 3, 'num_frames': 3})
+# cfg47: 3x3 frame, 3x3 ZERO FLUSH=on — flush adds 2 extra rows to tiny frame
+CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 3, 'frame_height': 3, 'num_frames': 3})
+# cfg48: 5x5 frame, 5x5 ZERO FLUSH=off
+CONFIGS.append({'data_width': 8, 'kern_rows': 5, 'kern_cols': 5, 'edge_mode': "ZERO",
+                'flush': False, 'line_width': 5, 'frame_height': 5, 'num_frames': 3})
+# cfg49: 5x5 frame, 5x5 REPLICATE
+CONFIGS.append({'data_width': 8, 'kern_rows': 5, 'kern_cols': 5, 'edge_mode': "REPLICATE",
+                'flush': False, 'line_width': 5, 'frame_height': 5, 'num_frames': 3})
+
+# Group D: Single-row frame (FH=1) with FLUSH=on
+# cfg50: 3x3, FH=1 — flush injects 2 dummy rows for 1 real row
+CONFIGS.append({'data_width': 8, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 8, 'frame_height': 1, 'num_frames': 3})
+# cfg51: 5x5, FH=1 — flush injects 4 dummy rows (4x overhead)
+CONFIGS.append({'data_width': 8, 'kern_rows': 5, 'kern_cols': 5, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 8, 'frame_height': 1, 'num_frames': 3})
+
+# Group E: 24-bit data width
+# cfg52
+CONFIGS.append({'data_width': 24, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "ZERO",
+                'flush': False, 'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+# cfg53
+CONFIGS.append({'data_width': 24, 'kern_rows': 3, 'kern_cols': 3, 'edge_mode': "REPLICATE",
+                'flush': False, 'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+# cfg54
+CONFIGS.append({'data_width': 24, 'kern_rows': 5, 'kern_cols': 5, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+
+# Group F: 7x7 kernel
+# cfg55: ZERO FLUSH=off — back-pressure on last tap port applied here
+CONFIGS.append({'data_width': 8, 'kern_rows': 7, 'kern_cols': 7, 'edge_mode': "ZERO",
+                'flush': False, 'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+# cfg56
+CONFIGS.append({'data_width': 8, 'kern_rows': 7, 'kern_cols': 7, 'edge_mode': "REPLICATE",
+                'flush': False, 'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+# cfg57
+CONFIGS.append({'data_width': 8, 'kern_rows': 7, 'kern_cols': 7, 'edge_mode': "TOROIDAL",
+                'flush': False, 'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+# cfg58
+CONFIGS.append({'data_width': 8, 'kern_rows': 7, 'kern_cols': 7, 'edge_mode': "ZERO",
+                'flush': True,  'line_width': 8, 'frame_height': 8, 'num_frames': 3})
+
+N = len(CONFIGS)  # 58
 
 
 # -------------------------------------------------------------------------
@@ -182,17 +257,22 @@ def vbool(b):
 
 def cfg_label(cfg):
     kr, kc = cfg['kern_rows'], cfg['kern_cols']
+    lw, fh = cfg['line_width'], cfg['frame_height']
     return (f"{cfg['data_width']}b {kr}x{kc} {cfg['edge_mode']}"
-            f" FLUSH={'on' if cfg['flush'] else 'off'}")
+            f" FLUSH={'on' if cfg['flush'] else 'off'}"
+            f" {lw}x{fh}frame")
 
 
 def gen_constants(i, cfg, prefix):
     kr, kc, dw = cfg['kern_rows'], cfg['kern_cols'], cfg['data_width']
+    lw, fh     = cfg['line_width'], cfg['frame_height']
     p = f"C{i:02d}"
     return f"""\
     constant {p}_DW        : positive := {dw};
     constant {p}_KR        : positive := {kr};
     constant {p}_KC        : positive := {kc};
+    constant {p}_LW        : positive := {lw};
+    constant {p}_FH        : positive := {fh};
     constant {p}_EDGE_MODE : string   := "{cfg['edge_mode']}";
     constant {p}_FLUSH     : boolean  := {vbool(cfg['flush'])};
     constant {p}_NUM_TAPS  : positive := {kr * kc};
@@ -227,8 +307,8 @@ def gen_instance(i, cfg):
             DATA_WIDTH   => {cp}_DW,
             KERN_ROWS    => {cp}_KR,
             KERN_COLS    => {cp}_KC,
-            LINE_WIDTH   => C_LW,
-            FRAME_HEIGHT => C_FH,
+            LINE_WIDTH   => {cp}_LW,
+            FRAME_HEIGHT => {cp}_FH,
             EDGE_MODE    => {cp}_EDGE_MODE,
             FLUSH        => {cp}_FLUSH
         )
@@ -265,11 +345,11 @@ def gen_stim(i, cfg):
             {sp}_sdata  <= std_logic_vector(to_unsigned(pv, {cp}_DW));
             {sp}_svalid <= '1';
             if row = 0 and col = 0 then {sp}_suser <= '1'; else {sp}_suser <= '0'; end if;
-            if col = C_LW-1 then {sp}_slast <= '1'; else {sp}_slast <= '0'; end if;
+            if col = {lw}-1 then {sp}_slast <= '1'; else {sp}_slast <= '0'; end if;
             wait until rising_edge(clk) and {sp}_sready = '1';
-            if col = C_LW-1 then
+            if col = {lw}-1 then
                 col := 0;
-                if row = C_FH-1 then row := 0; else row := row+1; end if;
+                if row = {fh}-1 then row := 0; else row := row+1; end if;
             else
                 col := col+1;
             end if;
@@ -334,28 +414,23 @@ def main():
     vec_dir  = os.path.join(repo_root, 'tb', 'vectors')
     tb_path  = os.path.join(repo_root, 'tb', 'conv2d_tb.vhd')
 
-    # Generate all vector files
     print(f"Generating vectors for {N} configurations...")
     for i, cfg in enumerate(CONFIGS, start=1):
         prefix = f"c{i:02d}_"
         nin, nout = gen_vectors(cfg, prefix, vec_dir)
         label = cfg_label(cfg)
-        print(f"  cfg{i:02d} {label:<40s}  {nin} in / {nout} expected")
+        print(f"  cfg{i:02d} {label:<55s}  {nin} in / {nout} expected")
 
-    # Assemble VHDL
     header = f"""\
--- conv2d_tb.vhd — exhaustive Phase 4 testbench
--- MACHINE-GENERATED by scripts/gen_tb.py — do not hand-edit.
+-- conv2d_tb.vhd -- exhaustive Phase 4 + extended testbench
+-- MACHINE-GENERATED by scripts/gen_tb.py -- do not hand-edit.
 --
--- Tests {N} configurations in parallel on a shared clock:
---   DATA_WIDTH  : {DATA_WIDTHS}
---   Kernel      : {KERNEL_SIZES}
---   EDGE_MODE   : {EDGE_MODES}
---   FLUSH       : {FLUSH_VALUES}
+-- Tests {N} configurations in parallel on a shared clock.
+-- See gen_tb.py header for full configuration matrix.
 --
 -- Before simulation: copy all tb/vectors/c??_{{input,expected}}.txt
 -- into the xsim working directory.
--- Recommended run time: 4000 ns (covers 5x5 FLUSH=true, longest pipeline).
+-- Recommended run time: 8000 ns.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -367,9 +442,7 @@ end entity conv2d_tb;
 
 architecture tb of conv2d_tb is
 
-    constant CLK_PERIOD : time     := 10 ns;
-    constant C_LW       : positive := {LINE_WIDTH};
-    constant C_FH       : positive := {FRAME_HEIGHT};
+    constant CLK_PERIOD : time := 10 ns;
 
     signal clk        : std_logic := '0';
     signal done_flags : std_logic_vector({N}-1 downto 0) := (others => '0');
@@ -393,9 +466,9 @@ architecture tb of conv2d_tb is
         stim_blocks  .append(gen_stim(i, cfg))
         check_blocks .append(gen_check(i, cfg, label))
 
-    # Back-pressure only on config 1
-    bp_blocks.append(f"""\
-    -- Back-pressure on cfg01 only (Phase 3 regression: stall then recover)
+    # Back-pressure scenario 1: cfg01 — stall m_tready(0) 10 cycles post-reset
+    bp_blocks.append("""\
+    -- BP scenario 1: cfg01 — m_tready(0) stalled 10 cycles post-reset (Phase 3 regression)
     p_bp01 : process
     begin
         c01_mready(0) <= '0';
@@ -406,19 +479,49 @@ architecture tb of conv2d_tb is
         wait;
     end process p_bp01;""")
 
+    # Back-pressure scenario 2: cfg55 (7x7 ZERO FLUSH=off) — stall last tap port
+    bp_blocks.append("""\
+    -- BP scenario 2: cfg55 (7x7 ZERO FLUSH=off) — m_tready(NUM_TAPS-1) stalled 10 cycles
+    -- Verifies that back-pressure on the LAST tap port stalls the pipeline correctly.
+    p_bp55 : process
+    begin
+        c55_mready(C55_NUM_TAPS-1) <= '0';
+        c55_mready(C55_NUM_TAPS-2 downto 0) <= (others => '1');
+        wait until c55_rst = '0';
+        wait for CLK_PERIOD * 10;
+        c55_mready(C55_NUM_TAPS-1) <= '1';
+        wait;
+    end process p_bp55;""")
+
+    # Back-pressure scenario 3: cfg40 (3x3 ZERO FLUSH=on, LW=16, FH=4) — stall during flush
+    # Real pixels: 3 frames * 16*4 = 192 pixels, taking ~192 cycles after reset.
+    # Wait 210 cycles post-reset (well into flush territory) then hold BP for 15 cycles.
+    bp_blocks.append("""\
+    -- BP scenario 3: cfg40 (3x3 ZERO FLUSH=on, LW=16 FH=4) — m_tready(0) stalled mid-flush.
+    -- Real stimulus ends ~cycle 197; deassert at cycle 210, hold 15 cycles into flush phase.
+    p_bp40 : process
+    begin
+        wait until c40_rst = '0';
+        wait for CLK_PERIOD * 210;
+        c40_mready(0) <= '0';
+        wait for CLK_PERIOD * 15;
+        c40_mready(0) <= '1';
+        wait;
+    end process p_bp40;""")
+
     body = "\n\n".join([
-        "    -- Configuration constants and file names",
+        "    -- Per-DUT configuration constants and file names",
         "\n\n".join(const_blocks),
         "    -- Per-DUT AXI signals",
         "\n\n".join(signal_blocks),
     ])
 
     begin_section = "\n\n".join([
-        "    sim_done <= true when done_flags = (done_flags'range => '1') else false;",
+        f"    sim_done <= true when done_flags = (done_flags'range => '1') else false;",
         "    clk <= not clk after CLK_PERIOD / 2 when not sim_done else '0';",
         "    -- DUT instances",
         "\n\n".join(inst_blocks),
-        "\n".join(bp_blocks),
+        "\n\n".join(bp_blocks),
         "    -- Stimulus processes",
         "\n\n".join(stim_blocks),
         "    -- Checker processes",
@@ -436,8 +539,8 @@ architecture tb of conv2d_tb is
     with open(tb_path, 'w') as f:
         f.write(vhdl)
 
-    print(f"\nWrote {tb_path}")
-    print(f"Recommended simulation run time: 4000 ns")
+    print(f"\nWrote {tb_path}  ({N} configs, {sum(1 for b in bp_blocks)} BP scenarios)")
+    print(f"Recommended simulation run time: 8000 ns")
 
 
 if __name__ == '__main__':
