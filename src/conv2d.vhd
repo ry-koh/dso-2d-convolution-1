@@ -22,8 +22,9 @@
 --           zero-rows so that the final KERN_ROWS-1 real rows each produce
 --           a fully shifted output window.  Real input is stalled (s_tready
 --           deasserted) until flush completes.  SOF (s_tuser='1') resets
---           row_cnt and buf_wr_row on the first pixel of the next frame to
---           re-arm row_valid correctly after flush has left row_cnt non-zero.
+--           row_cnt to 0 on the first pixel of the next frame to re-arm
+--           row_valid; buf_wr_row is NOT reset at SOF or frame-end so that
+--           BRAM age ordering is preserved when FH mod NUM_BUF_ROWS /= 0.
 --
 -- Coordinate metasystem:
 --   col_cnt_d1 / row_cnt_d1 — 1-cycle-delayed coordinates registered in
@@ -235,21 +236,24 @@ begin
                 buf_wr_row <= 0;
             elsif push = '1' then
                 if pixel_accepted = '1' and s_tuser = '1' then
-                    col_cnt    <= (col_cnt + 1) mod LINE_WIDTH;
-                    row_cnt    <= 0;
-                    buf_wr_row <= 0;
+                    col_cnt <= (col_cnt + 1) mod LINE_WIDTH;
+                    row_cnt <= 0;
+                    -- buf_wr_row continues naturally; do not reset at SOF.
+                    -- BRAM age ordering depends on buf_wr_row tracking the true
+                    -- oldest slot modulo NUM_BUF_ROWS across frame boundaries.
+                    -- Resetting to 0 breaks ordering when FH mod NUM_BUF_ROWS /= 0.
                 elsif col_cnt = LINE_WIDTH - 1 then
                     col_cnt <= 0;
                     if row_cnt = FRAME_HEIGHT - 1 then
-                        row_cnt    <= 0;
-                        buf_wr_row <= 0;
+                        row_cnt <= 0;
                     else
                         row_cnt <= row_cnt + 1;
-                        if buf_wr_row = NUM_BUF_ROWS - 1 then
-                            buf_wr_row <= 0;
-                        else
-                            buf_wr_row <= buf_wr_row + 1;
-                        end if;
+                    end if;
+                    -- Always increment buf_wr_row at end of every row (real or flush).
+                    if buf_wr_row = NUM_BUF_ROWS - 1 then
+                        buf_wr_row <= 0;
+                    else
+                        buf_wr_row <= buf_wr_row + 1;
                     end if;
                 else
                     col_cnt <= col_cnt + 1;
@@ -269,14 +273,22 @@ begin
     -- -----------------------------------------------------------------------
     new_row <= '1' when col_cnt = 0 and push = '1' else '0';
 
-    -- During flush, force all row_valid bits high so win_buf reads real BRAM
-    -- data (last KERN_ROWS-1 rows of the frame) rather than zeroing them out.
-    -- row_cnt wraps to 0 when flush starts, which would otherwise re-arm
-    -- row_valid from scratch and incorrectly blank the older row taps.
-    p_row_valid : process (row_cnt, flushing)
+    -- During flush, derive row_valid from the virtual row coordinate
+    -- (FRAME_HEIGHT + flush_row_cnt) so that BRAM slots with no real data
+    -- (degenerate frames where FH < KERN_ROWS) are still masked to zero.
+    -- Forcing all-ones unconditionally was wrong for FH <= KERN_ROWS: flush
+    -- writes would overwrite real BRAM rows before the output stage read them,
+    -- and unwritten BRAM slots would propagate uninitialised data.
+    p_row_valid : process (row_cnt, flushing, flush_row_cnt)
     begin
         for r in 0 to NUM_BUF_ROWS - 1 loop
-            if flushing or row_cnt >= KERN_ROWS - 1 - r then
+            if flushing then
+                if FRAME_HEIGHT + flush_row_cnt >= KERN_ROWS - 1 - r then
+                    row_valid(r) <= '1';
+                else
+                    row_valid(r) <= '0';
+                end if;
+            elsif row_cnt >= KERN_ROWS - 1 - r then
                 row_valid(r) <= '1';
             else
                 row_valid(r) <= '0';
