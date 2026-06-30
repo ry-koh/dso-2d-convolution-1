@@ -1,29 +1,34 @@
--- Self-checking testbench for conv2d (Phase 3).
--- Drives 3 frames (8x8 pixels each) from input_pixels.txt,
--- compares every output against expected_taps.txt, and prints PASS or FAIL.
+-- Self-checking testbench for conv2d Phase 4.
+-- Drives N frames of pixels, compares every output against golden vectors,
+-- and prints PASS or FAIL.
 --
--- Architecture: two decoupled processes.
---   p_stim  : drives pixels into the DUT; handles TUSER/TLAST/back-pressure.
---   p_check : waits for m_tvalid='1' at a rising edge (signal already stable
---             from the previous delta cycle), reads expected_taps.txt, and
---             compares bit-exactly with m_tdata.
+-- Configure the constants in the "DUT parameters" section, generate matching
+-- golden vectors with gen_vectors.py, copy the two vector files into the xsim
+-- working directory, and run the simulation.
 --
--- The decoupled checker avoids the delta-cycle hazard: using
---   wait until rising_edge(clk) and m_tvalid = '1'
--- ensures we sample m_tvalid and m_tdata AFTER all processes at the previous
--- rising edge have committed their updates.
+-- Two required Phase 4 configurations:
 --
--- Back-pressure: m_tready(0) is deasserted for 10 cycles immediately after
--- reset to verify the pipeline stalls and recovers correctly.  The stall
--- occurs before any pixel is accepted so no output is produced during the
--- window; after release all 192 expected outputs still arrive in order.
+--   Config 1 — 3x3 REPLICATE, FLUSH=false (default below):
+--     python scripts/gen_vectors.py --kern-rows 3 --kern-cols 3 \
+--         --edge-mode REPLICATE --num-frames 3
+--     C_KERN_ROWS=3, C_KERN_COLS=3, C_EDGE_MODE="REPLICATE", C_FLUSH=false
+--
+--   Config 2 — 5x5 ZERO, FLUSH=false:
+--     python scripts/gen_vectors.py --kern-rows 5 --kern-cols 5 \
+--         --edge-mode ZERO --num-frames 3
+--     C_KERN_ROWS=5, C_KERN_COLS=5, C_EDGE_MODE="ZERO", C_FLUSH=false
+--
+-- Change the constants below and rerun for each configuration.
+--
+-- Architecture: two decoupled processes (same approach as Phase 3).
+--   p_stim  : drives pixels; handles TUSER / TLAST / back-pressure.
+--   p_check : waits for m_tvalid='1', reads expected_taps.txt, compares.
+--
+-- Back-pressure: m_tready(0) is deasserted for 10 cycles after reset release.
 --
 -- FILE PATH NOTE:
---   Vivado runs simulation with a working directory shown in the Tcl Console
---   (printed as "xsim: loading..." or check with [pwd] in the console).
---   Before running simulation, copy tb/vectors/input_pixels.txt and
---   tb/vectors/expected_taps.txt into that directory.
---   The filenames below must match exactly.
+--   Copy tb/vectors/input_pixels.txt and tb/vectors/expected_taps.txt into
+--   the xsim working directory before running simulation.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -35,24 +40,28 @@ end entity conv2d_tb;
 
 architecture tb of conv2d_tb is
 
-    -- DUT parameters — small image for fast simulation
+    -- -----------------------------------------------------------------------
+    -- DUT parameters — change these to switch between test configurations.
+    -- Must match the gen_vectors.py arguments used to produce the vectors.
+    -- -----------------------------------------------------------------------
     constant C_DATA_WIDTH   : positive := 8;
-    constant C_KERN_ROWS    : positive := 3;
-    constant C_KERN_COLS    : positive := 3;
+    constant C_KERN_ROWS    : positive := 3;      -- Config 1: 3  | Config 2: 5
+    constant C_KERN_COLS    : positive := 3;      -- Config 1: 3  | Config 2: 5
     constant C_LINE_WIDTH   : positive := 8;
     constant C_FRAME_HEIGHT : positive := 8;
     constant C_NUM_FRAMES   : positive := 3;
-    constant C_NUM_TAPS     : positive := C_KERN_ROWS * C_KERN_COLS;
+    constant C_EDGE_MODE    : string   := "REPLICATE"; -- Config 1 | Config 2: "ZERO"
+    constant C_FLUSH        : boolean  := false;
 
-    -- Vector filenames (must be in xsim working directory — see note above)
+    constant C_NUM_TAPS  : positive := C_KERN_ROWS * C_KERN_COLS;
+    constant CLK_PERIOD  : time     := 10 ns;
+
     constant INPUT_FILE    : string := "input_pixels.txt";
     constant EXPECTED_FILE : string := "expected_taps.txt";
 
-    constant CLK_PERIOD : time := 10 ns;
-
     -- DUT ports
-    signal clk     : std_logic := '0';
-    signal rst     : std_logic := '1';
+    signal clk      : std_logic := '0';
+    signal rst      : std_logic := '1';
     signal s_tdata  : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
     signal s_tvalid : std_logic := '0';
     signal s_tready : std_logic;
@@ -64,27 +73,22 @@ architecture tb of conv2d_tb is
     signal m_tlast  : std_logic;
     signal m_tuser  : std_logic;
 
-    -- Simulation control
     signal sim_done  : boolean := false;
     signal stim_done : boolean := false;
 
 begin
 
-    -- -----------------------------------------------------------------------
-    -- Clock
-    -- -----------------------------------------------------------------------
     clk <= not clk after CLK_PERIOD / 2 when not sim_done else '0';
 
-    -- -----------------------------------------------------------------------
-    -- DUT
-    -- -----------------------------------------------------------------------
     u_dut : entity work.conv2d
         generic map (
             DATA_WIDTH   => C_DATA_WIDTH,
             KERN_ROWS    => C_KERN_ROWS,
             KERN_COLS    => C_KERN_COLS,
             LINE_WIDTH   => C_LINE_WIDTH,
-            FRAME_HEIGHT => C_FRAME_HEIGHT
+            FRAME_HEIGHT => C_FRAME_HEIGHT,
+            EDGE_MODE    => C_EDGE_MODE,
+            FLUSH        => C_FLUSH
         )
         port map (
             clk      => clk,
@@ -102,9 +106,7 @@ begin
         );
 
     -- -----------------------------------------------------------------------
-    -- Back-pressure process
-    -- Deasserts m_tready(0) for 10 cycles after reset, then releases it.
-    -- m_tready(1..8) remain high throughout.
+    -- Back-pressure: deassert m_tready(0) for 10 cycles after reset.
     -- -----------------------------------------------------------------------
     p_backpressure : process
     begin
@@ -117,9 +119,7 @@ begin
     end process p_backpressure;
 
     -- -----------------------------------------------------------------------
-    -- Stimulus process
-    -- Reads input_pixels.txt one pixel per line, drives s_tdata/s_tvalid/
-    -- s_tlast/s_tuser, and waits for each handshake before advancing.
+    -- Stimulus: drives all frames from input_pixels.txt.
     -- -----------------------------------------------------------------------
     p_stim : process
         file     in_f      : text;
@@ -129,7 +129,6 @@ begin
         variable row       : natural range 0 to C_FRAME_HEIGHT - 1;
         variable frame_num : natural;
     begin
-        -- Release reset after 5 clock cycles
         wait for CLK_PERIOD * 5;
         wait until rising_edge(clk);
         rst <= '0';
@@ -154,10 +153,8 @@ begin
                 s_tlast <= '0';
             end if;
 
-            -- Wait for the upstream handshake
             wait until rising_edge(clk) and s_tready = '1';
 
-            -- Advance pixel position
             if col = C_LINE_WIDTH - 1 then
                 col := 0;
                 if row = C_FRAME_HEIGHT - 1 then
@@ -180,12 +177,9 @@ begin
     end process p_stim;
 
     -- -----------------------------------------------------------------------
-    -- Checker process
-    -- Waits for m_tvalid='1' at a rising edge.  Because m_tvalid is driven
-    -- by a registered process, it is already stable (settled in the previous
-    -- clock's delta-1) when this process samples it at delta-0 of the next
-    -- rising edge.  Reads expected_taps.txt in lockstep with each output
-    -- event and compares bit-exactly with m_tdata.
+    -- Checker: compares every m_tvalid beat against expected_taps.txt.
+    -- Samples at a rising edge where m_tvalid is already '1' (registered
+    -- output settled in the previous clock's delta-1).
     -- -----------------------------------------------------------------------
     p_check : process
         file     exp_f     : text;
@@ -195,16 +189,12 @@ begin
         variable out_count : natural;
         variable err_count : natural;
     begin
-        -- Wait for reset release before opening file
         wait until rst = '0';
         file_open(exp_f, EXPECTED_FILE, read_mode);
         out_count := 0;
         err_count := 0;
 
-        -- Consume one expected line per valid output beat
         while not endfile(exp_f) loop
-            -- Sample at a rising edge where m_tvalid is already '1'
-            -- (the registered output settled in the previous clock's delta-1)
             wait until rising_edge(clk) and m_tvalid = '1';
 
             readline(exp_f, exp_line);
@@ -215,7 +205,9 @@ begin
             end loop;
 
             if m_tdata /= exp_vec then
-                report "MISMATCH at output index " & integer'image(out_count)
+                report "MISMATCH at output " & integer'image(out_count)
+                    & "  got=" & integer'image(to_integer(unsigned(m_tdata)))
+                    & "  exp=" & integer'image(to_integer(unsigned(exp_vec)))
                     severity error;
                 err_count := err_count + 1;
             end if;
@@ -224,14 +216,15 @@ begin
 
         file_close(exp_f);
 
-        -- Final verdict
         if err_count = 0 then
             report "PASS: " & integer'image(out_count)
                 & " outputs checked, all matched golden vectors."
+                & "  EDGE_MODE=" & C_EDGE_MODE
                 severity note;
         else
             report "FAIL: " & integer'image(err_count)
                 & " mismatches in " & integer'image(out_count) & " outputs."
+                & "  EDGE_MODE=" & C_EDGE_MODE
                 severity failure;
         end if;
 

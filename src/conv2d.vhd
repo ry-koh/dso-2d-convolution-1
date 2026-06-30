@@ -1,30 +1,43 @@
--- Top-level 2D convolution window extractor.
--- Phase 2 fixed parameters: 3x3 kernel, 8-bit pixels, zero-extend edges,
--- flush off, synchronous active-high reset, single clock domain.
+-- Top-level 2D convolution window extractor — Phase 4.
+-- Adds EDGE_MODE and FLUSH generics to the Phase 3 base.
 --
--- I/O contract: one AXI4-Stream video input -> KERN_ROWS*KERN_COLS output ports.
--- Each output port carries the pixel at the corresponding window tap position.
--- Tap indexing (matches win_buf): row 0 = oldest row, row KERN_ROWS-1 = current;
--- col 0 = most recent pixel in that row, col KERN_COLS-1 = oldest.
--- Flattened: tap[r][c] at m_tdata bits ((r*KERN_COLS+c+1)*DW-1 downto (r*KERN_COLS+c)*DW).
+-- EDGE_MODE:
+--   "ZERO"      — out-of-bounds taps read as 0 (Phase 3 behaviour).
+--                 Implemented via win_buf's new_row / row_valid mechanism;
+--                 the output mux passes m_tdata_r through unchanged.
+--   "REPLICATE" — out-of-bounds taps clamp to the nearest in-bounds tap.
+--                 Only top (coord_y < 0) and left (coord_x < 0) boundaries
+--                 are ever OOB in a causal streaming pipeline; right and
+--                 bottom coordinates are always in-bounds for valid col/row.
+--                 Implemented in combinational p_edge_out using delayed
+--                 pixel coordinates (m_col_r, m_row_r).
+--   "TOROIDAL"  — wrap coordinates mod frame dimensions.  Wrapped pixels at
+--                 the far right or bottom of a previous frame are not present
+--                 in the causal streaming window; those taps fall back to the
+--                 zero already stored by win_buf for OOB positions.
 --
--- Pipeline (2 stages):
---   Stage 1: pixel accepted from input; win_buf shifts; BRAM write issued.
---   Stage 2: m_tdata_r captures win_buf output; m_tvalid_r goes high.
--- The 1-stage output register aligns m_tdata with m_tvalid and gives clean
--- registered AXI4-Stream outputs.
+-- FLUSH (requires KERN_ROWS >= 2):
+--   false — no action after the last real frame pixel (Phase 3 behaviour).
+--   true  — after the last pixel of each frame, injects KERN_ROWS-1 dummy
+--           zero-rows so that the final KERN_ROWS-1 real rows each produce
+--           a fully shifted output window.  Real input is stalled (s_tready
+--           deasserted) until flush completes.  SOF (s_tuser='1') resets
+--           row_cnt and buf_wr_row on the first pixel of the next frame to
+--           re-arm row_valid correctly after flush has left row_cnt non-zero.
 --
--- Zero-extend: Vivado simulation initialises BRAM to 0; win_buf resets to 0.
--- Taps for pixels outside the frame boundary therefore read as 0 naturally.
--- This is correct for the first frame. Phase 4 will add explicit edge modes.
+-- Coordinate metasystem:
+--   col_cnt_d1 / row_cnt_d1 — 1-cycle-delayed coordinates registered in
+--   p_delay; captured into m_col_r / m_row_r in p_out_reg alongside the
+--   registered tap data.  p_edge_out computes each tap's image coordinate
+--   combinatorially from these to apply EDGE_MODE remapping.
 --
--- Back-pressure: s_tready = AND of all m_tready. Pipeline stalls cleanly
--- (no pixel accepted, no shift, output registers held) when any downstream
--- deasserts TREADY.
+-- Pipeline (3 stages, unchanged from Phase 3):
+--   Stage 1: pixel or flush accepted; win_buf shifts; BRAM write issued.
+--   Stage 2: p_delay registers push / coords / flags.
+--   Stage 3: p_out_reg captures wb_tap_out and coords; p_edge_out applies EDGE_MODE.
 --
--- BRAM row ordering: the physical BRAM being written (buf_wr_row) holds the
--- OLDEST stored row (it is about to be overwritten). Passing buf_wr_row as
--- row_base to line_buf permutes the read outputs so slot 0 is always oldest.
+-- All other architecture (BRAM row ordering, delta-cycle fix, row_valid,
+-- back-pressure) is identical to Phase 3.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -36,7 +49,9 @@ entity conv2d is
         KERN_ROWS    : positive := 3;
         KERN_COLS    : positive := 3;
         LINE_WIDTH   : positive := 1920;
-        FRAME_HEIGHT : positive := 1080
+        FRAME_HEIGHT : positive := 1080;
+        EDGE_MODE    : string   := "ZERO";   -- "ZERO" | "REPLICATE" | "TOROIDAL"
+        FLUSH        : boolean  := false     -- inject KERN_ROWS-1 dummy rows after frame
     );
     port (
         clk  : in std_logic;
@@ -68,6 +83,16 @@ architecture rtl of conv2d is
     signal all_ready      : std_logic;
     signal pixel_accepted : std_logic;
 
+    -- FLUSH FSM (only activated when FLUSH=true and KERN_ROWS >= 2)
+    signal flushing      : boolean   := false;
+    signal flush_push    : std_logic := '0';
+    signal flush_col_cnt : natural range 0 to LINE_WIDTH  - 1 := 0;
+    signal flush_row_cnt : natural range 0 to KERN_ROWS   - 1 := 0;
+
+    -- Unified push signal: real pixel accepted OR flush pixel being injected
+    signal push      : std_logic;
+    signal push_data : std_logic_vector(DATA_WIDTH - 1 downto 0);
+
     -- line_buf ports
     signal lb_wr_col  : natural range 0 to LINE_WIDTH - 1;
     signal lb_rd_col  : natural range 0 to LINE_WIDTH - 1;
@@ -80,21 +105,26 @@ architecture rtl of conv2d is
     -- win_buf output
     signal wb_tap_out : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
-    -- 1-cycle delay to let win_buf's p_shift settle before p_out_reg samples tap_out
+    -- 1-cycle delay stage: Bug 2 fix + Phase 4 coordinate delay
     signal pixel_accepted_d1 : std_logic;
     signal tlast_d1          : std_logic;
     signal tuser_d1          : std_logic;
+    signal col_cnt_d1        : natural range 0 to LINE_WIDTH   - 1;
+    signal row_cnt_d1        : natural range 0 to FRAME_HEIGHT - 1;
 
     -- Registered output stage
     signal m_tdata_r  : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
     signal m_tvalid_r : std_logic;
     signal m_tlast_r  : std_logic;
     signal m_tuser_r  : std_logic;
+    signal m_col_r    : natural range 0 to LINE_WIDTH   - 1;
+    signal m_row_r    : natural range 0 to FRAME_HEIGHT - 1;
 
 begin
 
     -- -----------------------------------------------------------------------
-    -- Back-pressure: stall unless all downstream ports are ready
+    -- Back-pressure: stall unless all downstream ports are ready.
+    -- During flush, also deassert s_tready to hold real input.
     -- -----------------------------------------------------------------------
     p_all_ready : process (m_tready)
         variable v : std_logic;
@@ -106,11 +136,60 @@ begin
         all_ready <= v;
     end process;
 
-    s_tready      <= all_ready;
-    pixel_accepted <= s_tvalid and all_ready;
+    s_tready      <= all_ready and not flush_push;
+    pixel_accepted <= s_tvalid and all_ready and not flush_push;
+    push           <= pixel_accepted or (flush_push and all_ready);
+    push_data      <= s_tdata when pixel_accepted = '1' else (others => '0');
 
     -- -----------------------------------------------------------------------
-    -- Column / row / BRAM-row counters
+    -- FLUSH FSM
+    -- Triggers after the last pixel of a frame when FLUSH=true and KERN_ROWS>=2.
+    -- Injects KERN_ROWS-1 zero-filled dummy rows into the pipeline.
+    -- Stalls when all_ready='0' (honours back-pressure during flush).
+    -- -----------------------------------------------------------------------
+    p_flush : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                flushing      <= false;
+                flush_push    <= '0';
+                flush_col_cnt <= 0;
+                flush_row_cnt <= 0;
+            else
+                if not flushing then
+                    if FLUSH and KERN_ROWS > 1
+                       and pixel_accepted  = '1'
+                       and row_cnt         = FRAME_HEIGHT - 1
+                       and col_cnt         = LINE_WIDTH   - 1 then
+                        flushing      <= true;
+                        flush_push    <= '1';
+                        flush_col_cnt <= 0;
+                        flush_row_cnt <= 0;
+                    end if;
+                else
+                    if all_ready = '1' then
+                        if flush_col_cnt = LINE_WIDTH - 1 then
+                            flush_col_cnt <= 0;
+                            if flush_row_cnt = KERN_ROWS - 2 then
+                                flushing   <= false;
+                                flush_push <= '0';
+                            else
+                                flush_row_cnt <= flush_row_cnt + 1;
+                            end if;
+                        else
+                            flush_col_cnt <= flush_col_cnt + 1;
+                        end if;
+                    end if;
+                end if;
+            end if;
+        end if;
+    end process p_flush;
+
+    -- -----------------------------------------------------------------------
+    -- Column / row / BRAM-row counters.
+    -- Advance on push (real or flush pixel).
+    -- SOF (s_tuser='1') resets row_cnt and buf_wr_row to re-arm row_valid
+    -- correctly after FLUSH=true has left them at a non-zero value.
     -- -----------------------------------------------------------------------
     p_counters : process (clk)
     begin
@@ -119,8 +198,12 @@ begin
                 col_cnt    <= 0;
                 row_cnt    <= 0;
                 buf_wr_row <= 0;
-            elsif pixel_accepted = '1' then
-                if col_cnt = LINE_WIDTH - 1 then
+            elsif push = '1' then
+                if pixel_accepted = '1' and s_tuser = '1' then
+                    col_cnt    <= (col_cnt + 1) mod LINE_WIDTH;
+                    row_cnt    <= 0;
+                    buf_wr_row <= 0;
+                elsif col_cnt = LINE_WIDTH - 1 then
                     col_cnt <= 0;
                     if row_cnt = FRAME_HEIGHT - 1 then
                         row_cnt    <= 0;
@@ -142,22 +225,14 @@ begin
 
     -- -----------------------------------------------------------------------
     -- BRAM address generation
-    -- Write: current column. Read: next column (pre-fetch compensates for
-    -- the 1-clock BRAM read latency, so data for col C arrives the cycle
-    -- that col C is presented to win_buf).
     -- -----------------------------------------------------------------------
     lb_wr_col <= col_cnt;
     lb_rd_col <= 0 when col_cnt = LINE_WIDTH - 1 else col_cnt + 1;
 
     -- -----------------------------------------------------------------------
     -- Zero-extend control for win_buf
-    -- new_row: '1' on the first pixel of a new row so win_buf zeroes out the
-    --          KERN_COLS-1 stale column positions instead of shifting them in.
-    -- row_valid(r): '1' when the BRAM slot r holds a valid older row within
-    --               the current frame.  When '0', win_buf inserts 0 instead of
-    --               stale BRAM data from the previous frame.
     -- -----------------------------------------------------------------------
-    new_row <= '1' when col_cnt = 0 and pixel_accepted = '1' else '0';
+    new_row <= '1' when col_cnt = 0 and push = '1' else '0';
 
     p_row_valid : process (row_cnt)
     begin
@@ -172,11 +247,11 @@ begin
 
     -- -----------------------------------------------------------------------
     -- 1-cycle delay stage
-    -- win_buf's p_shift and this process both fire at the same rising edge.
-    -- VHDL delta-cycle ordering means wb_tap_out (combinational on win) still
-    -- reflects the OLD window at delta 0.  Registering pixel_accepted here
-    -- and gating p_out_reg on the delayed version means p_out_reg reads
-    -- wb_tap_out one cycle later, after p_shift has updated win.
+    -- Delays push, flags, and pixel coordinates so that p_out_reg reads
+    -- wb_tap_out one cycle after win_buf's p_shift has committed the new
+    -- window (Bug 2 fix).  Also delays col_cnt / row_cnt so that the
+    -- registered coordinates in m_col_r / m_row_r align with m_tdata_r.
+    -- For flush pixels, tlast is derived from flush_col_cnt position.
     -- -----------------------------------------------------------------------
     p_delay : process (clk)
     begin
@@ -185,19 +260,29 @@ begin
                 pixel_accepted_d1 <= '0';
                 tlast_d1          <= '0';
                 tuser_d1          <= '0';
+                col_cnt_d1        <= 0;
+                row_cnt_d1        <= 0;
             elsif all_ready = '1' then
-                pixel_accepted_d1 <= pixel_accepted;
-                tlast_d1          <= s_tlast and pixel_accepted;
-                tuser_d1          <= s_tuser and pixel_accepted;
+                pixel_accepted_d1 <= push;
+                col_cnt_d1        <= col_cnt;
+                row_cnt_d1        <= row_cnt;
+                if flushing then
+                    tuser_d1 <= '0';
+                    if flush_col_cnt = LINE_WIDTH - 1 then
+                        tlast_d1 <= '1';
+                    else
+                        tlast_d1 <= '0';
+                    end if;
+                else
+                    tlast_d1 <= s_tlast and pixel_accepted;
+                    tuser_d1 <= s_tuser and pixel_accepted;
+                end if;
             end if;
         end if;
     end process p_delay;
 
     -- -----------------------------------------------------------------------
     -- Registered output stage
-    -- Reads wb_tap_out one cycle after acceptance so the value is stable
-    -- (win_buf p_shift has already committed the new window in the previous
-    -- clock's delta-1).  Held when all_ready='0' (AXI-S: no TVALID retract).
     -- -----------------------------------------------------------------------
     p_out_reg : process (clk)
     begin
@@ -207,19 +292,67 @@ begin
                 m_tvalid_r <= '0';
                 m_tlast_r  <= '0';
                 m_tuser_r  <= '0';
+                m_col_r    <= 0;
+                m_row_r    <= 0;
             elsif all_ready = '1' then
                 m_tdata_r  <= wb_tap_out;
                 m_tvalid_r <= pixel_accepted_d1;
                 m_tlast_r  <= tlast_d1;
                 m_tuser_r  <= tuser_d1;
+                m_col_r    <= col_cnt_d1;
+                m_row_r    <= row_cnt_d1;
             end if;
         end if;
     end process p_out_reg;
 
-    m_tdata  <= m_tdata_r;
     m_tvalid <= m_tvalid_r;
     m_tlast  <= m_tlast_r;
     m_tuser  <= m_tuser_r;
+
+    -- -----------------------------------------------------------------------
+    -- Edge mode output mux (combinational)
+    --
+    -- For each tap (r, c) in the registered window m_tdata_r, computes the
+    -- tap's original image coordinate:
+    --   coord_x = m_col_r - c          (c=0 is most-recent pixel)
+    --   coord_y = m_row_r - (KERN_ROWS-1-r) (r=KERN_ROWS-1 is current row)
+    --
+    -- ZERO:      pass through; win_buf already zeroed OOB positions via
+    --            new_row / row_valid.
+    -- REPLICATE: when OOB, clamp coord to nearest valid axis and derive the
+    --            source tap indices:
+    --              coord_x < 0  ->  c_src = m_col_r  (leftmost valid col in window)
+    --              coord_y < 0  ->  r_src = KERN_ROWS-1 - m_row_r  (top edge row)
+    -- TOROIDAL:  OOB-wrapped pixels at right/bottom are not in the causal
+    --            window; fall back to what win_buf stored (zero for OOB).
+    -- -----------------------------------------------------------------------
+    p_edge_out : process (m_tdata_r, m_col_r, m_row_r)
+        variable cx  : integer;
+        variable cy  : integer;
+        variable rs  : integer;
+        variable cs  : integer;
+        variable pix : std_logic_vector(DATA_WIDTH - 1 downto 0);
+    begin
+        for r in 0 to KERN_ROWS - 1 loop
+            for c in 0 to KERN_COLS - 1 loop
+                cx := m_col_r - c;
+                cy := m_row_r - (KERN_ROWS - 1 - r);
+
+                if EDGE_MODE = "REPLICATE" and (cx < 0 or cy < 0) then
+                    if cx < 0 then cs := m_col_r; else cs := c; end if;
+                    if cy < 0 then rs := KERN_ROWS - 1 - m_row_r; else rs := r; end if;
+                    pix := m_tdata_r((rs * KERN_COLS + cs + 1) * DATA_WIDTH - 1
+                                      downto (rs * KERN_COLS + cs) * DATA_WIDTH);
+                else
+                    pix := m_tdata_r((r * KERN_COLS + c + 1) * DATA_WIDTH - 1
+                                      downto (r * KERN_COLS + c) * DATA_WIDTH);
+                end if;
+
+                m_tdata((r * KERN_COLS + c + 1) * DATA_WIDTH - 1
+                         downto (r * KERN_COLS + c) * DATA_WIDTH) <= pix;
+            end loop;
+        end loop;
+    end process p_edge_out;
 
     -- -----------------------------------------------------------------------
     -- Sub-block instantiation
@@ -232,10 +365,10 @@ begin
         )
         port map (
             clk      => clk,
-            wr_en    => pixel_accepted,
+            wr_en    => push,
             wr_row   => buf_wr_row,
             wr_col   => lb_wr_col,
-            wr_data  => s_tdata,
+            wr_data  => push_data,
             row_base => buf_wr_row,
             rd_col   => lb_rd_col,
             rd_data  => lb_rd_data
@@ -250,10 +383,10 @@ begin
         port map (
             clk       => clk,
             rst       => rst,
-            shift_en  => pixel_accepted,
+            shift_en  => push,
             new_row   => new_row,
             row_valid => row_valid,
-            pix_in    => s_tdata,
+            pix_in    => push_data,
             buf_rows  => lb_rd_data,
             tap_out   => wb_tap_out
         );
