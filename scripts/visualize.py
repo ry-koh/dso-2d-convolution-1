@@ -254,15 +254,24 @@ def draw_tap_window(ax, taps, cfg, row, col):
             src_col = col - c          # = col - (kc-1-dc)
             is_oob  = not (0 <= src_row < fh_img and 0 <= src_col < lw_img)
 
-            if is_oob and mode == "ZERO":
-                face = (0.85, 0.85, 0.85, 1.0)
+            # ZERO and TOROIDAL both produce 0 for OOB in a causal
+            # streaming pipeline (wrapped pixels from a previous row/frame
+            # are not present in the shift-register window).
+            # REPLICATE clamps to the nearest valid tap.
+            if is_oob and mode in ("ZERO", "TOROIDAL"):
+                face       = (0.85, 0.85, 0.85, 1.0)
+                edge_color = "steelblue" if mode == "TOROIDAL" else "none"
+            elif is_oob and mode == "REPLICATE":
+                face       = cmap(norm)
+                edge_color = "steelblue"
             else:
-                face = cmap(norm)
+                face       = cmap(norm)
+                edge_color = "none"
 
             rect = mpatches.FancyBboxPatch(
                 (dc - 0.48, r - 0.48), 0.96, 0.96,
                 boxstyle="round,pad=0.02", linewidth=1.5,
-                edgecolor="steelblue" if is_oob else "none",
+                edgecolor=edge_color,
                 facecolor=face, zorder=1)
             ax.add_patch(rect)
 
@@ -282,9 +291,12 @@ def draw_tap_window(ax, taps, cfg, row, col):
     ax.add_patch(rect)
     ax.grid(False)
 
-    oob_note = ("* = OOB (zero)" if mode == "ZERO"
-                else "* = OOB (clamped)" if mode == "REPLICATE"
-                else "* = OOB (wrapped)")
+    if mode == "ZERO":
+        oob_note = "* = OOB → 0 (zero-extend)"
+    elif mode == "REPLICATE":
+        oob_note = "* = OOB → clamped to nearest edge pixel"
+    else:
+        oob_note = "* = OOB → 0 (true wrap needs frame buffer; causal limit)"
     ax.text(0.01, 0.01, oob_note, transform=ax.transAxes,
             fontsize=7, color="grey", va="bottom")
 
