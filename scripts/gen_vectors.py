@@ -42,6 +42,8 @@ def parse_args():
     p.add_argument('--flush',        action='store_true',        help='Model FLUSH=true pipeline')
     p.add_argument('--out-dir',      type=str, default=os.path.join('tb', 'vectors'),
                    help='Output directory')
+    p.add_argument('--prefix',       type=str, default='',
+                   help='Filename prefix for output files (e.g. "c1_" -> c1_input.txt)')
     return p.parse_args()
 
 
@@ -107,6 +109,7 @@ def main():
     MODE = args.edge_mode
 
     os.makedirs(args.out_dir, exist_ok=True)
+    PFX = args.prefix
 
     all_pixels = []
     all_taps   = []
@@ -144,18 +147,20 @@ def main():
                 # Dummy zero pixels for this flush row (not written to input file —
                 # the RTL generates them internally, not from the AXI stream)
 
-    # input_pixels.txt: one decimal integer per line (real frame pixels only)
-    with open(os.path.join(args.out_dir, 'input_pixels.txt'), 'w') as f:
+    # input pixels: one decimal integer per line (real frame pixels only)
+    input_file = os.path.join(args.out_dir, f'{PFX}input.txt')
+    with open(input_file, 'w') as f:
         for p in all_pixels:
             f.write(f'{p}\n')
 
-    # expected_taps.txt: KR*KC space-separated decimal integers per line
-    with open(os.path.join(args.out_dir, 'expected_taps.txt'), 'w') as f:
+    # expected taps: KR*KC space-separated decimal integers per line
+    expected_file = os.path.join(args.out_dir, f'{PFX}expected.txt')
+    with open(expected_file, 'w') as f:
         for taps in all_taps:
             f.write(' '.join(str(t) for t in taps) + '\n')
 
-    # metadata.txt
-    with open(os.path.join(args.out_dir, 'metadata.txt'), 'w') as f:
+    # metadata
+    with open(os.path.join(args.out_dir, f'{PFX}metadata.txt'), 'w') as f:
         f.write(f'DATA_WIDTH   = {DW}\n')
         f.write(f'KERN_ROWS    = {KR}\n')
         f.write(f'KERN_COLS    = {KC}\n')
@@ -168,9 +173,8 @@ def main():
         f.write(f'Total output events : {len(all_taps)}\n')
 
     print(f'Written to {args.out_dir}/')
-    print(f'  input_pixels.txt  : {len(all_pixels)} lines')
-    print(f'  expected_taps.txt : {len(all_taps)} lines')
-    print(f'  metadata.txt      : parameter summary')
+    print(f'  {os.path.basename(input_file)}    : {len(all_pixels)} lines')
+    print(f'  {os.path.basename(expected_file)} : {len(all_taps)} lines')
 
 
 if __name__ == '__main__':

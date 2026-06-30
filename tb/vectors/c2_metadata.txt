@@ -1,0 +1,10 @@
+DATA_WIDTH   = 8
+KERN_ROWS    = 3
+KERN_COLS    = 3
+LINE_WIDTH   = 8
+FRAME_HEIGHT = 8
+NUM_FRAMES   = 3
+EDGE_MODE    = REPLICATE
+FLUSH        = False
+Total input pixels  : 192
+Total output events : 192

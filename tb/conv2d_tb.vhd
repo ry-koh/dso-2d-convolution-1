@@ -1,34 +1,28 @@
 -- Self-checking testbench for conv2d Phase 4.
--- Drives N frames of pixels, compares every output against golden vectors,
--- and prints PASS or FAIL.
+-- Tests four configurations in parallel on a shared clock.
+-- Each configuration has its own DUT instance, stimulus process, and checker.
+-- sim_done asserts when all four checkers finish.
 --
--- Configure the constants in the "DUT parameters" section, generate matching
--- golden vectors with gen_vectors.py, copy the two vector files into the xsim
--- working directory, and run the simulation.
+-- Configurations:
+--   Config 1: 3x3, ZERO,      FLUSH=false  — Phase 3 regression + back-pressure test
+--   Config 2: 3x3, REPLICATE, FLUSH=false
+--   Config 3: 3x3, TOROIDAL,  FLUSH=false  — NOTE: OOB taps fall back to zero in a causal
+--                                              streaming pipeline (wrapped pixels at far-right /
+--                                              previous-frame rows are not in the window).
+--                                              Expected vectors are generated with ZERO mode.
+--   Config 4: 5x5, REPLICATE, FLUSH=false  — exercises larger kernel with non-trivial edge mode
 --
--- Two required Phase 4 configurations:
+-- Vector file generation (run from repo root before simulation):
+--   python scripts/gen_vectors.py --kern-rows 3 --kern-cols 3 --edge-mode ZERO      --prefix c1_
+--   python scripts/gen_vectors.py --kern-rows 3 --kern-cols 3 --edge-mode REPLICATE --prefix c2_
+--   python scripts/gen_vectors.py --kern-rows 3 --kern-cols 3 --edge-mode ZERO      --prefix c3_
+--   python scripts/gen_vectors.py --kern-rows 5 --kern-cols 5 --edge-mode REPLICATE --prefix c4_
 --
---   Config 1 — 3x3 REPLICATE, FLUSH=false (default below):
---     python scripts/gen_vectors.py --kern-rows 3 --kern-cols 3 \
---         --edge-mode REPLICATE --num-frames 3
---     C_KERN_ROWS=3, C_KERN_COLS=3, C_EDGE_MODE="REPLICATE", C_FLUSH=false
---
---   Config 2 — 5x5 ZERO, FLUSH=false:
---     python scripts/gen_vectors.py --kern-rows 5 --kern-cols 5 \
---         --edge-mode ZERO --num-frames 3
---     C_KERN_ROWS=5, C_KERN_COLS=5, C_EDGE_MODE="ZERO", C_FLUSH=false
---
--- Change the constants below and rerun for each configuration.
---
--- Architecture: two decoupled processes (same approach as Phase 3).
---   p_stim  : drives pixels; handles TUSER / TLAST / back-pressure.
---   p_check : waits for m_tvalid='1', reads expected_taps.txt, compares.
---
--- Back-pressure: m_tready(0) is deasserted for 10 cycles after reset release.
+-- Copy the 8 generated text files into the xsim working directory and run simulation.
 --
 -- FILE PATH NOTE:
---   Copy tb/vectors/input_pixels.txt and tb/vectors/expected_taps.txt into
---   the xsim working directory before running simulation.
+--   The xsim working directory is shown in the Tcl Console as "xsim: loading..."
+--   or check with [pwd] in the Vivado Tcl Console.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -40,196 +34,476 @@ end entity conv2d_tb;
 
 architecture tb of conv2d_tb is
 
+    -- Shared clock and simulation-end flag
+    constant CLK_PERIOD : time    := 10 ns;
+    signal   clk        : std_logic := '0';
+    signal   done_flags : std_logic_vector(3 downto 0) := (others => '0');
+    signal   sim_done   : boolean := false;
+
     -- -----------------------------------------------------------------------
-    -- DUT parameters — change these to switch between test configurations.
-    -- Must match the gen_vectors.py arguments used to produce the vectors.
+    -- Configuration constants
     -- -----------------------------------------------------------------------
     constant C_DATA_WIDTH   : positive := 8;
-    constant C_KERN_ROWS    : positive := 3;      -- Config 1: 3  | Config 2: 5
-    constant C_KERN_COLS    : positive := 3;      -- Config 1: 3  | Config 2: 5
     constant C_LINE_WIDTH   : positive := 8;
     constant C_FRAME_HEIGHT : positive := 8;
     constant C_NUM_FRAMES   : positive := 3;
-    constant C_EDGE_MODE    : string   := "REPLICATE"; -- Config 1 | Config 2: "ZERO"
-    constant C_FLUSH        : boolean  := false;
 
-    constant C_NUM_TAPS  : positive := C_KERN_ROWS * C_KERN_COLS;
-    constant CLK_PERIOD  : time     := 10 ns;
+    -- Config 1: 3x3 ZERO
+    constant C1_KERN_ROWS : positive := 3;
+    constant C1_KERN_COLS : positive := 3;
+    constant C1_EDGE_MODE : string   := "ZERO";
+    constant C1_FLUSH     : boolean  := false;
+    constant C1_NUM_TAPS  : positive := C1_KERN_ROWS * C1_KERN_COLS;
 
-    constant INPUT_FILE    : string := "input_pixels.txt";
-    constant EXPECTED_FILE : string := "expected_taps.txt";
+    -- Config 2: 3x3 REPLICATE
+    constant C2_KERN_ROWS : positive := 3;
+    constant C2_KERN_COLS : positive := 3;
+    constant C2_EDGE_MODE : string   := "REPLICATE";
+    constant C2_FLUSH     : boolean  := false;
+    constant C2_NUM_TAPS  : positive := C2_KERN_ROWS * C2_KERN_COLS;
 
-    -- DUT ports
-    signal clk      : std_logic := '0';
-    signal rst      : std_logic := '1';
-    signal s_tdata  : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
-    signal s_tvalid : std_logic := '0';
-    signal s_tready : std_logic;
-    signal s_tlast  : std_logic := '0';
-    signal s_tuser  : std_logic := '0';
-    signal m_tdata  : std_logic_vector(C_DATA_WIDTH * C_NUM_TAPS - 1 downto 0);
-    signal m_tvalid : std_logic;
-    signal m_tready : std_logic_vector(C_NUM_TAPS - 1 downto 0) := (others => '1');
-    signal m_tlast  : std_logic;
-    signal m_tuser  : std_logic;
+    -- Config 3: 3x3 TOROIDAL (OOB falls back to zero; vectors generated with ZERO mode)
+    constant C3_KERN_ROWS : positive := 3;
+    constant C3_KERN_COLS : positive := 3;
+    constant C3_EDGE_MODE : string   := "TOROIDAL";
+    constant C3_FLUSH     : boolean  := false;
+    constant C3_NUM_TAPS  : positive := C3_KERN_ROWS * C3_KERN_COLS;
 
-    signal sim_done  : boolean := false;
-    signal stim_done : boolean := false;
+    -- Config 4: 5x5 REPLICATE
+    constant C4_KERN_ROWS : positive := 5;
+    constant C4_KERN_COLS : positive := 5;
+    constant C4_EDGE_MODE : string   := "REPLICATE";
+    constant C4_FLUSH     : boolean  := false;
+    constant C4_NUM_TAPS  : positive := C4_KERN_ROWS * C4_KERN_COLS;
+
+    -- -----------------------------------------------------------------------
+    -- Per-DUT AXI signals
+    -- -----------------------------------------------------------------------
+
+    -- Config 1
+    signal c1_rst     : std_logic := '1';
+    signal c1_stdata  : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
+    signal c1_stvalid : std_logic := '0';
+    signal c1_stready : std_logic;
+    signal c1_stlast  : std_logic := '0';
+    signal c1_stuser  : std_logic := '0';
+    signal c1_mtdata  : std_logic_vector(C_DATA_WIDTH * C1_NUM_TAPS - 1 downto 0);
+    signal c1_mtvalid : std_logic;
+    signal c1_mtready : std_logic_vector(C1_NUM_TAPS - 1 downto 0) := (others => '1');
+    signal c1_mtlast  : std_logic;
+    signal c1_mtuser  : std_logic;
+
+    -- Config 2
+    signal c2_rst     : std_logic := '1';
+    signal c2_stdata  : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
+    signal c2_stvalid : std_logic := '0';
+    signal c2_stready : std_logic;
+    signal c2_stlast  : std_logic := '0';
+    signal c2_stuser  : std_logic := '0';
+    signal c2_mtdata  : std_logic_vector(C_DATA_WIDTH * C2_NUM_TAPS - 1 downto 0);
+    signal c2_mtvalid : std_logic;
+    signal c2_mtready : std_logic_vector(C2_NUM_TAPS - 1 downto 0) := (others => '1');
+    signal c2_mtlast  : std_logic;
+    signal c2_mtuser  : std_logic;
+
+    -- Config 3
+    signal c3_rst     : std_logic := '1';
+    signal c3_stdata  : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
+    signal c3_stvalid : std_logic := '0';
+    signal c3_stready : std_logic;
+    signal c3_stlast  : std_logic := '0';
+    signal c3_stuser  : std_logic := '0';
+    signal c3_mtdata  : std_logic_vector(C_DATA_WIDTH * C3_NUM_TAPS - 1 downto 0);
+    signal c3_mtvalid : std_logic;
+    signal c3_mtready : std_logic_vector(C3_NUM_TAPS - 1 downto 0) := (others => '1');
+    signal c3_mtlast  : std_logic;
+    signal c3_mtuser  : std_logic;
+
+    -- Config 4
+    signal c4_rst     : std_logic := '1';
+    signal c4_stdata  : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
+    signal c4_stvalid : std_logic := '0';
+    signal c4_stready : std_logic;
+    signal c4_stlast  : std_logic := '0';
+    signal c4_stuser  : std_logic := '0';
+    signal c4_mtdata  : std_logic_vector(C_DATA_WIDTH * C4_NUM_TAPS - 1 downto 0);
+    signal c4_mtvalid : std_logic;
+    signal c4_mtready : std_logic_vector(C4_NUM_TAPS - 1 downto 0) := (others => '1');
+    signal c4_mtlast  : std_logic;
+    signal c4_mtuser  : std_logic;
 
 begin
 
+    sim_done <= true when done_flags = "1111" else false;
     clk <= not clk after CLK_PERIOD / 2 when not sim_done else '0';
 
-    u_dut : entity work.conv2d
+    -- -----------------------------------------------------------------------
+    -- DUT instances
+    -- -----------------------------------------------------------------------
+    u_dut1 : entity work.conv2d
         generic map (
             DATA_WIDTH   => C_DATA_WIDTH,
-            KERN_ROWS    => C_KERN_ROWS,
-            KERN_COLS    => C_KERN_COLS,
+            KERN_ROWS    => C1_KERN_ROWS,
+            KERN_COLS    => C1_KERN_COLS,
             LINE_WIDTH   => C_LINE_WIDTH,
             FRAME_HEIGHT => C_FRAME_HEIGHT,
-            EDGE_MODE    => C_EDGE_MODE,
-            FLUSH        => C_FLUSH
+            EDGE_MODE    => C1_EDGE_MODE,
+            FLUSH        => C1_FLUSH
         )
         port map (
-            clk      => clk,
-            rst      => rst,
-            s_tdata  => s_tdata,
-            s_tvalid => s_tvalid,
-            s_tready => s_tready,
-            s_tlast  => s_tlast,
-            s_tuser  => s_tuser,
-            m_tdata  => m_tdata,
-            m_tvalid => m_tvalid,
-            m_tready => m_tready,
-            m_tlast  => m_tlast,
-            m_tuser  => m_tuser
+            clk      => clk,      rst      => c1_rst,
+            s_tdata  => c1_stdata,  s_tvalid => c1_stvalid,
+            s_tready => c1_stready, s_tlast  => c1_stlast,
+            s_tuser  => c1_stuser,  m_tdata  => c1_mtdata,
+            m_tvalid => c1_mtvalid, m_tready => c1_mtready,
+            m_tlast  => c1_mtlast,  m_tuser  => c1_mtuser
+        );
+
+    u_dut2 : entity work.conv2d
+        generic map (
+            DATA_WIDTH   => C_DATA_WIDTH,
+            KERN_ROWS    => C2_KERN_ROWS,
+            KERN_COLS    => C2_KERN_COLS,
+            LINE_WIDTH   => C_LINE_WIDTH,
+            FRAME_HEIGHT => C_FRAME_HEIGHT,
+            EDGE_MODE    => C2_EDGE_MODE,
+            FLUSH        => C2_FLUSH
+        )
+        port map (
+            clk      => clk,      rst      => c2_rst,
+            s_tdata  => c2_stdata,  s_tvalid => c2_stvalid,
+            s_tready => c2_stready, s_tlast  => c2_stlast,
+            s_tuser  => c2_stuser,  m_tdata  => c2_mtdata,
+            m_tvalid => c2_mtvalid, m_tready => c2_mtready,
+            m_tlast  => c2_mtlast,  m_tuser  => c2_mtuser
+        );
+
+    u_dut3 : entity work.conv2d
+        generic map (
+            DATA_WIDTH   => C_DATA_WIDTH,
+            KERN_ROWS    => C3_KERN_ROWS,
+            KERN_COLS    => C3_KERN_COLS,
+            LINE_WIDTH   => C_LINE_WIDTH,
+            FRAME_HEIGHT => C_FRAME_HEIGHT,
+            EDGE_MODE    => C3_EDGE_MODE,
+            FLUSH        => C3_FLUSH
+        )
+        port map (
+            clk      => clk,      rst      => c3_rst,
+            s_tdata  => c3_stdata,  s_tvalid => c3_stvalid,
+            s_tready => c3_stready, s_tlast  => c3_stlast,
+            s_tuser  => c3_stuser,  m_tdata  => c3_mtdata,
+            m_tvalid => c3_mtvalid, m_tready => c3_mtready,
+            m_tlast  => c3_mtlast,  m_tuser  => c3_mtuser
+        );
+
+    u_dut4 : entity work.conv2d
+        generic map (
+            DATA_WIDTH   => C_DATA_WIDTH,
+            KERN_ROWS    => C4_KERN_ROWS,
+            KERN_COLS    => C4_KERN_COLS,
+            LINE_WIDTH   => C_LINE_WIDTH,
+            FRAME_HEIGHT => C_FRAME_HEIGHT,
+            EDGE_MODE    => C4_EDGE_MODE,
+            FLUSH        => C4_FLUSH
+        )
+        port map (
+            clk      => clk,      rst      => c4_rst,
+            s_tdata  => c4_stdata,  s_tvalid => c4_stvalid,
+            s_tready => c4_stready, s_tlast  => c4_stlast,
+            s_tuser  => c4_stuser,  m_tdata  => c4_mtdata,
+            m_tvalid => c4_mtvalid, m_tready => c4_mtready,
+            m_tlast  => c4_mtlast,  m_tuser  => c4_mtuser
         );
 
     -- -----------------------------------------------------------------------
-    -- Back-pressure: deassert m_tready(0) for 10 cycles after reset.
+    -- Back-pressure for Config 1 only:
+    -- m_tready(0) deasserted for 10 cycles after reset, then released.
     -- -----------------------------------------------------------------------
-    p_backpressure : process
+    p_bp1 : process
     begin
-        m_tready(0) <= '0';
-        m_tready(C_NUM_TAPS - 1 downto 1) <= (others => '1');
-        wait until rst = '0';
+        c1_mtready(0) <= '0';
+        c1_mtready(C1_NUM_TAPS - 1 downto 1) <= (others => '1');
+        wait until c1_rst = '0';
         wait for CLK_PERIOD * 10;
-        m_tready(0) <= '1';
+        c1_mtready(0) <= '1';
         wait;
-    end process p_backpressure;
+    end process p_bp1;
 
     -- -----------------------------------------------------------------------
-    -- Stimulus: drives all frames from input_pixels.txt.
+    -- Generic stimulus procedure body (inlined per config to avoid subprograms
+    -- that reference file I/O differently across xsim versions).
+    -- Each p_stimN: releases reset, reads input file, drives pixels.
     -- -----------------------------------------------------------------------
-    p_stim : process
-        file     in_f      : text;
-        variable in_line   : line;
-        variable pix_val   : integer;
-        variable col       : natural range 0 to C_LINE_WIDTH   - 1;
-        variable row       : natural range 0 to C_FRAME_HEIGHT - 1;
-        variable frame_num : natural;
+
+    p_stim1 : process
+        file     f    : text;
+        variable ln   : line;
+        variable pv   : integer;
+        variable col  : natural range 0 to C_LINE_WIDTH   - 1;
+        variable row  : natural range 0 to C_FRAME_HEIGHT - 1;
     begin
         wait for CLK_PERIOD * 5;
         wait until rising_edge(clk);
-        rst <= '0';
-
-        file_open(in_f, INPUT_FILE, read_mode);
-        col := 0;  row := 0;  frame_num := 0;
-
-        while not endfile(in_f) loop
-            readline(in_f, in_line);
-            read(in_line, pix_val);
-
-            s_tdata  <= std_logic_vector(to_unsigned(pix_val, C_DATA_WIDTH));
-            s_tvalid <= '1';
-            if row = 0 and col = 0 then
-                s_tuser <= '1';
-            else
-                s_tuser <= '0';
-            end if;
-            if col = C_LINE_WIDTH - 1 then
-                s_tlast <= '1';
-            else
-                s_tlast <= '0';
-            end if;
-
-            wait until rising_edge(clk) and s_tready = '1';
-
+        c1_rst <= '0';
+        file_open(f, "c1_input.txt", read_mode);
+        col := 0;  row := 0;
+        while not endfile(f) loop
+            readline(f, ln);  read(ln, pv);
+            c1_stdata  <= std_logic_vector(to_unsigned(pv, C_DATA_WIDTH));
+            c1_stvalid <= '1';
+            if row = 0 and col = 0 then c1_stuser <= '1'; else c1_stuser <= '0'; end if;
+            if col = C_LINE_WIDTH - 1 then c1_stlast <= '1'; else c1_stlast <= '0'; end if;
+            wait until rising_edge(clk) and c1_stready = '1';
             if col = C_LINE_WIDTH - 1 then
                 col := 0;
-                if row = C_FRAME_HEIGHT - 1 then
-                    row       := 0;
-                    frame_num := frame_num + 1;
-                else
-                    row := row + 1;
-                end if;
+                if row = C_FRAME_HEIGHT - 1 then row := 0; else row := row + 1; end if;
             else
                 col := col + 1;
             end if;
         end loop;
-
-        s_tvalid <= '0';
-        s_tlast  <= '0';
-        s_tuser  <= '0';
-        file_close(in_f);
-        stim_done <= true;
+        c1_stvalid <= '0';  c1_stlast <= '0';  c1_stuser <= '0';
+        file_close(f);
         wait;
-    end process p_stim;
+    end process p_stim1;
 
-    -- -----------------------------------------------------------------------
-    -- Checker: compares every m_tvalid beat against expected_taps.txt.
-    -- Samples at a rising edge where m_tvalid is already '1' (registered
-    -- output settled in the previous clock's delta-1).
-    -- -----------------------------------------------------------------------
-    p_check : process
-        file     exp_f     : text;
-        variable exp_line  : line;
-        variable tap_val   : integer;
-        variable exp_vec   : std_logic_vector(C_DATA_WIDTH * C_NUM_TAPS - 1 downto 0);
-        variable out_count : natural;
-        variable err_count : natural;
+    p_stim2 : process
+        file     f    : text;
+        variable ln   : line;
+        variable pv   : integer;
+        variable col  : natural range 0 to C_LINE_WIDTH   - 1;
+        variable row  : natural range 0 to C_FRAME_HEIGHT - 1;
     begin
-        wait until rst = '0';
-        file_open(exp_f, EXPECTED_FILE, read_mode);
-        out_count := 0;
-        err_count := 0;
+        wait for CLK_PERIOD * 5;
+        wait until rising_edge(clk);
+        c2_rst <= '0';
+        file_open(f, "c2_input.txt", read_mode);
+        col := 0;  row := 0;
+        while not endfile(f) loop
+            readline(f, ln);  read(ln, pv);
+            c2_stdata  <= std_logic_vector(to_unsigned(pv, C_DATA_WIDTH));
+            c2_stvalid <= '1';
+            if row = 0 and col = 0 then c2_stuser <= '1'; else c2_stuser <= '0'; end if;
+            if col = C_LINE_WIDTH - 1 then c2_stlast <= '1'; else c2_stlast <= '0'; end if;
+            wait until rising_edge(clk) and c2_stready = '1';
+            if col = C_LINE_WIDTH - 1 then
+                col := 0;
+                if row = C_FRAME_HEIGHT - 1 then row := 0; else row := row + 1; end if;
+            else
+                col := col + 1;
+            end if;
+        end loop;
+        c2_stvalid <= '0';  c2_stlast <= '0';  c2_stuser <= '0';
+        file_close(f);
+        wait;
+    end process p_stim2;
 
-        while not endfile(exp_f) loop
-            wait until rising_edge(clk) and m_tvalid = '1';
+    p_stim3 : process
+        file     f    : text;
+        variable ln   : line;
+        variable pv   : integer;
+        variable col  : natural range 0 to C_LINE_WIDTH   - 1;
+        variable row  : natural range 0 to C_FRAME_HEIGHT - 1;
+    begin
+        wait for CLK_PERIOD * 5;
+        wait until rising_edge(clk);
+        c3_rst <= '0';
+        file_open(f, "c3_input.txt", read_mode);
+        col := 0;  row := 0;
+        while not endfile(f) loop
+            readline(f, ln);  read(ln, pv);
+            c3_stdata  <= std_logic_vector(to_unsigned(pv, C_DATA_WIDTH));
+            c3_stvalid <= '1';
+            if row = 0 and col = 0 then c3_stuser <= '1'; else c3_stuser <= '0'; end if;
+            if col = C_LINE_WIDTH - 1 then c3_stlast <= '1'; else c3_stlast <= '0'; end if;
+            wait until rising_edge(clk) and c3_stready = '1';
+            if col = C_LINE_WIDTH - 1 then
+                col := 0;
+                if row = C_FRAME_HEIGHT - 1 then row := 0; else row := row + 1; end if;
+            else
+                col := col + 1;
+            end if;
+        end loop;
+        c3_stvalid <= '0';  c3_stlast <= '0';  c3_stuser <= '0';
+        file_close(f);
+        wait;
+    end process p_stim3;
 
-            readline(exp_f, exp_line);
-            for tap in 0 to C_NUM_TAPS - 1 loop
-                read(exp_line, tap_val);
+    p_stim4 : process
+        file     f    : text;
+        variable ln   : line;
+        variable pv   : integer;
+        variable col  : natural range 0 to C_LINE_WIDTH   - 1;
+        variable row  : natural range 0 to C_FRAME_HEIGHT - 1;
+    begin
+        wait for CLK_PERIOD * 5;
+        wait until rising_edge(clk);
+        c4_rst <= '0';
+        file_open(f, "c4_input.txt", read_mode);
+        col := 0;  row := 0;
+        while not endfile(f) loop
+            readline(f, ln);  read(ln, pv);
+            c4_stdata  <= std_logic_vector(to_unsigned(pv, C_DATA_WIDTH));
+            c4_stvalid <= '1';
+            if row = 0 and col = 0 then c4_stuser <= '1'; else c4_stuser <= '0'; end if;
+            if col = C_LINE_WIDTH - 1 then c4_stlast <= '1'; else c4_stlast <= '0'; end if;
+            wait until rising_edge(clk) and c4_stready = '1';
+            if col = C_LINE_WIDTH - 1 then
+                col := 0;
+                if row = C_FRAME_HEIGHT - 1 then row := 0; else row := row + 1; end if;
+            else
+                col := col + 1;
+            end if;
+        end loop;
+        c4_stvalid <= '0';  c4_stlast <= '0';  c4_stuser <= '0';
+        file_close(f);
+        wait;
+    end process p_stim4;
+
+    -- -----------------------------------------------------------------------
+    -- Checker processes: one per configuration.
+    -- Each reads its own expected file and compares bit-exactly against
+    -- m_tdata on every rising edge where m_tvalid='1'.
+    -- -----------------------------------------------------------------------
+
+    p_check1 : process
+        file     f         : text;
+        variable ln        : line;
+        variable tv        : integer;
+        variable exp_vec   : std_logic_vector(C_DATA_WIDTH * C1_NUM_TAPS - 1 downto 0);
+        variable out_count : natural := 0;
+        variable err_count : natural := 0;
+    begin
+        wait until c1_rst = '0';
+        file_open(f, "c1_expected.txt", read_mode);
+        while not endfile(f) loop
+            wait until rising_edge(clk) and c1_mtvalid = '1';
+            readline(f, ln);
+            for tap in 0 to C1_NUM_TAPS - 1 loop
+                read(ln, tv);
                 exp_vec((tap + 1) * C_DATA_WIDTH - 1 downto tap * C_DATA_WIDTH)
-                    := std_logic_vector(to_unsigned(tap_val, C_DATA_WIDTH));
+                    := std_logic_vector(to_unsigned(tv, C_DATA_WIDTH));
             end loop;
-
-            if m_tdata /= exp_vec then
-                report "MISMATCH at output " & integer'image(out_count)
-                    & "  got=" & integer'image(to_integer(unsigned(m_tdata)))
-                    & "  exp=" & integer'image(to_integer(unsigned(exp_vec)))
-                    severity error;
+            if c1_mtdata /= exp_vec then
+                report "CFG1 MISMATCH at output " & integer'image(out_count) severity error;
                 err_count := err_count + 1;
             end if;
             out_count := out_count + 1;
         end loop;
-
-        file_close(exp_f);
-
+        file_close(f);
         if err_count = 0 then
-            report "PASS: " & integer'image(out_count)
-                & " outputs checked, all matched golden vectors."
-                & "  EDGE_MODE=" & C_EDGE_MODE
-                severity note;
+            report "CFG1 PASS (3x3 ZERO, back-pressure): "
+                & integer'image(out_count) & " outputs checked." severity note;
         else
-            report "FAIL: " & integer'image(err_count)
-                & " mismatches in " & integer'image(out_count) & " outputs."
-                & "  EDGE_MODE=" & C_EDGE_MODE
-                severity failure;
+            report "CFG1 FAIL: " & integer'image(err_count) & " mismatches." severity failure;
         end if;
-
-        sim_done <= true;
+        done_flags(0) <= '1';
         wait;
-    end process p_check;
+    end process p_check1;
+
+    p_check2 : process
+        file     f         : text;
+        variable ln        : line;
+        variable tv        : integer;
+        variable exp_vec   : std_logic_vector(C_DATA_WIDTH * C2_NUM_TAPS - 1 downto 0);
+        variable out_count : natural := 0;
+        variable err_count : natural := 0;
+    begin
+        wait until c2_rst = '0';
+        file_open(f, "c2_expected.txt", read_mode);
+        while not endfile(f) loop
+            wait until rising_edge(clk) and c2_mtvalid = '1';
+            readline(f, ln);
+            for tap in 0 to C2_NUM_TAPS - 1 loop
+                read(ln, tv);
+                exp_vec((tap + 1) * C_DATA_WIDTH - 1 downto tap * C_DATA_WIDTH)
+                    := std_logic_vector(to_unsigned(tv, C_DATA_WIDTH));
+            end loop;
+            if c2_mtdata /= exp_vec then
+                report "CFG2 MISMATCH at output " & integer'image(out_count) severity error;
+                err_count := err_count + 1;
+            end if;
+            out_count := out_count + 1;
+        end loop;
+        file_close(f);
+        if err_count = 0 then
+            report "CFG2 PASS (3x3 REPLICATE): "
+                & integer'image(out_count) & " outputs checked." severity note;
+        else
+            report "CFG2 FAIL: " & integer'image(err_count) & " mismatches." severity failure;
+        end if;
+        done_flags(1) <= '1';
+        wait;
+    end process p_check2;
+
+    p_check3 : process
+        file     f         : text;
+        variable ln        : line;
+        variable tv        : integer;
+        variable exp_vec   : std_logic_vector(C_DATA_WIDTH * C3_NUM_TAPS - 1 downto 0);
+        variable out_count : natural := 0;
+        variable err_count : natural := 0;
+    begin
+        wait until c3_rst = '0';
+        file_open(f, "c3_expected.txt", read_mode);
+        while not endfile(f) loop
+            wait until rising_edge(clk) and c3_mtvalid = '1';
+            readline(f, ln);
+            for tap in 0 to C3_NUM_TAPS - 1 loop
+                read(ln, tv);
+                exp_vec((tap + 1) * C_DATA_WIDTH - 1 downto tap * C_DATA_WIDTH)
+                    := std_logic_vector(to_unsigned(tv, C_DATA_WIDTH));
+            end loop;
+            if c3_mtdata /= exp_vec then
+                report "CFG3 MISMATCH at output " & integer'image(out_count) severity error;
+                err_count := err_count + 1;
+            end if;
+            out_count := out_count + 1;
+        end loop;
+        file_close(f);
+        if err_count = 0 then
+            report "CFG3 PASS (3x3 TOROIDAL, OOB falls back to zero): "
+                & integer'image(out_count) & " outputs checked." severity note;
+        else
+            report "CFG3 FAIL: " & integer'image(err_count) & " mismatches." severity failure;
+        end if;
+        done_flags(2) <= '1';
+        wait;
+    end process p_check3;
+
+    p_check4 : process
+        file     f         : text;
+        variable ln        : line;
+        variable tv        : integer;
+        variable exp_vec   : std_logic_vector(C_DATA_WIDTH * C4_NUM_TAPS - 1 downto 0);
+        variable out_count : natural := 0;
+        variable err_count : natural := 0;
+    begin
+        wait until c4_rst = '0';
+        file_open(f, "c4_expected.txt", read_mode);
+        while not endfile(f) loop
+            wait until rising_edge(clk) and c4_mtvalid = '1';
+            readline(f, ln);
+            for tap in 0 to C4_NUM_TAPS - 1 loop
+                read(ln, tv);
+                exp_vec((tap + 1) * C_DATA_WIDTH - 1 downto tap * C_DATA_WIDTH)
+                    := std_logic_vector(to_unsigned(tv, C_DATA_WIDTH));
+            end loop;
+            if c4_mtdata /= exp_vec then
+                report "CFG4 MISMATCH at output " & integer'image(out_count) severity error;
+                err_count := err_count + 1;
+            end if;
+            out_count := out_count + 1;
+        end loop;
+        file_close(f);
+        if err_count = 0 then
+            report "CFG4 PASS (5x5 REPLICATE): "
+                & integer'image(out_count) & " outputs checked." severity note;
+        else
+            report "CFG4 FAIL: " & integer'image(err_count) & " mismatches." severity failure;
+        end if;
+        done_flags(3) <= '1';
+        wait;
+    end process p_check4;
 
 end architecture tb;
