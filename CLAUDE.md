@@ -34,7 +34,7 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 - Result: **PASS: 192 outputs checked, all matched golden vectors** (2095 ns)
 - Back-pressure exercised: m_tready(0) deasserted for 10 cycles post-reset, full recovery confirmed
 
-### Phase 4 — COMPLETE ✓ (exhaustive 36-config verification 2026-06-30)
+### Phase 4 — COMPLETE ✓ (exhaustive 36-config verification 2026-06-30, TOROIDAL fixed 2026-06-30)
 - RTL: `src/conv2d.vhd` updated with EDGE_MODE and FLUSH generics
 - Coordinate metasystem: col_cnt_d1/row_cnt_d1 delayed in p_delay; captured as m_col_r/m_row_r
   in p_out_reg; combinational p_edge_out remaps OOB taps per EDGE_MODE
@@ -50,8 +50,10 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
   - 6× 3×5 FLUSH=on configs: PASS @ 2475 ns (240 outputs each)
   - 6× 16b FLUSH=on configs: PASS @ 2475 ns (240 outputs each)
   - 6× 5×5 FLUSH=on configs: PASS @ 2955 ns (288 outputs each)
-- TOROIDAL note: boundary-wrapped pixels not reachable in causal streaming window; fall back to
-  zero (same as ZERO mode for OOB positions). Full TOROIDAL requires frame buffering (out of scope).
+- TOROIDAL implementation: causal wrap — shift register never cleared between rows (retains
+  previous-row tail for col wrap); BRAM retained between frames (row wrap). `toroidal_armed`
+  flag guards `wb_row_valid` until BRAM fully written once, preventing xsim 'U' propagation.
+  `wb_new_row` suppressed unconditionally for TOROIDAL from push 1. See Bug 6.
 
 ---
 
@@ -78,6 +80,11 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 - **Symptom:** For REPLICATE+FLUSH configs, the first real output of each frame after a flush had 0 in the older-row taps instead of the correct clamped first-row pixel value.
 - **Root cause:** At the SOF pixel, `p_counters` resets `row_cnt` to 0, but VHDL processes read pre-update signal values at the same rising edge. So `p_delay` captured `row_cnt = KERN_ROWS-1` (the post-flush residual) into `row_cnt_d1` instead of 0. With `m_row_r = KERN_ROWS-1`, all tap `cy` values were ≥ 0 and `p_edge_out` skipped REPLICATE clamping; `win_buf`'s `row_valid=0` zeros then passed through uncorrected.
 - **Fix:** In `p_delay`, added an explicit SOF check: `elsif pixel_accepted = '1' and s_tuser = '1' then row_cnt_d1 <= 0`. This overrides the stale counter value and ensures `p_edge_out` sees the correct coordinate (row 0) for the first output of every new frame.
+
+### Bug 6 — TOROIDAL xsim BRAM uninitialised propagation (Phase 4)
+- **Symptom:** All 12 TOROIDAL configs failed from output 0. CFG05 (3×3) had exactly 18 mismatches in 192 outputs.
+- **Root cause:** `wb_row_valid=(others=>'1')` was unconditional for TOROIDAL. xsim initialises BRAM to `'U'` (uninitialised), not 0. Forcing row_valid all-ones caused `'U'` to flow through win_buf and reach the output comparator. The golden model (`push_history` returning 0 for `idx<0`) expected 0, producing a mismatch on every output where an unwritten BRAM slot was accessed.
+- **Fix:** Added `toroidal_armed` signal (registered, never resets after latch). Latches `'1'` once `row_cnt >= KERN_ROWS-1` (all BRAM slots written at least once). `wb_row_valid` forced all-ones only when `EDGE_MODE="TOROIDAL" and toroidal_armed='1'`; before that, normal `row_valid` masking zeroes unwritten slots. `wb_new_row` stays unconditionally `'0'` for TOROIDAL (col wrap must apply from push 1; `row_valid` provides the correct zeroing for unwritten rows independently).
 
 ### Bug 4 — BRAM inter-frame stale data (Phase 3)
 - **Symptom:** Rows 0 and 1 of frames 1 and 2 used the previous frame's last two rows from BRAM instead of zero-padding.
