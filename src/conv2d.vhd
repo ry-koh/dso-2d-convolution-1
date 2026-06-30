@@ -272,8 +272,15 @@ begin
                 -- During flush, row_cnt has wrapped to 0; supply the virtual
                 -- row (FRAME_HEIGHT + flush_row_cnt) so p_edge_out does not
                 -- mistake flush outputs for top-of-frame and wrongly clamp.
+                -- At SOF, p_counters resets row_cnt to 0 in this same delta,
+                -- but VHDL processes read pre-update values, so row_cnt still
+                -- holds the post-flush residual (KERN_ROWS-1).  Detect SOF
+                -- explicitly and supply 0 so p_edge_out uses the correct
+                -- coordinate for the first real output of each new frame.
                 if flushing then
                     row_cnt_d1 <= FRAME_HEIGHT + flush_row_cnt;
+                elsif pixel_accepted = '1' and s_tuser = '1' then
+                    row_cnt_d1 <= 0;
                 else
                     row_cnt_d1 <= row_cnt;
                 end if;
