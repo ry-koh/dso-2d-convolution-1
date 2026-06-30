@@ -198,7 +198,7 @@ def draw_frame_grid(ax, frame, highlight_row, highlight_col, cfg, title):
     ax.grid(False)
 
 
-def draw_tap_window(ax, taps, cfg, row, col):
+def draw_tap_window(ax, taps, cfg, row, col, frame=None):
     """Draw the KERN_ROWS x KERN_COLS tap window in natural image order.
 
     Display layout matches the frame grid:
@@ -207,6 +207,11 @@ def draw_tap_window(ax, taps, cfg, row, col):
 
     RTL tap ordering: tap[r][c] where c=0 is most-recent col.
     Display column dc maps to tap column c = kc-1-dc (flip horizontally).
+
+    For TOROIDAL mode, OOB positions show the geometrically correct
+    wrapped pixel value (from `frame`) with a purple border, so the
+    display reflects true toroidal semantics.  The RTL outputs 0 for
+    those positions (causal streaming limit), noted in the legend.
     """
     kr, kc = cfg['kern_rows'], cfg['kern_cols']
     dw     = cfg['data_width']
@@ -222,20 +227,10 @@ def draw_tap_window(ax, taps, cfg, row, col):
     ax.set_xticks(range(kc))
     ax.set_yticks(range(kr))
 
-    # x-axis: display col dc → image col = col - (kc-1-dc)
-    x_labels = []
-    for dc in range(kc):
-        img_col = col - (kc - 1 - dc)
-        x_labels.append(str(img_col))
+    x_labels = [str(col - (kc - 1 - dc)) for dc in range(kc)]
+    y_labels  = [str(row - (kr - 1 - r))  for r  in range(kr)]
     ax.set_xticklabels(x_labels, fontsize=8)
-
-    # y-axis: display row r → image row = row - (kr-1-r)
-    y_labels = []
-    for r in range(kr):
-        img_row = row - (kr - 1 - r)
-        y_labels.append(str(img_row))
     ax.set_yticklabels(y_labels, fontsize=8)
-
     ax.set_xlabel("image col", fontsize=8)
     ax.set_ylabel("image row", fontsize=8)
     ax.tick_params(length=0)
@@ -244,27 +239,32 @@ def draw_tap_window(ax, taps, cfg, row, col):
 
     for r in range(kr):
         for dc in range(kc):
-            # dc = display column; c = RTL tap column (flipped)
-            c       = kc - 1 - dc
+            c       = kc - 1 - dc          # RTL tap column (flipped)
             tap_idx = r * kc + c
-            val     = taps[tap_idx]
-            norm    = val / vmax if vmax > 0 else 0
-
             src_row = row - (kr - 1 - r)
-            src_col = col - c          # = col - (kc-1-dc)
+            src_col = col - c
             is_oob  = not (0 <= src_row < fh_img and 0 <= src_col < lw_img)
 
-            # ZERO and TOROIDAL both produce 0 for OOB in a causal
-            # streaming pipeline (wrapped pixels from a previous row/frame
-            # are not present in the shift-register window).
-            # REPLICATE clamps to the nearest valid tap.
-            if is_oob and mode in ("ZERO", "TOROIDAL"):
+            if is_oob and mode == "TOROIDAL" and frame is not None:
+                # Show true wrapped value from the frame
+                wr = src_row % fh_img
+                wc = src_col % lw_img
+                val = int(frame[wr, wc])
+                norm       = val / vmax if vmax > 0 else 0
+                face       = cmap(norm)
+                edge_color = "mediumpurple"
+            elif is_oob and mode == "ZERO":
+                val        = taps[tap_idx]
                 face       = (0.85, 0.85, 0.85, 1.0)
-                edge_color = "steelblue" if mode == "TOROIDAL" else "none"
+                edge_color = "none"
             elif is_oob and mode == "REPLICATE":
+                val        = taps[tap_idx]
+                norm       = val / vmax if vmax > 0 else 0
                 face       = cmap(norm)
                 edge_color = "steelblue"
             else:
+                val        = taps[tap_idx]
+                norm       = val / vmax if vmax > 0 else 0
                 face       = cmap(norm)
                 edge_color = "none"
 
@@ -296,7 +296,7 @@ def draw_tap_window(ax, taps, cfg, row, col):
     elif mode == "REPLICATE":
         oob_note = "* = OOB → clamped to nearest edge pixel"
     else:
-        oob_note = "* = OOB → 0 (true wrap needs frame buffer; causal limit)"
+        oob_note = "* = OOB → wrapped value shown (purple); RTL outputs 0 (causal limit)"
     ax.text(0.01, 0.01, oob_note, transform=ax.transAxes,
             fontsize=7, color="grey", va="bottom")
 
@@ -421,7 +421,8 @@ class Viewer:
         # Tap window
         if self.mode == "real":
             taps = self.frame_taps[fn][self.row][self.col]
-            draw_tap_window(self.ax_tap, taps, cfg, self.row, self.col)
+            draw_tap_window(self.ax_tap, taps, cfg, self.row, self.col,
+                            frame=self.frames[fn])
         else:
             draw_flush_taps(self.ax_tap, self.flush_taps[fn],
                             cfg, self.flush_row, self.col)
