@@ -102,6 +102,12 @@ architecture rtl of conv2d is
     signal new_row   : std_logic;
     signal row_valid : std_logic_vector(NUM_BUF_ROWS - 1 downto 0);
 
+    -- win_buf inputs after EDGE_MODE gating:
+    --   TOROIDAL passes '0' / all-ones so the shift register and BRAM
+    --   data flow through unmasked — causal wrap falls out naturally.
+    signal wb_new_row   : std_logic;
+    signal wb_row_valid : std_logic_vector(NUM_BUF_ROWS - 1 downto 0);
+
     -- win_buf output
     signal wb_tap_out : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
@@ -121,6 +127,12 @@ architecture rtl of conv2d is
     signal m_row_r    : natural range 0 to FRAME_HEIGHT + KERN_ROWS - 2;
 
 begin
+
+    -- TOROIDAL: disable the new_row zero-clear and row_valid masking so
+    -- the shift register retains previous-row tail pixels (causal col wrap)
+    -- and BRAM retains previous-frame row data (causal row wrap).
+    wb_new_row   <= '0'            when EDGE_MODE = "TOROIDAL" else new_row;
+    wb_row_valid <= (others => '1') when EDGE_MODE = "TOROIDAL" else row_valid;
 
     -- -----------------------------------------------------------------------
     -- Back-pressure: stall unless all downstream ports are ready.
@@ -402,8 +414,8 @@ begin
             clk       => clk,
             rst       => rst,
             shift_en  => push,
-            new_row   => new_row,
-            row_valid => row_valid,
+            new_row   => wb_new_row,
+            row_valid => wb_row_valid,
             pix_in    => push_data,
             buf_rows  => lb_rd_data,
             tap_out   => wb_tap_out

@@ -245,26 +245,20 @@ def draw_tap_window(ax, taps, cfg, row, col, frame=None):
             src_col = col - c
             is_oob  = not (0 <= src_row < fh_img and 0 <= src_col < lw_img)
 
-            if is_oob and mode == "TOROIDAL" and frame is not None:
-                # Show true wrapped value from the frame
-                wr = src_row % fh_img
-                wc = src_col % lw_img
-                val = int(frame[wr, wc])
-                norm       = val / vmax if vmax > 0 else 0
-                face       = cmap(norm)
-                edge_color = "mediumpurple"
-            elif is_oob and mode == "ZERO":
-                val        = taps[tap_idx]
+            val  = taps[tap_idx]
+            norm = val / vmax if vmax > 0 else 0
+
+            if is_oob and mode == "ZERO":
                 face       = (0.85, 0.85, 0.85, 1.0)
                 edge_color = "none"
             elif is_oob and mode == "REPLICATE":
-                val        = taps[tap_idx]
-                norm       = val / vmax if vmax > 0 else 0
                 face       = cmap(norm)
                 edge_color = "steelblue"
+            elif is_oob and mode == "TOROIDAL":
+                # Causal wrap: value comes from previous row/frame naturally
+                face       = cmap(norm)
+                edge_color = "mediumpurple"
             else:
-                val        = taps[tap_idx]
-                norm       = val / vmax if vmax > 0 else 0
                 face       = cmap(norm)
                 edge_color = "none"
 
@@ -294,9 +288,9 @@ def draw_tap_window(ax, taps, cfg, row, col, frame=None):
     if mode == "ZERO":
         oob_note = "* = OOB → 0 (zero-extend)"
     elif mode == "REPLICATE":
-        oob_note = "* = OOB → clamped to nearest edge pixel"
+        oob_note = "* = OOB → clamped to nearest edge pixel (blue border)"
     else:
-        oob_note = "* = OOB → wrapped value shown (purple); RTL outputs 0 (causal limit)"
+        oob_note = "* = OOB → causal wrap: previous row/frame data (purple border)"
     ax.text(0.01, 0.01, oob_note, transform=ax.transAxes,
             fontsize=7, color="grey", va="bottom")
 

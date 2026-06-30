@@ -56,12 +56,12 @@ def make_frame(n, fh, lw, dw):
 
 
 def get_pixel(frame, r, c, fh, lw, mode):
-    """Pixel at (r,c) with edge handling. TOROIDAL uses ZERO (streaming limit)."""
+    """Pixel at (r,c) with edge handling (ZERO and REPLICATE only)."""
     if 0 <= r < fh and 0 <= c < lw:
         return frame[r * lw + c]
     if mode == "REPLICATE":
         return frame[max(0, min(r, fh-1)) * lw + max(0, min(c, lw-1))]
-    return 0   # ZERO and TOROIDAL (streaming fallback)
+    return 0   # ZERO
 
 
 def compute_taps(frame, row, col, kr, kc, fh, lw, mode):
@@ -72,6 +72,24 @@ def compute_taps(frame, row, col, kr, kc, fh, lw, mode):
     return taps
 
 
+def compute_taps_toroidal(push_history, kr, kc, lw):
+    """Causal TOROIDAL taps from the push history.
+
+    Tap (r, c) = pixel pushed (kr-1-r)*lw + c steps before the current push.
+    push_history[-1] is the pixel just pushed; push_history[-1-offset] is
+    offset steps back.  Returns 0 if the history doesn't reach that far
+    (start of stream, before any data was pushed).
+    """
+    taps = []
+    n = len(push_history)
+    for r in range(kr):
+        for c in range(kc):
+            offset = (kr - 1 - r) * lw + c
+            idx = n - 1 - offset
+            taps.append(push_history[idx] if idx >= 0 else 0)
+    return taps
+
+
 def gen_vectors(cfg, prefix, out_dir):
     """Write prefix_input.txt and prefix_expected.txt for cfg."""
     dw, kr, kc  = cfg['data_width'], cfg['kern_rows'], cfg['kern_cols']
@@ -79,32 +97,41 @@ def gen_vectors(cfg, prefix, out_dir):
     mode        = cfg['edge_mode']
     flush       = cfg['flush']
 
-    all_pixels = []
-    all_taps   = []
+    all_pixels   = []
+    all_taps     = []
+    push_history = []   # running list of every value pushed (real + flush zeros)
 
     for fn in range(nf):
         frame = make_frame(fn, fh, lw, dw)
         all_pixels.extend(frame)
+
         for row in range(fh):
             for col in range(lw):
-                all_taps.append(compute_taps(frame, row, col, kr, kc, fh, lw, mode))
+                if mode == "TOROIDAL":
+                    push_history.append(frame[row * lw + col])
+                    all_taps.append(compute_taps_toroidal(push_history, kr, kc, lw))
+                else:
+                    all_taps.append(compute_taps(frame, row, col, kr, kc, fh, lw, mode))
 
         # FLUSH: KERN_ROWS-1 dummy zero-rows per frame.
-        # virtual_row FH..FH+KR-2; zero pixels are in newest row slots.
         if flush and kr > 1:
             for flush_idx in range(1, kr):
                 vrow = fh - 1 + flush_idx
                 for col in range(lw):
-                    taps = []
-                    for r in range(kr):
-                        for c in range(kc):
-                            src_row = vrow - (kr - 1 - r)
-                            src_col = col - c
-                            if src_row >= fh:
-                                taps.append(0)
-                            else:
-                                taps.append(get_pixel(frame, src_row, src_col, fh, lw, mode))
-                    all_taps.append(taps)
+                    if mode == "TOROIDAL":
+                        push_history.append(0)   # flush pixel = zero
+                        all_taps.append(compute_taps_toroidal(push_history, kr, kc, lw))
+                    else:
+                        taps = []
+                        for r in range(kr):
+                            for c in range(kc):
+                                src_row = vrow - (kr - 1 - r)
+                                src_col = col - c
+                                if src_row >= fh:
+                                    taps.append(0)
+                                else:
+                                    taps.append(get_pixel(frame, src_row, src_col, fh, lw, mode))
+                        all_taps.append(taps)
 
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, f'{prefix}input.txt'), 'w') as f:
