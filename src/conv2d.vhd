@@ -234,10 +234,14 @@ begin
     -- -----------------------------------------------------------------------
     new_row <= '1' when col_cnt = 0 and push = '1' else '0';
 
-    p_row_valid : process (row_cnt)
+    -- During flush, force all row_valid bits high so win_buf reads real BRAM
+    -- data (last KERN_ROWS-1 rows of the frame) rather than zeroing them out.
+    -- row_cnt wraps to 0 when flush starts, which would otherwise re-arm
+    -- row_valid from scratch and incorrectly blank the older row taps.
+    p_row_valid : process (row_cnt, flushing)
     begin
         for r in 0 to NUM_BUF_ROWS - 1 loop
-            if row_cnt >= KERN_ROWS - 1 - r then
+            if flushing or row_cnt >= KERN_ROWS - 1 - r then
                 row_valid(r) <= '1';
             else
                 row_valid(r) <= '0';
