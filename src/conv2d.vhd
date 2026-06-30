@@ -108,6 +108,14 @@ architecture rtl of conv2d is
     signal wb_new_row   : std_logic;
     signal wb_row_valid : std_logic_vector(NUM_BUF_ROWS - 1 downto 0);
 
+    -- TOROIDAL armed flag: latches '1' once BRAM has been fully written for
+    -- the first time (row_cnt >= KERN_ROWS-1).  Before that, xsim BRAM is
+    -- uninitialised ('U'); normal row_valid masking (same as ZERO) keeps the
+    -- unwritten rows zeroed, matching the golden model's push_history returning
+    -- 0 for indices before the first push.  Once armed it never resets, so
+    -- subsequent frames read real BRAM data (previous-frame wrap = causal TOROIDAL).
+    signal toroidal_armed : std_logic := '0';
+
     -- win_buf output
     signal wb_tap_out : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
@@ -128,11 +136,26 @@ architecture rtl of conv2d is
 
 begin
 
-    -- TOROIDAL: disable the new_row zero-clear and row_valid masking so
-    -- the shift register retains previous-row tail pixels (causal col wrap)
+    -- TOROIDAL: disable the new_row zero-clear and row_valid masking once armed
+    -- so the shift register retains previous-row tail pixels (causal col wrap)
     -- and BRAM retains previous-frame row data (causal row wrap).
-    wb_new_row   <= '0'            when EDGE_MODE = "TOROIDAL" else new_row;
-    wb_row_valid <= (others => '1') when EDGE_MODE = "TOROIDAL" else row_valid;
+    -- Before armed (first KERN_ROWS-1 rows of frame 0), use normal row_valid
+    -- masking so unwritten BRAM ('U' in xsim) does not propagate to output.
+    wb_new_row   <= '0'             when EDGE_MODE = "TOROIDAL"
+                    else new_row;
+    wb_row_valid <= (others => '1') when EDGE_MODE = "TOROIDAL" and toroidal_armed = '1'
+                    else row_valid;
+
+    p_tor_arm : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                toroidal_armed <= '0';
+            elsif EDGE_MODE = "TOROIDAL" and row_cnt >= KERN_ROWS - 1 then
+                toroidal_armed <= '1';
+            end if;
+        end if;
+    end process p_tor_arm;
 
     -- -----------------------------------------------------------------------
     -- Back-pressure: stall unless all downstream ports are ready.
