@@ -199,36 +199,59 @@ def draw_frame_grid(ax, frame, highlight_row, highlight_col, cfg, title):
 
 
 def draw_tap_window(ax, taps, cfg, row, col):
-    """Draw the KERN_ROWS × KERN_COLS tap window with values."""
+    """Draw the KERN_ROWS x KERN_COLS tap window in natural image order.
+
+    Display layout matches the frame grid:
+      top-left  = oldest row, leftmost (oldest) col
+      bottom-right = current row, current col  (circled)
+
+    RTL tap ordering: tap[r][c] where c=0 is most-recent col.
+    Display column dc maps to tap column c = kc-1-dc (flip horizontally).
+    """
     kr, kc = cfg['kern_rows'], cfg['kern_cols']
     dw     = cfg['data_width']
     vmax   = (1 << dw) - 1
     mode   = cfg['edge_mode']
-
-    ax.clear()
-    ax.set_title(f"Tap window at (row={row}, col={col})", fontsize=10, pad=6)
-    ax.set_xlim(-0.5, kc - 0.5)
-    ax.set_ylim(kr - 0.5, -0.5)
-    ax.set_xticks(range(kc))
-    ax.set_yticks(range(kr))
-    ax.set_xticklabels([f"c-{kc-1-i}" if kc-1-i > 0 else "c" for i in range(kc)], fontsize=8)
-    ax.set_yticklabels([f"r-{kr-1-i}" if kr-1-i > 0 else "r" for i in range(kr)], fontsize=8)
-    ax.set_xlabel("col offset (0=current, right=older)", fontsize=8)
-    ax.set_ylabel("row offset (0=current, up=older)", fontsize=8)
-    ax.tick_params(length=0)
-
-    cmap = plt.get_cmap("YlOrRd")
     lw_img = cfg['line_width']
     fh_img = cfg['frame_height']
 
+    ax.clear()
+    ax.set_title(f"Kernel window at (row={row}, col={col})", fontsize=10, pad=6)
+    ax.set_xlim(-0.5, kc - 0.5)
+    ax.set_ylim(kr - 0.5, -0.5)   # row 0 at top
+    ax.set_xticks(range(kc))
+    ax.set_yticks(range(kr))
+
+    # x-axis: display col dc → image col = col - (kc-1-dc)
+    x_labels = []
+    for dc in range(kc):
+        img_col = col - (kc - 1 - dc)
+        x_labels.append(str(img_col))
+    ax.set_xticklabels(x_labels, fontsize=8)
+
+    # y-axis: display row r → image row = row - (kr-1-r)
+    y_labels = []
     for r in range(kr):
-        for c in range(kc):
+        img_row = row - (kr - 1 - r)
+        y_labels.append(str(img_row))
+    ax.set_yticklabels(y_labels, fontsize=8)
+
+    ax.set_xlabel("image col", fontsize=8)
+    ax.set_ylabel("image row", fontsize=8)
+    ax.tick_params(length=0)
+
+    cmap = plt.get_cmap("YlOrRd")
+
+    for r in range(kr):
+        for dc in range(kc):
+            # dc = display column; c = RTL tap column (flipped)
+            c       = kc - 1 - dc
             tap_idx = r * kc + c
             val     = taps[tap_idx]
             norm    = val / vmax if vmax > 0 else 0
-            # Grey out OOB positions (those that would be zero-extended)
+
             src_row = row - (kr - 1 - r)
-            src_col = col - c
+            src_col = col - c          # = col - (kc-1-dc)
             is_oob  = not (0 <= src_row < fh_img and 0 <= src_col < lw_img)
 
             if is_oob and mode == "ZERO":
@@ -237,7 +260,7 @@ def draw_tap_window(ax, taps, cfg, row, col):
                 face = cmap(norm)
 
             rect = mpatches.FancyBboxPatch(
-                (c - 0.48, r - 0.48), 0.96, 0.96,
+                (dc - 0.48, r - 0.48), 0.96, 0.96,
                 boxstyle="round,pad=0.02", linewidth=1.5,
                 edgecolor="steelblue" if is_oob else "none",
                 facecolor=face, zorder=1)
@@ -245,42 +268,47 @@ def draw_tap_window(ax, taps, cfg, row, col):
 
             brightness = 0.299*face[0] + 0.587*face[1] + 0.114*face[2]
             txt_colour = "black" if brightness > 0.5 else "white"
-            hex_str = f"0x{val:0{(dw+3)//4}X}" if dw > 8 else f"{val}"
+            hex_str    = f"0x{val:0{(dw+3)//4}X}" if dw > 8 else f"{val}"
             oob_marker = "*" if is_oob else ""
-            ax.text(c, r, f"{hex_str}{oob_marker}",
+            ax.text(dc, r, f"{hex_str}{oob_marker}",
                     ha="center", va="center",
                     fontsize=8, color=txt_colour, zorder=3)
 
-    # Highlight the current pixel position in the window (bottom-right)
+    # Current pixel = bottom-right of display (r=kr-1, dc=kc-1)
     rect = mpatches.FancyBboxPatch(
-        (0 - 0.48, kr-1 - 0.48), 0.96, 0.96,
+        (kc - 1 - 0.48, kr - 1 - 0.48), 0.96, 0.96,
         boxstyle="round,pad=0.02", linewidth=2.5,
         edgecolor="royalblue", facecolor="none", zorder=4)
     ax.add_patch(rect)
     ax.grid(False)
 
-    oob_note = "* = OOB" if mode == "ZERO" else ("* = OOB (clamped)" if mode == "REPLICATE" else "* = OOB (wrapped)")
+    oob_note = ("* = OOB (zero)" if mode == "ZERO"
+                else "* = OOB (clamped)" if mode == "REPLICATE"
+                else "* = OOB (wrapped)")
     ax.text(0.01, 0.01, oob_note, transform=ax.transAxes,
             fontsize=7, color="grey", va="bottom")
 
 
 def draw_flush_taps(ax, flush_taps_frame, cfg, flush_row, col):
-    """Draw a flush tap window."""
+    """Draw a flush tap window in natural image order (oldest col on left)."""
     kr, kc = cfg['kern_rows'], cfg['kern_cols']
     taps = flush_taps_frame[flush_row][col]
     fh   = cfg['frame_height']
     virtual_row = fh + flush_row
 
-    # Reuse draw_tap_window but patch the row
-    _cfg = dict(cfg)
     ax.clear()
-    ax.set_title(f"FLUSH tap window (virtual row={virtual_row}, col={col})", fontsize=10, pad=6)
+    ax.set_title(f"FLUSH kernel window (virtual row={virtual_row}, col={col})", fontsize=10, pad=6)
     ax.set_xlim(-0.5, kc - 0.5)
     ax.set_ylim(kr - 0.5, -0.5)
     ax.set_xticks(range(kc))
     ax.set_yticks(range(kr))
-    ax.set_xticklabels([f"c-{kc-1-i}" if kc-1-i > 0 else "c" for i in range(kc)], fontsize=8)
-    ax.set_yticklabels([f"r-{kr-1-i}" if kr-1-i > 0 else "r" for i in range(kr)], fontsize=8)
+
+    x_labels = [str(col - (kc - 1 - dc)) for dc in range(kc)]
+    y_labels  = [str(virtual_row - (kr - 1 - r)) for r in range(kr)]
+    ax.set_xticklabels(x_labels, fontsize=8)
+    ax.set_yticklabels(y_labels, fontsize=8)
+    ax.set_xlabel("image col", fontsize=8)
+    ax.set_ylabel("image row (>=8 = flush zero)", fontsize=8)
     ax.tick_params(length=0)
 
     dw   = cfg['data_width']
@@ -288,7 +316,8 @@ def draw_flush_taps(ax, flush_taps_frame, cfg, flush_row, col):
     cmap = plt.get_cmap("YlOrRd")
 
     for r in range(kr):
-        for c in range(kc):
+        for dc in range(kc):
+            c       = kc - 1 - dc          # RTL tap column (flipped)
             tap_idx = r * kc + c
             val     = taps[tap_idx]
             norm    = val / vmax if vmax > 0 else 0
@@ -297,7 +326,7 @@ def draw_flush_taps(ax, flush_taps_frame, cfg, flush_row, col):
 
             face = (0.85, 0.85, 0.85, 1.0) if is_zero_row else cmap(norm)
             rect = mpatches.FancyBboxPatch(
-                (c - 0.48, r - 0.48), 0.96, 0.96,
+                (dc - 0.48, r - 0.48), 0.96, 0.96,
                 boxstyle="round,pad=0.02", linewidth=1.5,
                 edgecolor="grey" if is_zero_row else "none",
                 facecolor=face, zorder=1)
@@ -306,9 +335,15 @@ def draw_flush_taps(ax, flush_taps_frame, cfg, flush_row, col):
             brightness = 0.299*face[0] + 0.587*face[1] + 0.114*face[2]
             txt_colour = "black" if brightness > 0.5 else "white"
             hex_str = f"0x{val:0{(dw+3)//4}X}" if dw > 8 else f"{val}"
-            ax.text(c, r, hex_str, ha="center", va="center",
+            ax.text(dc, r, hex_str, ha="center", va="center",
                     fontsize=8, color=txt_colour, zorder=3)
 
+    # Current pixel = bottom-right
+    rect = mpatches.FancyBboxPatch(
+        (kc - 1 - 0.48, kr - 1 - 0.48), 0.96, 0.96,
+        boxstyle="round,pad=0.02", linewidth=2.5,
+        edgecolor="royalblue", facecolor="none", zorder=4)
+    ax.add_patch(rect)
     ax.grid(False)
     ax.text(0.01, 0.01, "grey = injected zero row", transform=ax.transAxes,
             fontsize=7, color="grey", va="bottom")
