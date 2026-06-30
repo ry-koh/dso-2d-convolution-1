@@ -34,21 +34,22 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 - Result: **PASS: 192 outputs checked, all matched golden vectors** (2095 ns)
 - Back-pressure exercised: m_tready(0) deasserted for 10 cycles post-reset, full recovery confirmed
 
-### Phase 4 — COMPLETE ✓
+### Phase 4 — COMPLETE ✓ (exhaustive 36-config verification 2026-06-30)
 - RTL: `src/conv2d.vhd` updated with EDGE_MODE and FLUSH generics
 - Coordinate metasystem: col_cnt_d1/row_cnt_d1 delayed in p_delay; captured as m_col_r/m_row_r
   in p_out_reg; combinational p_edge_out remaps OOB taps per EDGE_MODE
 - FLUSH FSM: injects KERN_ROWS-1 dummy zero-rows after frame end; s_tready stalled during flush;
   SOF resets row_cnt/buf_wr_row to re-arm row_valid for next frame
-- Golden vector generator: `scripts/gen_vectors.py` fully parametric via argparse; --prefix arg
-  generates per-config filenames; supports ZERO, REPLICATE, TOROIDAL modes
-- Testbench: `tb/conv2d_tb.vhd` — 4 DUT instances in parallel simulation
-- Vectors: `tb/vectors/c[1-4]_{input,expected}.txt` — 4 configs × 192 outputs each
-- Result: **ALL 4 CONFIGURATIONS PASS (3000 ns simulation)**
-  - CFG1 PASS (3x3 ZERO, back-pressure):            192 outputs @ 2095 ns
-  - CFG2 PASS (3x3 REPLICATE):                      192 outputs @ 1995 ns
-  - CFG3 PASS (3x3 TOROIDAL, OOB falls back to 0):  192 outputs @ 1995 ns
-  - CFG4 PASS (5x5 REPLICATE):                      192 outputs @ 1995 ns
+- Exhaustive testbench generator: `scripts/gen_tb.py` — produces `tb/conv2d_tb.vhd` and all
+  72 vector files (tb/vectors/c01_..c36_{input,expected}.txt)
+- Config matrix: DATA_WIDTH=[8,16] × kernel=[(3×3),(5×5),(3×5)] × EDGE_MODE=[ZERO,REPLICATE,TOROIDAL]
+  × FLUSH=[false,true] = 36 configurations; 36 DUT instances run in parallel on shared clock
+- Result: **ALL 36 CONFIGURATIONS PASS (2955 ns simulation)**
+  - 18× FLUSH=off configs: PASS @ 1995 ns (CFG01 with back-pressure @ 2095 ns)
+  - 6× 3×3 FLUSH=on configs: PASS @ 2475 ns (240 outputs each)
+  - 6× 3×5 FLUSH=on configs: PASS @ 2475 ns (240 outputs each)
+  - 6× 16b FLUSH=on configs: PASS @ 2475 ns (240 outputs each)
+  - 6× 5×5 FLUSH=on configs: PASS @ 2955 ns (288 outputs each)
 - TOROIDAL note: boundary-wrapped pixels not reachable in causal streaming window; fall back to
   zero (same as ZERO mode for OOB positions). Full TOROIDAL requires frame buffering (out of scope).
 
@@ -72,6 +73,11 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 - **Symptom:** For cols 0 and 1 of every row after row 0, the two oldest column tap positions contained the previous row's trailing pixels instead of zero.
 - **Root cause:** `win_buf` is a shift register; it does not reset between rows. At the start of each new row, positions 1 and 2 (col−1, col−2) held leftover data.
 - **Fix:** Added `new_row` signal in `conv2d` (high when `col_cnt=0` and `pixel_accepted='1'`). Added `new_row` port to `win_buf`; when asserted, positions 1..KERN_COLS−1 are forced to zero instead of shifting old values.
+
+### Bug 5 — REPLICATE coordinate wrong at SOF after FLUSH (Phase 4)
+- **Symptom:** For REPLICATE+FLUSH configs, the first real output of each frame after a flush had 0 in the older-row taps instead of the correct clamped first-row pixel value.
+- **Root cause:** At the SOF pixel, `p_counters` resets `row_cnt` to 0, but VHDL processes read pre-update signal values at the same rising edge. So `p_delay` captured `row_cnt = KERN_ROWS-1` (the post-flush residual) into `row_cnt_d1` instead of 0. With `m_row_r = KERN_ROWS-1`, all tap `cy` values were ≥ 0 and `p_edge_out` skipped REPLICATE clamping; `win_buf`'s `row_valid=0` zeros then passed through uncorrected.
+- **Fix:** In `p_delay`, added an explicit SOF check: `elsif pixel_accepted = '1' and s_tuser = '1' then row_cnt_d1 <= 0`. This overrides the stale counter value and ensures `p_edge_out` sees the correct coordinate (row 0) for the first output of every new frame.
 
 ### Bug 4 — BRAM inter-frame stale data (Phase 3)
 - **Symptom:** Rows 0 and 1 of frames 1 and 2 used the previous frame's last two rows from BRAM instead of zero-padding.
