@@ -155,7 +155,12 @@ def gen_vectors(cfg, prefix, out_dir):
         for fn in range(nf):
             global_stream.extend(frames[fn])
 
-        tor_max_pos = half_r * lw + half_c
+        # Max center push that fits within the simulation window.
+        # delay = HALF_R*EFF_WIDTH + HALF_C + 2 (pipeline depth from center push to output)
+        # total_pushes = nf*fh*eff_width + 2  (all real rows + dummy cols + 2 drain cycles)
+        delay = half_r * eff_width + half_c + 2
+        total_pushes = nf * fh * eff_width + 2
+        max_center_push = total_pushes - delay - 1
 
         if mode == "TOROIDAL":
             if flush:
@@ -167,34 +172,31 @@ def gen_vectors(cfg, prefix, out_dir):
                             global_stream, center_g, kr, kc, lw, fh, flush=True)
                         all_taps.append(taps)
             else:
-                # FLUSH=false: outputs begin at global index TOR_MAX_POS.
-                # Each frame produces FRAME_PIXELS outputs once warm.
-                for fn_out in range(nf):
-                    fn_start = fn_out * frame_pixels
-                    for n in range(frame_pixels):
-                        center_g = fn_start + n
-                        if center_g < tor_max_pos:
-                            continue
-                        taps = compute_taps_toroidal(
-                            global_stream, center_g, kr, kc, lw, fh, flush=False)
-                        all_taps.append(taps)
+                # FLUSH=false: output for every center that fits in simulation window.
+                for fn in range(nf):
+                    for fr in range(fh):
+                        for fc in range(lw):
+                            center_push = fn * fh * eff_width + fr * eff_width + fc
+                            if center_push > max_center_push:
+                                continue
+                            center_g = fn * frame_pixels + fr * lw + fc
+                            taps = compute_taps_toroidal(
+                                global_stream, center_g, kr, kc, lw, fh, flush=False)
+                            all_taps.append(taps)
 
         else:
             # STREAM_DIRECT non-TOROIDAL (FH <= HALF_R, FLUSH=false).
             # RTL uses tor_buf but applies ZERO/REPLICATE per-frame OOB handling.
-            # Golden: same as compute_taps per-frame, skipping warmup positions.
-            for fn_out in range(nf):
-                fn_start = fn_out * frame_pixels
-                for n in range(frame_pixels):
-                    center_g = fn_start + n
-                    if center_g < tor_max_pos:
-                        continue
-                    center_row = n // lw
-                    center_col = n % lw
-                    taps = compute_taps(
-                        frames[fn_out], center_row, center_col,
-                        kr, kc, fh, lw, mode)
-                    all_taps.append(taps)
+            for fn in range(nf):
+                for fr in range(fh):
+                    for fc in range(lw):
+                        center_push = fn * fh * eff_width + fr * eff_width + fc
+                        if center_push > max_center_push:
+                            continue
+                        taps = compute_taps(
+                            frames[fn], fr, fc,
+                            kr, kc, fh, lw, mode)
+                        all_taps.append(taps)
 
     elif not flush:
         # --- Normal FLUSH=false (FH > HALF_R), ZERO or REPLICATE ---
@@ -282,18 +284,18 @@ def _find(kr, kc, mode, flush, lw, fh):
             return i
     return None
 
-_BP_POST_RESET   = _find(3, 3, "ZERO",  False, 8, 8)   # 3x3 ZERO FLUSH=off post-reset BP
-_BP_LARGE_KERNEL = _find(7, 7, "ZERO",  False, 8, 8)   # 7x7 ZERO FLUSH=off large-kernel BP
-_BP_MID_FLUSH    = _find(3, 3, "ZERO",  True,  8, 8)   # 3x3 ZERO FLUSH=on mid-flush BP
+_BP_POST_RESET   = _find(3, 3, "ZERO",      False, 8, 8)   # 3x3 ZERO FLUSH=off post-reset BP tap=0
+_BP_MID_FLUSH    = _find(3, 5, "ZERO",      False, 3, 3)   # 3x5 ZERO FLUSH=off 3x3 mid-sim BP tap=0
+_BP_LARGE_KERNEL = _find(3, 5, "REPLICATE", True,  8, 8)   # 3x5 REPLICATE FLUSH=on post-reset BP tap=last
 
 BP_INFO = {}
 for idx, info in [
-    (_BP_POST_RESET,   {'type': 'post_reset', 'stall_cycles': 10,
+    (_BP_POST_RESET,   {'type': 'post_reset', 'stall_cycles': 10, 'tap': 0,
                         'note': 'Back-pressure: m_tready(0)=0 for 10 cycles post-reset'}),
-    (_BP_LARGE_KERNEL, {'type': 'post_reset', 'stall_cycles': 10,
+    (_BP_MID_FLUSH,    {'type': 'mid_sim', 'start_cycle': 210, 'stall_cycles': 15, 'tap': 0,
+                        'note': 'Back-pressure: m_tready(0)=0 for 15 cycles mid-sim'}),
+    (_BP_LARGE_KERNEL, {'type': 'post_reset', 'stall_cycles': 10, 'tap': 'last',
                         'note': 'Back-pressure: m_tready(NUM_TAPS-1)=0 for 10 cycles post-reset'}),
-    (_BP_MID_FLUSH,    {'type': 'mid_sim', 'start_cycle': 210, 'stall_cycles': 15,
-                        'note': 'Back-pressure: m_tready(0)=0 for 15 cycles mid-flush'}),
 ]:
     if idx is not None:
         BP_INFO[idx] = info
@@ -458,7 +460,7 @@ def gen_check(i, cfg, label):
 
 
 # -------------------------------------------------------------------------
-# HTML visualiser
+# HTML visualiser — cycle-accurate trace generation
 # -------------------------------------------------------------------------
 
 def cfg_label_html(c):
@@ -466,6 +468,219 @@ def cfg_label_html(c):
     fs = f" {lw}×{fh}" if (lw, fh) != (8, 8) else ""
     fl = "FLUSH=on" if c['flush'] else "FLUSH=off"
     return f"{c['data_width']}b {c['kern_rows']}×{c['kern_cols']} {c['edge_mode']} {fl}{fs}"
+
+
+def _no_out():
+    return {'valid': False, 'frame': None, 'row': None, 'col': None,
+            'kind': None, 'taps': None, 'expectedIndex': None}
+
+
+def _bram_snap(bram_phys, buf_wr_row, num_brams):
+    physical = [list(r) for r in bram_phys]
+    logical  = [list(bram_phys[(buf_wr_row + s) % num_brams]) for s in range(num_brams)] \
+               if num_brams > 0 else []
+    return {'writeRow': buf_wr_row, 'physical': physical, 'logical': logical}
+
+
+def gen_trace(cfg, frames_2d, expected_taps, bp_stall=0):
+    """
+    Build a cycle-accurate trace for the HTML visualiser.
+
+    frames_2d    : list of nf frames; frame[fn] is a 2-D list [row][col] -> int
+    expected_taps: flat list of expected tap vectors (from gen_vectors)
+    bp_stall     : number of STALL (back-pressure) cycles after RESET
+    """
+    kr, kc = cfg['kern_rows'], cfg['kern_cols']
+    lw, fh, nf = cfg['line_width'], cfg['frame_height'], cfg['num_frames']
+    mode  = cfg['edge_mode']
+    flush = cfg['flush']
+    half_r = (kr - 1) // 2
+    half_c = (kc - 1) // 2
+    num_brams  = kr - 1
+    eff_width  = lw + half_c
+
+    # Flush rows per frame (in the push sequence)
+    flush_rows = half_r if flush else 0
+    rows_per_frame  = fh + flush_rows
+    frame_pushes    = rows_per_frame * eff_width
+
+    # ---------- build push_to_exp mapping ----------
+    # push_to_exp[push_idx] = (exp_idx, out_fn, out_r, out_c)
+    # Ordering must match gen_vectors exactly.
+    #
+    # Unified output timing formula:
+    #   output_push = fn_input * frame_pushes + row_input * eff_width + fc_input + half_c + 2
+    # where (fn_input, row_input, fc_input) is the position of the center pixel
+    # in the PUSH sequence (which may differ from the OUTPUT frame/row for
+    # streaming-tail configs).
+    push_to_exp = {}
+    exp_i = 0
+
+    total_pushes = nf * frame_pushes + 2   # +2 drain
+
+    if mode == "TOROIDAL" or is_stream_direct(kr, kc, fh, flush, mode):
+        delay = half_r * eff_width + half_c + 2
+
+        if mode == "TOROIDAL" and flush:
+            # TOROIDAL FLUSH=on: fh*lw outputs per frame, no skip
+            for fn in range(nf):
+                for fr in range(fh):
+                    for fc in range(lw):
+                        op = fn * frame_pushes + (fr + half_r) * eff_width + fc + half_c + 2
+                        push_to_exp[op] = (exp_i, fn, fr, fc)
+                        exp_i += 1
+        else:
+            # TOROIDAL FLUSH=off or STREAM_DIRECT FLUSH=off: skip if out of window
+            max_cp = total_pushes - delay - 1
+            for fn in range(nf):
+                for fr in range(fh):
+                    for fc in range(lw):
+                        cp = fn * fh * eff_width + fr * eff_width + fc
+                        if cp > max_cp:
+                            continue
+                        op = cp + delay
+                        push_to_exp[op] = (exp_i, fn, fr, fc)
+                        exp_i += 1
+
+    elif not flush:
+        # Normal ZERO/REPLICATE FLUSH=off (FH > HALF_R) with streaming tail
+        for fn in range(nf):
+            for row in range(fh):
+                global_row = fn * fh + row
+                for col_eff in range(eff_width):
+                    if col_eff >= half_c and global_row >= half_r:
+                        fc = col_eff - half_c
+                        out_r_g = global_row - half_r
+                        out_fn  = out_r_g // fh
+                        out_r   = out_r_g % fh
+                        # Center pixel is at input (fn, row, fc); FLUSH=off so frame_pushes=fh*eff_width
+                        op = fn * fh * eff_width + row * eff_width + fc + half_c + 2
+                        push_to_exp[op] = (exp_i, out_fn, out_r, fc)
+                        exp_i += 1
+    else:
+        # FLUSH=on non-TOROIDAL
+        for fn in range(nf):
+            for row in range(fh):
+                for col_eff in range(eff_width):
+                    if col_eff >= half_c and row >= half_r:
+                        fc   = col_eff - half_c
+                        op = fn * frame_pushes + row * eff_width + fc + half_c + 2
+                        push_to_exp[op] = (exp_i, fn, row - half_r, fc)
+                        exp_i += 1
+            for flush_row in range(half_r):
+                vr = fh + flush_row
+                out_r = vr - half_r
+                for col_eff in range(eff_width):
+                    if col_eff >= half_c and out_r >= 0:
+                        fc = col_eff - half_c
+                        op = fn * frame_pushes + vr * eff_width + fc + half_c + 2
+                        push_to_exp[op] = (exp_i, fn, out_r, fc)
+                        exp_i += 1
+
+    # ---------- build push sequence ----------
+    pushes = []
+    for fn in range(nf):
+        for fr in range(fh):
+            for ec in range(eff_width):
+                if ec < lw:
+                    pushes.append(('INPUT',     fn, fr, ec, frames_2d[fn][fr][ec]))
+                else:
+                    pushes.append(('DUMMY_COL', fn, fr, ec, None))
+        if flush:
+            for flush_r in range(half_r):
+                ar = fh + flush_r
+                for ec in range(eff_width):
+                    pushes.append(('FLUSH', fn, ar, ec, 0))
+    for _ in range(2):
+        pushes.append(('DRAIN', None, None, None, None))
+
+    # ---------- simulate ----------
+    bram_phys  = [[0] * lw for _ in range(num_brams)]
+    buf_wr_row = 0
+    trace  = []
+    cycle  = 0
+
+    def append_static(phase, note, in_kind, stalled=False):
+        """Append a RESET / STALL cycle."""
+        trace.append({
+            'cycle': cycle, 'phase': phase, 'note': note, 'stalled': stalled,
+            'input': {'kind': in_kind, 'valid': False, 'value': None,
+                      'frame': None, 'row': None, 'col': None,
+                      'effectiveCol': None, 'endRow': False, 'write': None},
+            'output': _no_out(),
+            'bram': _bram_snap(bram_phys, buf_wr_row, num_brams),
+        })
+
+    # RESET cycles (always 2)
+    for _ in range(2):
+        append_static('RESET', 'Synchronous reset active.', 'reset')
+        cycle += 1
+
+    # STALL cycles (back-pressure post-reset)
+    for _ in range(bp_stall):
+        append_static('STALL', 'Downstream back-pressure; pipeline stalled.', 'stall', stalled=True)
+        cycle += 1
+
+    # Push cycles
+    for pidx, (phase, fn, fr, ec, val) in enumerate(pushes):
+        # Increment buf_wr_row on first dummy/flush column past real data
+        if phase in ('DUMMY_COL', 'FLUSH') and ec == lw and num_brams > 0:
+            buf_wr_row = (buf_wr_row + 1) % num_brams
+
+        # BRAM write
+        write_info = None
+        if phase in ('INPUT', 'FLUSH') and num_brams > 0 and ec < lw:
+            bram_phys[buf_wr_row][ec] = val
+            write_info = {'row': buf_wr_row, 'col': ec, 'value': val}
+
+        # Output event
+        out_event = _no_out()
+        if pidx in push_to_exp:
+            ei, out_fn, out_r, out_c = push_to_exp[pidx]
+            if ei < len(expected_taps):
+                ok = 'flush' if flush and out_r is not None and out_r >= fh else 'stream'
+                out_event = {
+                    'valid': True, 'frame': out_fn, 'row': out_r, 'col': out_c,
+                    'kind': ok, 'taps': expected_taps[ei], 'expectedIndex': ei,
+                }
+
+        # Input field
+        if phase == 'INPUT':
+            in_kind, in_valid = 'real', True
+            note = f"Frame {fn}, row {fr}, col {ec} accepted; BRAM row {buf_wr_row} col {ec} updated."
+        elif phase == 'DUMMY_COL':
+            in_kind, in_valid = 'column-pad', True
+            d = ec - lw + 1
+            note = f"Dummy column {d}/{half_c} for frame {fn}, row {fr}."
+        elif phase == 'FLUSH':
+            in_kind, in_valid = 'flush', True
+            note = f"Flush zero, frame {fn} row {fr - fh}/{half_r}, col {ec}; BRAM row {buf_wr_row} col {ec} cleared."
+        else:
+            in_kind, in_valid = 'drain', False
+            note = "No new input; draining pipeline tail."
+
+        trace.append({
+            'cycle':  cycle,
+            'phase':  phase,
+            'note':   note,
+            'stalled': False,
+            'input': {
+                'kind':        in_kind,
+                'valid':       in_valid,
+                'value':       val,
+                'frame':       fn,
+                'row':         fr,
+                'col':         ec if ec is not None and ec < lw else None,
+                'effectiveCol': ec,
+                'endRow':      (phase == 'DUMMY_COL' and ec == eff_width - 1),
+                'write':       write_info,
+            },
+            'output': out_event,
+            'bram': _bram_snap(bram_phys, buf_wr_row, num_brams),
+        })
+        cycle += 1
+
+    return trace
 
 
 def build_html_json(vec_dir):
@@ -495,259 +710,939 @@ def build_html_json(vec_dir):
             with open(ep) as f:
                 expected_data = [list(map(int, x.split())) for x in f if x.strip()]
 
+        eff_width = lw + half_c
+        bp_info = BP_INFO.get(idx)
+        # Show STALL cycles for any post_reset BP scenario in the trace
+        bp_stall = (bp_info['stall_cycles']
+                    if bp_info and bp_info.get('type') == 'post_reset'
+                    else 0)
+        trace = gen_trace(cfg, frames_data, expected_data, bp_stall) if frames_data else []
+
         cs.append({
-            'id':           idx + 1,
-            'kern_rows':    kr,
-            'kern_cols':    kc,
-            'half_r':       half_r,
-            'half_c':       half_c,
-            'edge_mode':    mode,
-            'flush':        flush,
-            'streaming':    streaming,
-            'line_width':   lw,
-            'frame_height': fh,
-            'num_frames':   nf,
-            'data_width':   dw,
-            'label':        cfg_label_html(cfg),
-            'frames':       frames_data,
-            'expected':     expected_data,
-            'bp':           BP_INFO.get(idx),
+            'id':             idx + 1,
+            'kern_rows':      kr,
+            'kern_cols':      kc,
+            'half_r':         half_r,
+            'half_c':         half_c,
+            'edge_mode':      mode,
+            'flush':          flush,
+            'streaming':      streaming,
+            'line_width':     lw,
+            'frame_height':   fh,
+            'num_frames':     nf,
+            'data_width':     dw,
+            'effective_width': eff_width,
+            'label':          cfg_label_html(cfg),
+            'frames':         frames_data,
+            'expected':       expected_data,
+            'bp':             bp_info,
+            'trace':          trace,
         })
     return json.dumps({'configs': cs}, separators=(',', ':'))
 
 
-HTML_TEMPLATE = r"""<!DOCTYPE html>
+HTML_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>conv2d Golden Vector Visualiser</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>conv2d Cycle Simulator</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#12121f;--bg2:#1a1a2e;--bg3:#141428;
-  --bdr:#252540;--text:#e0e0e0;--dim:#6a7a8a;
-  --blue:#3a8fff;--green:#44bb66;--amber:#dfb050;--cyan:#33bbbb;--red:#e05050;
+:root {
+  --ink: #eef6f4;
+  --paper: #07100f;
+  --paper-2: #0e1d1b;
+  --panel: #102522;
+  --panel-2: #152f2b;
+  --line: #2f7068;
+  --line-soft: rgba(109, 226, 207, .22);
+  --muted: #91aaa5;
+  --amber: #f0b85a;
+  --cyan: #67e8d2;
+  --blue: #64a8ff;
+  --red: #ff7066;
+  --green: #78e08f;
+  --shadow: rgba(0, 0, 0, .46);
 }
-body{font-family:system-ui,sans-serif;display:flex;height:100vh;overflow:hidden;
-     background:var(--bg);color:var(--text);font-size:13px}
-#sidebar{width:210px;min-width:160px;background:var(--bg2);display:flex;flex-direction:column;
-  padding:8px 6px;gap:5px;overflow-y:auto;border-right:1px solid var(--bdr);flex-shrink:0}
-#sidebar h2{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);
-  padding-bottom:4px;border-bottom:1px solid var(--bdr)}
-.fg{display:flex;flex-direction:column;gap:2px}
-.fg>span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
-.fg select{padding:3px 6px;border-radius:4px;border:1px solid var(--bdr);
-  background:#0e1428;color:#c0d0e0;font-size:12px;cursor:pointer}
-#cfg-count{font-size:10px;color:var(--dim);text-align:right}
-#config-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
-.ci{padding:4px 7px;border-radius:4px;cursor:pointer;font-size:11px;line-height:1.5;
-    border-left:3px solid transparent}
-.ci:hover{background:#1e2840}.ci.active{background:#1e3a7a;border-left-color:var(--blue)}
-.ci.hidden{display:none}
-.cn{font-weight:700;color:#5a9fff;font-size:10px}.ci.active .cn{color:#90c0ff}
-#main{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
-h1{font-size:18px;color:#90c0ff}
-.info-row{display:flex;gap:10px;flex-wrap:wrap}
-.badge{padding:3px 8px;border-radius:3px;font-size:11px;font-weight:700;
-  background:#1e3a7a;color:#90c0ff;border:1px solid #3a6aaa}
-.section{background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:12px}
-.section h3{font-size:12px;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
-.frames-row{display:flex;gap:10px;flex-wrap:wrap}
-.frame-card{border:1px solid var(--bdr);border-radius:4px;padding:8px;background:var(--bg3)}
-.frame-card h4{font-size:11px;color:var(--dim);margin-bottom:6px}
-.pixel-grid{display:grid;gap:2px}
-.px{display:flex;align-items:center;justify-content:center;
-    border-radius:2px;cursor:pointer;border:1px solid transparent}
-.px:hover{border-color:var(--amber)}.px.selected{border-color:var(--amber);outline:2px solid var(--amber)}
-.tap-matrix{display:grid;gap:2px;margin-top:4px}
-.tap-cell{width:40px;height:28px;display:flex;align-items:center;justify-content:center;
-    font-size:11px;border-radius:2px;background:#0e1428;border:1px solid var(--bdr)}
-.tap-cell.center{border-color:var(--amber);background:#1e2810}
-.tap-cell.oob{color:var(--dim)}
-.tap-axis{width:40px;height:28px;display:flex;align-items:center;justify-content:center;
-    font-size:10px;color:var(--dim)}
-#expected-table{width:100%;border-collapse:collapse;font-size:11px;font-family:monospace}
-#expected-table th,#expected-table td{border:1px solid var(--bdr);padding:3px 6px;text-align:left}
-#expected-table th{background:#1e2840;color:var(--dim)}
-#expected-table tr:hover td{background:#1e2840}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(103,232,210,.06) 1px, transparent 1px),
+    linear-gradient(rgba(103,232,210,.045) 1px, transparent 1px),
+    var(--paper);
+  background-size: 16px 16px;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+}
+button, select, input {
+  font: inherit;
+}
+.window-scope {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  height: 100vh;
+}
+aside {
+  border-right: 3px solid var(--line);
+  background: rgba(7, 16, 15, .96);
+  padding: 18px;
+  overflow: auto;
+  min-height: 0;
+}
+main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.controls {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+select, input[type="range"] {
+  width: 100%;
+}
+select {
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  padding: 8px;
+}
+.transport {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+button {
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  min-height: 36px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 rgba(103,232,210,.18);
+}
+button:hover, button:focus-visible {
+  background: #183834;
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.meter {
+  border: 2px solid var(--line);
+  background: var(--panel);
+  padding: 10px;
+  box-shadow: 4px 4px 0 var(--shadow);
+}
+.meter strong {
+  display: block;
+  font-size: 24px;
+}
+.legend {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--line);
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.top {
+  border-bottom: 3px solid var(--line);
+  padding: 14px 18px;
+  background: rgba(7, 16, 15, .96);
+}
+.top-grid {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(4, minmax(120px, auto));
+  gap: 10px;
+  align-items: stretch;
+}
+.plate {
+  border: 2px solid var(--line);
+  background: linear-gradient(180deg, var(--panel), #0b1816);
+  padding: 9px 11px;
+}
+.plate span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.plate strong {
+  display: block;
+  font-size: 18px;
+  margin-top: 2px;
+}
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(380px, .9fr);
+  min-height: 0;
+  overflow: hidden;
+}
+.left, .right {
+  min-width: 0;
+  min-height: 0;
+  padding: 16px 18px;
+}
+.left {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+}
+.right {
+  border-left: 3px solid var(--line);
+  background: rgba(8, 19, 18, .82);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto minmax(160px, .55fr);
+  overflow: hidden;
+}
+.data-scroll {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+.section-title {
+  margin: 0 0 9px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.quick-jumps {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.quick-jumps button {
+  min-height: 34px;
+  box-shadow: none;
+  font-size: 12px;
+}
+.story-card {
+  border: 2px solid var(--line);
+  background: linear-gradient(90deg, rgba(103,232,210,.12), rgba(16,37,34,.9));
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.story-card h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.story-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.phase-help {
+  margin-top: 8px;
+  color: var(--cyan);
+}
+.view-toggle {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.view-toggle button {
+  min-height: 30px;
+  padding: 0 12px;
+  box-shadow: none;
+}
+.view-toggle button.active {
+  background: #16443e;
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.data-section.hidden {
+  display: none;
+}
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.readout {
+  border: 2px solid var(--line);
+  background: rgba(16, 37, 34, .9);
+  padding: 12px;
+  min-height: 112px;
+  box-shadow: 0 0 0 1px rgba(103,232,210,.08), 0 14px 28px var(--shadow);
+}
+.readout h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.readout p {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 12px;
+}
+.phase-RESET { background: #263331; }
+.phase-STALL { background: #5d3c12; color: #ffe2a8; }
+.phase-INPUT { background: #164425; color: #bdffc9; }
+.phase-DUMMY_COL { background: #123b54; color: #c9e9ff; }
+.phase-FLUSH { background: #0f514a; color: #c8fff4; }
+.phase-DRAIN { background: #33304c; color: #e3dcff; }
+.signal-panel {
+  overflow: auto;
+  border: 2px solid var(--line);
+  background:
+    linear-gradient(90deg, rgba(103,232,210,.045) 1px, transparent 1px),
+    linear-gradient(rgba(103,232,210,.035) 1px, transparent 1px),
+    rgba(8, 19, 18, .94);
+  background-size: 22px 22px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: inset 0 0 26px rgba(103,232,210,.06);
+}
+.tap-matrix {
+  display: grid;
+  grid-template-columns: 34px repeat(var(--tap-cols), minmax(66px, 1fr));
+  gap: 6px;
+  min-width: max-content;
+}
+.tap-axis,
+.tap-cell {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+}
+.tap-axis {
+  color: var(--muted);
+  font-size: 11px;
+  border: 1px solid rgba(103,232,210,.12);
+  background: rgba(16,37,34,.54);
+}
+.tap-cell {
+  position: relative;
+  border: 1px solid rgba(103,232,210,.3);
+  background: linear-gradient(180deg, rgba(21,47,43,.96), rgba(8,19,18,.95));
+  color: var(--ink);
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: inset 0 0 18px rgba(0,0,0,.24);
+}
+.tap-cell.center {
+  border-color: var(--blue);
+  background: linear-gradient(180deg, rgba(49,91,133,.82), rgba(17,41,61,.95));
+  box-shadow: inset 0 0 0 2px rgba(100,168,255,.36), 0 0 18px rgba(100,168,255,.12);
+}
+.tap-cell::after {
+  content: attr(data-coord);
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  color: var(--muted);
+  font-size: 9px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+.frames {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+.frame-card {
+  border: 2px solid var(--line);
+  background: rgba(16,37,34,.74);
+  padding: 10px;
+}
+.frame-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.pixel-grid {
+  display: grid;
+  gap: 3px;
+  justify-content: start;
+  align-content: start;
+}
+.px {
+  width: var(--pixel-size, 22px);
+  height: var(--pixel-size, 22px);
+  border: 1px solid rgba(103,232,210,.18);
+  color: transparent;
+  font-size: 0;
+  box-shadow: inset 0 0 10px rgba(255,255,255,.03);
+}
+.px.current-in { outline: 3px solid var(--green); z-index: 2; }
+.px.current-out { outline: 3px solid var(--blue); z-index: 2; }
+.px.window { box-shadow: inset 0 0 0 3px rgba(100,168,255,.32); }
+.bram-card {
+  border: 1px solid rgba(103,232,210,.35);
+  background: rgba(9, 24, 22, .82);
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.bram-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.bram-title strong {
+  color: var(--ink);
+}
+.bram-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--bram-cols), minmax(48px, 1fr));
+  gap: 5px;
+  min-width: max-content;
+}
+.bram-cell {
+  position: relative;
+  min-height: 42px;
+  border: 1px solid rgba(103,232,210,.24);
+  background: linear-gradient(180deg, rgba(17,43,40,.95), rgba(7,16,15,.94));
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+.bram-cell::before {
+  content: attr(data-addr);
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+.bram-cell.zero {
+  color: #7f9691;
+  background: rgba(9, 18, 17, .82);
+}
+.timeline {
+  min-height: 0;
+  overflow: auto;
+  border: 2px solid var(--line);
+  background: rgba(8, 19, 18, .9);
+}
+.tick {
+  display: grid;
+  grid-template-columns: 64px 92px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+  font-size: 12px;
+}
+.tick.active {
+  background: #143c37;
+  box-shadow: inset 5px 0 0 var(--cyan);
+}
+.mono {
+  font-family: "Courier New", monospace;
+}
+@media (max-width: 1100px) {
+  body { height: auto; overflow: auto; }
+  .window-scope { grid-template-columns: 1fr; height: auto; }
+  aside { border-right: 0; border-bottom: 3px solid var(--line); }
+  .content { grid-template-columns: 1fr; }
+  .left { overflow: visible; }
+  .data-scroll { overflow: visible; }
+  .right { border-left: 0; border-top: 3px solid var(--line); overflow: visible; display: block; }
+  .top-grid, .status-grid { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body>
-<div id="sidebar">
-  <h2>conv2d Visualiser</h2>
-  <div class="fg"><span>Kernel</span>
-    <select id="kernelSel" onchange="filterList()"></select></div>
-  <div class="fg"><span>Edge Mode</span>
-    <select id="edgeSel" onchange="filterList()">
-      <option value="">All</option>
-      <option>ZERO</option><option>REPLICATE</option><option>TOROIDAL</option>
-    </select></div>
-  <div class="fg"><span>Flush</span>
-    <select id="flushSel" onchange="filterList()">
-      <option value="">All</option><option>off</option><option>on</option>
-    </select></div>
-  <div class="fg"><span>Frame size</span>
-    <select id="frameSel" onchange="filterList()"></select></div>
-  <div id="cfg-count"></div>
-  <hr style="border-color:var(--bdr);margin:2px 0">
-  <div id="config-list"></div>
+<div class="window-scope">
+  <aside>
+    <h1>conv2d<br>cycle scope</h1>
+    <div class="subtitle">A static simulator for the generated tests. It shows each accepted stream push, delayed output, BRAM contents, and all source frames.</div>
+    <div class="controls">
+      <label>Window size<select id="windowSelect"></select></label>
+      <label>Edge mode<select id="edgeSelect"></select></label>
+      <label>Flush<select id="flushSelect"></select></label>
+      <label>Frame size<select id="frameSizeSelect"></select></label>
+      <label>Cycle<input id="cycleRange" type="range" min="0" value="0"></label>
+      <div class="transport">
+        <button id="firstBtn" title="First cycle">|&lt;</button>
+        <button id="prevBtn" title="Previous cycle">&lt;</button>
+        <button id="playBtn" title="Play">Play</button>
+        <button id="nextBtn" title="Next cycle">&gt;</button>
+        <button id="lastBtn" title="Last cycle">&gt;|</button>
+      </div>
+      <div class="meter">
+        <span>Cycle</span>
+        <strong id="cycleMeter">0 / 0</strong>
+      </div>
+      <label>Jump to event</label>
+      <div class="quick-jumps">
+        <button id="firstOutputBtn" title="Jump to first valid output">First output</button>
+        <button id="nextOutputBtn" title="Jump to next valid output">Next output</button>
+        <button id="nextStallBtn" title="Jump to next back-pressure stall">Next stall</button>
+        <button id="nextFlushBtn" title="Jump to next flush cycle">Next flush</button>
+      </div>
+    </div>
+    <div class="legend">
+      <div><span class="swatch" style="background:#164425"></span>accepted real input</div>
+      <div><span class="swatch" style="background:#0f514a"></span>flush injected zero</div>
+      <div><span class="swatch" style="background:#64a8ff"></span>current output centre</div>
+      <div><span class="swatch" style="background:#78e08f"></span>current input pixel</div>
+    </div>
+  </aside>
+  <main>
+    <div class="top">
+      <div class="top-grid">
+        <div class="plate"><span>Config</span><strong id="configTitle"></strong></div>
+        <div class="plate"><span>Kernel</span><strong id="kernelPlate"></strong></div>
+        <div class="plate"><span>Frame</span><strong id="framePlate"></strong></div>
+        <div class="plate"><span>Edge</span><strong id="edgePlate"></strong></div>
+        <div class="plate"><span>Mode</span><strong id="modePlate"></strong></div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="left">
+        <section class="story-card">
+          <h2>Cycle story</h2>
+          <p id="cycleStory"></p>
+          <p id="phaseHelp" class="phase-help"></p>
+        </section>
+        <div class="status-grid">
+          <section class="readout">
+            <h2>What is happening</h2>
+            <div id="phaseBadge" class="badge"></div>
+            <p id="noteText"></p>
+          </section>
+          <section class="readout">
+            <h2>Input</h2>
+            <p id="inputText"></p>
+            <p id="writeText"></p>
+          </section>
+          <section class="readout">
+            <h2>Output</h2>
+            <p id="outputText"></p>
+            <p id="tapText"></p>
+          </section>
+        </div>
+        <div class="data-scroll">
+          <div class="view-toggle" aria-label="Raw data view">
+            <button id="essentialViewBtn" class="active">Essential</button>
+            <button id="allViewBtn">All data</button>
+          </div>
+          <h3 class="section-title">Output tap grid</h3>
+          <div id="tapGrid" class="signal-panel"></div>
+          <section id="physicalSection" class="data-section">
+            <h3 class="section-title">BRAM physical rows</h3>
+            <div id="bramPhysical"></div>
+          </section>
+          <section id="logicalSection" class="data-section hidden">
+            <h3 class="section-title">BRAM logical age order</h3>
+            <div id="bramLogical"></div>
+          </section>
+        </div>
+      </div>
+      <div class="right">
+        <h3 class="section-title">Three-frame overview</h3>
+        <div id="frames" class="frames"></div>
+        <h3 class="section-title" style="margin-top:16px">Timeline</h3>
+        <div id="timeline" class="timeline"></div>
+      </div>
+    </div>
+  </main>
 </div>
-<div id="main">
-  <h1 id="cfg-title">Select a configuration</h1>
-  <div class="info-row" id="info-row"></div>
-  <div style="display:flex;gap:16px;flex-wrap:wrap">
-    <div class="section" style="flex:0 0 auto">
-      <h3>Frames <span style="font-size:10px;text-transform:none;color:var(--dim)">(click pixel to inspect tap window)</span></h3>
-      <div class="frames-row" id="frames-row"></div>
-    </div>
-    <div class="section" style="flex:0 0 auto">
-      <h3>Tap window</h3>
-      <div id="tap-display"><p style="color:var(--dim)">Click a pixel above.</p></div>
-    </div>
-  </div>
-  <div class="section">
-    <h3>Expected output vectors &mdash; <span id="exp-count">0</span> outputs</h3>
-    <div style="max-height:300px;overflow:auto">
-      <table id="expected-table">
-        <thead id="exp-thead"></thead>
-        <tbody id="exp-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
+<script id="sim-data" type="application/json">__JSON_DATA__</script>
 <script>
-const DATA = __JSON_DATA__;
+const DATA = JSON.parse(document.getElementById('sim-data').textContent);
 let cfgIndex = 0;
+let cycleIndex = 0;
+let timer = null;
+let viewMode = 'essential';
 
-function el(id){return document.getElementById(id);}
+const el = id => document.getElementById(id);
+const windowSelect = el('windowSelect');
+const edgeSelect = el('edgeSelect');
+const flushSelect = el('flushSelect');
+const frameSizeSelect = el('frameSizeSelect');
+const cycleRange = el('cycleRange');
 
-function init(){
-  const kernels=[...new Set(DATA.configs.map(c=>`${c.kern_rows}x${c.kern_cols}`))];
-  const frames=[...new Set(DATA.configs.map(c=>`${c.line_width}x${c.frame_height}`))];
-  populate(el('kernelSel'),['All',...kernels]);
-  populate(el('frameSel'),['All',...frames]);
-  buildList();
-  selectCfg(0);
-}
+function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+function currentConfig() { return DATA.configs[cfgIndex]; }
+function currentCycle() { return currentConfig().trace[cycleIndex]; }
 
-function populate(sel,vals){
-  sel.innerHTML='';
-  vals.forEach(v=>{const o=document.createElement('option');o.value=v==='All'?'':v;o.textContent=v;sel.appendChild(o);});
-}
-
-function filterList(){
-  const k=el('kernelSel').value,e=el('edgeSel').value,fl=el('flushSel').value,fr=el('frameSel').value;
-  let vis=0;
-  document.querySelectorAll('.ci').forEach(node=>{
-    const c=DATA.configs[+node.dataset.idx];
-    const show=(k?`${c.kern_rows}x${c.kern_cols}`===k:true)&&(e?c.edge_mode===e:true)
-              &&(fl?(c.flush?'on':'off')===fl:true)&&(fr?`${c.line_width}x${c.frame_height}`===fr:true);
-    node.classList.toggle('hidden',!show);
-    if(show)vis++;
+function init() {
+  populateSelector(windowSelect, uniqueValues(cfg => `${cfg.kern_rows}x${cfg.kern_cols}`));
+  populateSelector(edgeSelect, uniqueValues(cfg => cfg.edge_mode));
+  populateSelector(flushSelect, uniqueValues(cfg => cfg.flush ? 'on' : 'off'));
+  populateSelector(frameSizeSelect, uniqueValues(cfg => `${cfg.line_width}x${cfg.frame_height}`));
+  [windowSelect, edgeSelect, flushSelect, frameSizeSelect].forEach(select => {
+    select.addEventListener('change', selectConfigFromControls);
   });
-  el('cfg-count').textContent=`${vis} / ${DATA.configs.length} shown`;
-}
-
-function buildList(){
-  const list=el('config-list');list.innerHTML='';
-  DATA.configs.forEach((c,i)=>{
-    const d=document.createElement('div');d.className='ci';d.dataset.idx=i;
-    d.innerHTML=`<span class="cn">CFG${String(c.id).padStart(3,'0')}</span><br>${c.label}`;
-    d.onclick=()=>selectCfg(i);
-    list.appendChild(d);
+  cycleRange.addEventListener('input', () => {
+    cycleIndex = Number(cycleRange.value);
+    renderCycleOnly();
   });
-  filterList();
+  el('firstBtn').onclick = () => { cycleIndex = 0; stop(); renderCycleOnly(); };
+  el('prevBtn').onclick = () => { cycleIndex = clamp(cycleIndex - 1, 0, currentConfig().trace.length - 1); stop(); renderCycleOnly(); };
+  el('nextBtn').onclick = () => { cycleIndex = clamp(cycleIndex + 1, 0, currentConfig().trace.length - 1); stop(); renderCycleOnly(); };
+  el('lastBtn').onclick = () => { cycleIndex = currentConfig().trace.length - 1; stop(); renderCycleOnly(); };
+  el('playBtn').onclick = togglePlay;
+  el('firstOutputBtn').onclick = () => jumpTo('first-output');
+  el('nextOutputBtn').onclick = () => jumpTo('next-output');
+  el('nextStallBtn').onclick = () => jumpTo('next-stall');
+  el('nextFlushBtn').onclick = () => jumpTo('next-flush');
+  el('essentialViewBtn').onclick = () => setViewMode('essential');
+  el('allViewBtn').onclick = () => setViewMode('all');
+  document.addEventListener('keydown', event => {
+    if (event.target.tagName === 'SELECT' || event.target.tagName === 'INPUT') return;
+    if (event.key === 'ArrowRight') { el('nextBtn').click(); event.preventDefault(); }
+    if (event.key === 'ArrowLeft') { el('prevBtn').click(); event.preventDefault(); }
+    if (event.key === ' ') { togglePlay(); event.preventDefault(); }
+  });
+  render();
 }
 
-function selectCfg(idx){
-  cfgIndex=idx;
-  document.querySelectorAll('.ci').forEach(n=>n.classList.toggle('active',+n.dataset.idx===idx));
-  const c=DATA.configs[idx];
-  el('cfg-title').textContent=`CFG${String(c.id).padStart(3,'0')} — ${c.label}`;
-  const badges=[c.streaming?'streaming':'flush-mode',c.bp?'back-pressure':null].filter(Boolean);
-  el('info-row').innerHTML=badges.map(b=>`<span class="badge">${b}</span>`).join('');
-  renderFrames(c);
-  renderExpected(c);
-  el('tap-display').innerHTML='<p style="color:var(--dim)">Click a pixel above.</p>';
+function uniqueValues(fn) {
+  return Array.from(new Set(DATA.configs.map(fn)));
 }
 
-function renderFrames(c){
-  const host=el('frames-row');host.innerHTML='';
-  const ps=c.line_width>12?14:c.line_width>8?18:24;
-  c.frames.forEach((frame,fn)=>{
-    const card=document.createElement('div');card.className='frame-card';
-    card.innerHTML=`<h4>Frame ${fn} &mdash; ${c.line_width}×${c.frame_height}</h4>`;
-    const grid=document.createElement('div');grid.className='pixel-grid';
-    grid.style.gridTemplateColumns=`repeat(${c.line_width},${ps}px)`;
-    frame.forEach((row,r)=>row.forEach((val,col)=>{
-      const px=document.createElement('div');px.className='px';
-      px.style.width=px.style.height=`${ps}px`;
-      px.style.fontSize=`${Math.max(7,ps-13)}px`;
-      const norm=val/((1<<Math.min(c.data_width,16))-1);
-      px.style.background=`rgb(${Math.round(10+norm*58)},${Math.round(33+norm*188)},${Math.round(32+norm*158)})`;
-      px.title=`Frame ${fn} (${r},${col}) = ${val}`;
-      px.textContent=ps>=18?val:'';
-      px.onclick=()=>{
-        document.querySelectorAll('.px.selected').forEach(n=>n.classList.remove('selected'));
-        px.classList.add('selected');
-        showTaps(c,fn,r,col);
-      };
-      grid.appendChild(px);
-    }));
-    card.appendChild(grid);host.appendChild(card);
+function populateSelector(select, values) {
+  select.innerHTML = '';
+  values.forEach(value => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
   });
 }
 
-function showTaps(c,fn,r,col){
-  const frame=c.frames[fn];
-  const host=el('tap-display');host.innerHTML='';
-  const title=document.createElement('p');
-  title.style.cssText='font-size:11px;color:var(--dim);margin-bottom:6px';
-  title.textContent=`Frame ${fn} (${r}, ${col}) = ${frame[r][col]}`;
-  host.appendChild(title);
-  const matrix=document.createElement('div');
-  matrix.className='tap-matrix';
-  matrix.style.gridTemplateColumns=`repeat(${c.kern_cols+1},40px)`;
-  const ax=document.createElement('div');ax.className='tap-axis';ax.textContent='tap';matrix.appendChild(ax);
-  for(let tc=0;tc<c.kern_cols;tc++){const a=document.createElement('div');a.className='tap-axis';a.textContent=`c${tc}`;matrix.appendChild(a);}
-  for(let tr=0;tr<c.kern_rows;tr++){
-    const ra=document.createElement('div');ra.className='tap-axis';ra.textContent=`r${tr}`;matrix.appendChild(ra);
-    for(let tc=0;tc<c.kern_cols;tc++){
-      const sr=r+tr-c.half_r,sc=col+tc-c.half_c;
-      const cell=document.createElement('div');cell.className='tap-cell';
-      if(tr===c.half_r&&tc===c.half_c)cell.classList.add('center');
-      let val;
-      if(c.edge_mode==='ZERO'){
-        val=(sr>=0&&sr<c.frame_height&&sc>=0&&sc<c.line_width)?frame[sr][sc]:0;
-      }else if(c.edge_mode==='REPLICATE'){
-        val=frame[Math.max(0,Math.min(sr,c.frame_height-1))][Math.max(0,Math.min(sc,c.line_width-1))];
-      }else{
-        if(sr>=0&&sr<c.frame_height&&sc>=0&&sc<c.line_width){val=frame[sr][sc];}
-        else{val='~';cell.classList.add('oob');}
-      }
-      cell.textContent=val;matrix.appendChild(cell);
+function selectConfigFromControls() {
+  const idx = DATA.configs.findIndex(cfg =>
+    `${cfg.kern_rows}x${cfg.kern_cols}` === windowSelect.value &&
+    cfg.edge_mode === edgeSelect.value &&
+    (cfg.flush ? 'on' : 'off') === flushSelect.value &&
+    `${cfg.line_width}x${cfg.frame_height}` === frameSizeSelect.value
+  );
+  if (idx >= 0) {
+    cfgIndex = idx;
+    cycleIndex = 0;
+    stop();
+    render();
+  }
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  renderDataVisibility();
+}
+
+function renderDataVisibility() {
+  el('essentialViewBtn').classList.toggle('active', viewMode === 'essential');
+  el('allViewBtn').classList.toggle('active', viewMode === 'all');
+  el('logicalSection').classList.toggle('hidden', viewMode !== 'all');
+}
+
+function findCycleIndex(predicate, start = 0) {
+  const trace = currentConfig().trace;
+  for (let i = start; i < trace.length; i++) {
+    if (predicate(trace[i])) return i;
+  }
+  return -1;
+}
+
+function jumpTo(kind) {
+  const predicates = {
+    'first-output': cyc => cyc.output.valid,
+    'next-output': cyc => cyc.output.valid,
+    'next-stall': cyc => cyc.phase === 'STALL',
+    'next-flush': cyc => cyc.phase === 'FLUSH',
+  };
+  const start = kind === 'first-output' ? 0 : cycleIndex + 1;
+  let idx = findCycleIndex(predicates[kind], start);
+  if (idx < 0 && kind !== 'first-output') idx = findCycleIndex(predicates[kind], 0);
+  if (idx >= 0) {
+    cycleIndex = idx;
+    stop();
+    renderCycleOnly();
+  }
+}
+
+function togglePlay() {
+  if (timer) { stop(); return; }
+  el('playBtn').textContent = 'Pause';
+  timer = setInterval(() => {
+    if (cycleIndex >= currentConfig().trace.length - 1) { stop(); return; }
+    cycleIndex += 1;
+    renderCycleOnly();
+  }, 220);
+}
+
+function stop() {
+  clearInterval(timer);
+  timer = null;
+  el('playBtn').textContent = 'Play';
+}
+
+function render() {
+  const cfg = currentConfig();
+  windowSelect.value = `${cfg.kern_rows}x${cfg.kern_cols}`;
+  edgeSelect.value = cfg.edge_mode;
+  flushSelect.value = cfg.flush ? 'on' : 'off';
+  frameSizeSelect.value = `${cfg.line_width}x${cfg.frame_height}`;
+  el('configTitle').textContent = `CFG${String(cfg.id).padStart(2, '0')}`;
+  el('kernelPlate').textContent = `${cfg.kern_rows}x${cfg.kern_cols}`;
+  el('framePlate').textContent = `${cfg.line_width}x${cfg.frame_height} x ${cfg.num_frames}`;
+  el('edgePlate').textContent = cfg.edge_mode;
+  el('modePlate').textContent = cfg.streaming ? 'streaming' : 'flush';
+  cycleRange.max = String(cfg.trace.length - 1);
+  renderTimeline();
+  renderCycleOnly();
+  renderDataVisibility();
+}
+
+function renderCycleOnly() {
+  const cfg = currentConfig();
+  cycleIndex = clamp(cycleIndex, 0, cfg.trace.length - 1);
+  cycleRange.value = String(cycleIndex);
+  const cyc = currentCycle();
+  el('cycleMeter').textContent = `${cyc.cycle} / ${cfg.trace[cfg.trace.length - 1].cycle}`;
+  el('phaseBadge').textContent = cyc.phase;
+  el('phaseBadge').className = `badge phase-${cyc.phase}`;
+  el('cycleStory').textContent = cycleStory(cfg, cyc);
+  el('phaseHelp').textContent = phaseHelp(cyc.phase);
+  el('noteText').textContent = cyc.note;
+  renderInput(cyc);
+  renderOutput(cfg, cyc);
+  renderTapGrid(cfg, cyc.output.taps);
+  renderBram(cfg, cyc);
+  renderFrames(cfg, cyc);
+  updateTimelineCursor();
+  renderDataVisibility();
+}
+
+function phaseHelp(phase) {
+  const help = {
+    RESET: 'Reset clears counters and valid flags before the stream begins.',
+    STALL: 'Back-pressure is active, so input, BRAM reads, and the output pipeline hold their state.',
+    INPUT: 'A real frame pixel is accepted and written into the rotating BRAM row.',
+    DUMMY_COL: 'A synthetic column is shown after the row. TOROIDAL preview uses previous-row suffix for left-edge taps and next-row prefix for right-edge taps.',
+    FLUSH: 'A zero row is injected after a frame to push bottom-edge windows out before the next frame.',
+    DRAIN: 'No new input is accepted; delayed pipeline state is being shown.',
+  };
+  return help[phase] || '';
+}
+
+function cycleStory(cfg, cyc) {
+  const input = cyc.input;
+  const output = cyc.output;
+  const inputPart = input.valid
+    ? `${input.kind} push ${input.value} at ${input.frame !== null ? `frame ${input.frame}` : 'no frame'}${input.col !== null ? ` (${input.row},${input.col})` : ''}`
+    : input.kind === 'stall' ? 'input is held by back-pressure' : 'no input push';
+  const outputPart = output.valid
+    ? `output window for frame ${output.frame} (${output.row},${output.col}) is valid`
+    : 'no output window is valid yet';
+  const memoryPart = input.write
+    ? `BRAM row ${input.write.row}, col ${input.write.col} is updated`
+    : 'BRAM contents hold';
+  return `${inputPart}; ${outputPart}; ${memoryPart}.`;
+}
+
+function renderInput(cyc) {
+  const input = cyc.input;
+  if (!input.valid) {
+    el('inputText').textContent = input.kind === 'stall' ? 'No input accepted; downstream back-pressure holds the pipeline.' : `No input push (${input.kind}).`;
+  } else {
+    const pos = input.col === null ? `effective column ${input.effectiveCol}` : `(${input.row}, ${input.col})`;
+    el('inputText').textContent = `${input.kind}: value ${input.value} from frame ${input.frame}, ${pos}`;
+  }
+  el('writeText').textContent = input.write
+    ? `BRAM write: physical row ${input.write.row}, col ${input.write.col} = ${input.write.value}`
+    : 'BRAM write: none this cycle';
+}
+
+function renderOutput(cfg, cyc) {
+  const out = cyc.output;
+  if (!out.valid) {
+    el('outputText').textContent = 'm_tvalid = 0; no output window this cycle.';
+    el('tapText').textContent = '';
+    return;
+  }
+  el('outputText').textContent = `m_tvalid = 1; frame ${out.frame}, output (${out.row}, ${out.col}), ${out.kind}`;
+  el('tapText').textContent = `Expected vector index ${out.expectedIndex}; ${cfg.kern_rows * cfg.kern_cols} taps shown below.`;
+}
+
+function renderTapGrid(cfg, taps) {
+  const host = el('tapGrid');
+  host.innerHTML = '';
+  if (!taps || !taps.length) {
+    host.textContent = 'No output taps on this cycle.';
+    return;
+  }
+  const matrix = document.createElement('div');
+  matrix.className = 'tap-matrix';
+  matrix.style.setProperty('--tap-cols', cfg.kern_cols);
+  matrix.appendChild(axisCell('tap'));
+  for (let c = 0; c < cfg.kern_cols; c++) matrix.appendChild(axisCell(`c${c}`));
+  for (let r = 0; r < cfg.kern_rows; r++) {
+    matrix.appendChild(axisCell(`r${r}`));
+    for (let c = 0; c < cfg.kern_cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'tap-cell';
+      if (r === cfg.half_r && c === cfg.half_c) cell.classList.add('center');
+      cell.dataset.coord = `r${r} c${c}`;
+      cell.title = `tap[${r}][${c}]`;
+      cell.textContent = taps[r * cfg.kern_cols + c];
+      matrix.appendChild(cell);
     }
   }
   host.appendChild(matrix);
 }
 
-function renderExpected(c){
-  const thead=el('exp-thead'),tbody=el('exp-tbody');
-  thead.innerHTML='';tbody.innerHTML='';
-  el('exp-count').textContent=c.expected.length;
-  if(!c.expected.length){
-    tbody.innerHTML='<tr><td colspan="2" style="color:var(--dim)">No data — run gen_tb.py first.</td></tr>';return;
+function axisCell(label) {
+  const cell = document.createElement('div');
+  cell.className = 'tap-axis';
+  cell.textContent = label;
+  return cell;
+}
+
+function renderBram(cfg, cyc) {
+  renderBramRows(el('bramPhysical'), cyc.bram.physical, 'physical');
+  renderBramRows(el('bramLogical'), cyc.bram.logical, 'logical age');
+}
+
+function renderBramRows(host, rows, title) {
+  host.innerHTML = '';
+  if (!rows.length) {
+    host.textContent = 'No BRAM rows for this configuration.';
+    return;
   }
-  const hdr=document.createElement('tr');
-  ['#','taps (tap[0][0] .. tap[KR-1][KC-1])'].forEach(t=>{const th=document.createElement('th');th.textContent=t;hdr.appendChild(th);});
-  thead.appendChild(hdr);
-  c.expected.forEach((taps,i)=>{
-    const tr=document.createElement('tr');
-    let td=document.createElement('td');td.textContent=i;tr.appendChild(td);
-    td=document.createElement('td');td.style.fontFamily='monospace';td.textContent=taps.join(' ');tr.appendChild(td);
-    tbody.appendChild(tr);
+  rows.forEach((row, i) => {
+    const block = document.createElement('div');
+    block.className = 'bram-card';
+    const head = document.createElement('div');
+    head.className = 'bram-title';
+    head.innerHTML = `<strong>${title} row ${i}</strong><span>${row.length} columns</span>`;
+    block.appendChild(head);
+    const strip = document.createElement('div');
+    strip.className = 'bram-strip';
+    strip.style.setProperty('--bram-cols', row.length);
+    row.forEach((value, col) => {
+      const cell = document.createElement('div');
+      cell.className = 'bram-cell';
+      if (Number(value) === 0) cell.classList.add('zero');
+      cell.dataset.addr = `c${col}`;
+      cell.title = `${title} row ${i}, col ${col}`;
+      cell.textContent = value;
+      strip.appendChild(cell);
+    });
+    block.appendChild(strip);
+    host.appendChild(block);
   });
+}
+
+function renderFrames(cfg, cyc) {
+  const host = el('frames');
+  host.innerHTML = '';
+  const pixelSize = cfg.line_width > 12 ? 14 : cfg.line_width > 8 ? 18 : 24;
+  cfg.frames.forEach((frame, fn) => {
+    const card = document.createElement('div');
+    card.className = 'frame-card';
+    const head = document.createElement('div');
+    head.className = 'frame-head';
+    head.innerHTML = `<strong>Frame ${fn}</strong><span>${cfg.line_width}x${cfg.frame_height}</span>`;
+    card.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'pixel-grid';
+    grid.style.setProperty('--pixel-size', `${pixelSize}px`);
+    grid.style.gridTemplateColumns = `repeat(${cfg.line_width}, var(--pixel-size))`;
+    for (let r = 0; r < cfg.frame_height; r++) {
+      for (let c = 0; c < cfg.line_width; c++) {
+        const value = frame[r][c];
+        const px = document.createElement('div');
+        px.className = 'px';
+        px.title = `Frame ${fn} (${r}, ${c}) = ${value}`;
+        const norm = Number(value) / ((1 << Math.min(cfg.data_width, 16)) - 1);
+        const red = Math.round(10 + norm * 58);
+        const green = Math.round(33 + norm * 188);
+        const blue = Math.round(32 + norm * 158);
+        px.style.background = `rgb(${red}, ${green}, ${blue})`;
+        if (cyc.input.valid && cyc.input.kind === 'real' && cyc.input.frame === fn && cyc.input.row === r && cyc.input.col === c) {
+          px.classList.add('current-in');
+        }
+        if (cyc.output.valid && cyc.output.frame === fn && cyc.output.row === r && cyc.output.col === c) {
+          px.classList.add('current-out');
+        }
+        if (cyc.output.valid && cyc.output.frame === fn) {
+          const rr = r - cyc.output.row + cfg.half_r;
+          const cc = c - cyc.output.col + cfg.half_c;
+          if (rr >= 0 && rr < cfg.kern_rows && cc >= 0 && cc < cfg.kern_cols) px.classList.add('window');
+        }
+        grid.appendChild(px);
+      }
+    }
+    card.appendChild(grid);
+    host.appendChild(card);
+  });
+}
+
+function renderTimeline() {
+  const cfg = currentConfig();
+  const host = el('timeline');
+  host.innerHTML = '';
+  cfg.trace.forEach((cyc, i) => {
+    const tick = document.createElement('div');
+    tick.className = 'tick';
+    tick.dataset.index = String(i);
+    tick.onclick = () => { cycleIndex = i; stop(); renderCycleOnly(); };
+    const out = cyc.output.valid ? `out f${cyc.output.frame} (${cyc.output.row},${cyc.output.col})` : 'no output';
+    tick.innerHTML = `<span class="mono">#${cyc.cycle}</span><span>${cyc.phase}</span><span>${out}</span>`;
+    host.appendChild(tick);
+  });
+}
+
+function updateTimelineCursor() {
+  document.querySelectorAll('.tick.active').forEach(node => node.classList.remove('active'));
+  const node = document.querySelector(`.tick[data-index="${cycleIndex}"]`);
+  if (node) {
+    node.classList.add('active');
+    node.scrollIntoView({block: 'nearest'});
+  }
 }
 
 init();
@@ -832,12 +1727,12 @@ architecture tb of conv2d_tb is
 
     # Back-pressure scenarios.
     for idx_0, desc, port_expr, port_rest_expr in [
-        (_BP_POST_RESET,   "3x3 ZERO FLUSH=off 8x8 — m_tready(0) stalled 10 cycles post-reset",
+        (_BP_POST_RESET,   "post_reset — m_tready(0) stalled 10 cycles post-reset",
          "(0) <= '0'", f"(C{(_BP_POST_RESET+1):03d}_NUM_TAPS-1 downto 1) <= (others => '1')"),
-        (_BP_LARGE_KERNEL, "7x7 ZERO FLUSH=off 8x8 — m_tready(NUM_TAPS-1) stalled 10 cycles post-reset",
+        (_BP_LARGE_KERNEL, "post_reset_last — m_tready(NUM_TAPS-1) stalled 10 cycles post-reset",
          f"(C{(_BP_LARGE_KERNEL+1):03d}_NUM_TAPS-1) <= '0'",
          f"(C{(_BP_LARGE_KERNEL+1):03d}_NUM_TAPS-2 downto 0) <= (others => '1')"),
-        (_BP_MID_FLUSH,    "3x3 ZERO FLUSH=on 8x8 — m_tready(0) stalled 15 cycles mid-flush",
+        (_BP_MID_FLUSH,    "mid_sim — m_tready(0) stalled 15 cycles mid-sim",
          None, None),
     ]:
         if idx_0 is None:
@@ -845,7 +1740,7 @@ architecture tb of conv2d_tb is
         n = idx_0 + 1
         sp = f"c{n:03d}"
         cp = f"C{n:03d}"
-        if desc.startswith("3x3 ZERO FLUSH=on"):
+        if desc.startswith("mid_sim"):
             bp_blocks.append(f"""\
     -- BP: cfg{n:03d} ({desc})
     p_bp_{n:03d} : process

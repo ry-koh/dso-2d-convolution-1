@@ -13642,7 +13642,7 @@ begin
             m_tlast  => c324_mlast,    m_tuser  => c324_muser
         );
 
-    -- BP: cfg001 (3x3 ZERO FLUSH=off 8x8 — m_tready(0) stalled 10 cycles post-reset)
+    -- BP: cfg001 (post_reset — m_tready(0) stalled 10 cycles post-reset)
     p_bp_001 : process
     begin
         c001_mready(0) <= '0';
@@ -13653,27 +13653,27 @@ begin
         wait;
     end process p_bp_001;
 
-    -- BP: cfg289 (7x7 ZERO FLUSH=off 8x8 — m_tready(NUM_TAPS-1) stalled 10 cycles post-reset)
-    p_bp_289 : process
+    -- BP: cfg055 (post_reset_last — m_tready(NUM_TAPS-1) stalled 10 cycles post-reset)
+    p_bp_055 : process
     begin
-        c289_mready(C289_NUM_TAPS-1) <= '0';
-        c289_mready(C289_NUM_TAPS-2 downto 0) <= (others => '1');
-        wait until c289_rst = '0';
+        c055_mready(C055_NUM_TAPS-1) <= '0';
+        c055_mready(C055_NUM_TAPS-2 downto 0) <= (others => '1');
+        wait until c055_rst = '0';
         wait for CLK_PERIOD * 10;
-        c289_mready <= (others => '1');
+        c055_mready <= (others => '1');
         wait;
-    end process p_bp_289;
+    end process p_bp_055;
 
-    -- BP: cfg007 (3x3 ZERO FLUSH=on 8x8 — m_tready(0) stalled 15 cycles mid-flush)
-    p_bp_007 : process
+    -- BP: cfg040 (mid_sim — m_tready(0) stalled 15 cycles mid-sim)
+    p_bp_040 : process
     begin
-        wait until c007_rst = '0';
+        wait until c040_rst = '0';
         wait for CLK_PERIOD * 210;
-        c007_mready(0) <= '0';
+        c040_mready(0) <= '0';
         wait for CLK_PERIOD * 15;
-        c007_mready(0) <= '1';
+        c040_mready(0) <= '1';
         wait;
-    end process p_bp_007;
+    end process p_bp_040;
 
     -- Stimulus processes
 
