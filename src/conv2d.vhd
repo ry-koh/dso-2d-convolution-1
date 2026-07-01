@@ -19,9 +19,11 @@
 --   cols LINE_WIDTH..EFF_WIDTH-1 : dummy zero pixels injected internally
 -- This produces the right-edge pixel outputs without extra buffering.
 --
--- FLUSH=true: after last real row, injects HALF_R dummy zero-rows (each
--- EFF_WIDTH events wide) so the bottom HALF_R rows also complete their
--- windows within the same frame.
+-- FLUSH=true (ZERO/REPLICATE): after last real row, injects HALF_R dummy
+-- zero-rows so the bottom HALF_R rows complete their windows within the frame.
+-- FLUSH=false (streaming): bottom HALF_R rows of frame N are triggered by the
+-- first HALF_R rows of frame N+1; no dummy rows injected.
+-- TOROIDAL always uses streaming regardless of the FLUSH generic.
 --
 -- BRAM count: KERN_ROWS-1 (same as bottom-right design).
 -- Pipeline depth: 3 stages (accept -> delay -> output).
@@ -82,6 +84,10 @@ architecture rtl of conv2d is
     signal flushing      : boolean   := false;
     signal flush_push    : std_logic := '0';
     signal flush_row_cnt : natural range 0 to KERN_ROWS - 1 := 0;
+
+    -- Streaming tail (FLUSH=false or TOROIDAL)
+    signal tailing   : boolean := false;
+    signal tail_cnt  : natural range 0 to KERN_ROWS - 1 := 0;
 
     -- line_buf signals
     signal lb_wr_en   : std_logic;
@@ -170,7 +176,8 @@ begin
                     else row_valid;
 
     -- -----------------------------------------------------------------------
-    -- FLUSH FSM — injects HALF_R dummy rows after the last real row.
+    -- FLUSH FSM (ZERO/REPLICATE FLUSH=true) and streaming tail (FLUSH=false
+    -- or TOROIDAL).  Mutually exclusive: at most one is active at a time.
     -- -----------------------------------------------------------------------
     p_flush : process (clk)
     begin
@@ -179,23 +186,44 @@ begin
                 flushing      <= false;
                 flush_push    <= '0';
                 flush_row_cnt <= 0;
+                tailing       <= false;
+                tail_cnt      <= 0;
             else
-                if not flushing then
-                    if FLUSH and HALF_R > 0
+                -- Activation: fire once at the last push of each real frame.
+                if not flushing and not tailing then
+                    if FLUSH and HALF_R > 0 and EDGE_MODE /= "TOROIDAL"
                        and push = '1'
-                       and row_cnt    = FRAME_HEIGHT - 1
-                       and col_cnt    = EFF_WIDTH - 1 then
+                       and row_cnt = FRAME_HEIGHT - 1
+                       and col_cnt = EFF_WIDTH - 1 then
                         flushing      <= true;
                         flush_push    <= '1';
                         flush_row_cnt <= 0;
+                    elsif (not FLUSH or EDGE_MODE = "TOROIDAL") and HALF_R > 0
+                       and push = '1'
+                       and row_cnt = FRAME_HEIGHT - 1
+                       and col_cnt = EFF_WIDTH - 1 then
+                        tailing  <= true;
+                        tail_cnt <= 0;
                     end if;
-                else
+                end if;
+                -- FLUSH FSM: advance through dummy zero rows.
+                if flushing then
                     if all_ready = '1' and col_cnt = EFF_WIDTH - 1 then
                         if flush_row_cnt = HALF_R - 1 then
                             flushing   <= false;
                             flush_push <= '0';
                         else
                             flush_row_cnt <= flush_row_cnt + 1;
+                        end if;
+                    end if;
+                end if;
+                -- Streaming tail: count real next-frame rows used as tail triggers.
+                if tailing then
+                    if push = '1' and col_cnt = EFF_WIDTH - 1 then
+                        if tail_cnt = HALF_R - 1 then
+                            tailing <= false;
+                        else
+                            tail_cnt <= tail_cnt + 1;
                         end if;
                     end if;
                 end if;
@@ -254,11 +282,13 @@ begin
     -- -----------------------------------------------------------------------
     new_row <= '1' when col_cnt = 0 and push = '1' else '0';
 
-    p_row_valid : process (row_cnt, flushing, flush_row_cnt, col_cnt)
+    p_row_valid : process (row_cnt, flushing, flush_row_cnt, col_cnt, tailing)
     begin
         for r in 0 to NUM_BUF_ROWS - 1 loop
             if col_cnt >= LINE_WIDTH then
                 row_valid(r) <= '0';
+            elsif tailing then
+                row_valid(r) <= '1';   -- BRAM holds complete previous-frame data
             elsif flushing then
                 if FRAME_HEIGHT + flush_row_cnt >= KERN_ROWS - 1 - r then
                     row_valid(r) <= '1';
@@ -298,7 +328,9 @@ begin
                 -- Virtual row coordinate for coordinate tracking.
                 -- Flush uses FRAME_HEIGHT + flush_row_cnt as the virtual row.
                 -- SOF resets output row to 0 (col_cnt_d1 will reflect col 0).
-                if flushing then
+                if tailing then
+                    vrv := FRAME_HEIGHT + tail_cnt;
+                elsif flushing then
                     vrv := FRAME_HEIGHT + flush_row_cnt;
                 elsif pixel_accepted = '1' and s_tuser = '1' then
                     vrv := 0;
@@ -421,6 +453,10 @@ begin
 
                     pix := m_tdata_r((tr_s * KERN_COLS + tc_s + 1) * DATA_WIDTH - 1
                                       downto (tr_s * KERN_COLS + tc_s) * DATA_WIDTH);
+                elsif EDGE_MODE = "ZERO"
+                   and (cx < 0 or cx >= LINE_WIDTH or cy < 0 or cy >= FRAME_HEIGHT)
+                then
+                    pix := (others => '0');
                 else
                     pix := m_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
                                       downto (tr * KERN_COLS + tc) * DATA_WIDTH);

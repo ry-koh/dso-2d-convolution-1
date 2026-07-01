@@ -46,17 +46,16 @@ def load_vectors(vec_dir):
         pre = f"c{idx+1:02d}_"
         lw, fh, nf = cfg['line_width'], cfg['frame_height'], cfg['num_frames']
         kr, kc, fl = cfg['kern_rows'], cfg['kern_cols'], cfg['flush']
+        mode   = cfg.get('edge_mode', 'ZERO')
         half_r = (kr - 1) // 2
-        half_c = (kc - 1) // 2
+        # Streaming: FLUSH=false or TOROIDAL uses cross-frame output triggering.
+        streaming = (not fl) or (mode == 'TOROIDAL')
         flush_out_rows = []
-        if fl and half_r > 0:
+        if not streaming and fl and half_r > 0:
             for flush_row in range(half_r):
                 out_r = fh + flush_row - half_r
                 if out_r >= 0:
                     flush_out_rows.append(out_r)
-        real_out_per_frame  = max(0, fh - half_r) * lw
-        flush_out_per_frame = len(flush_out_rows) * lw
-        tppf = real_out_per_frame + flush_out_per_frame
         ip = os.path.join(vec_dir, pre + "input.txt")
         ep = os.path.join(vec_dir, pre + "expected.txt")
         if not os.path.exists(ip) or not os.path.exists(ep):
@@ -67,10 +66,26 @@ def load_vectors(vec_dir):
         with open(ep) as f:
             trows = [list(map(int, x.split())) for x in f if x.strip()]
         taps, flsh = [], []
-        for n in range(nf):
-            b = n * tppf
-            taps.append(trows[b:b + real_out_per_frame])
-            flsh.append(trows[b + real_out_per_frame:b + tppf] if flush_out_per_frame else [])
+        if streaming:
+            # Streaming layout in expected.txt:
+            # fn=0..nf-2: fh*lw outputs each (in-frame + tail from fn+1's pixels)
+            # fn=nf-1:    (fh-half_r)*lw outputs (no tail — no next frame)
+            full_sz = fh * lw
+            last_sz = max(0, fh - half_r) * lw
+            offset = 0
+            for n in range(nf):
+                sz = last_sz if n == nf - 1 else full_sz
+                taps.append(trows[offset:offset + sz])
+                offset += sz
+            flsh = [[] for _ in range(nf)]
+        else:
+            real_out_per_frame  = max(0, fh - half_r) * lw
+            flush_out_per_frame = len(flush_out_rows) * lw
+            tppf = real_out_per_frame + flush_out_per_frame
+            for n in range(nf):
+                b = n * tppf
+                taps.append(trows[b:b + real_out_per_frame])
+                flsh.append(trows[b + real_out_per_frame:b + tppf] if flush_out_per_frame else [])
         out.append({'frames': frames, 'taps': taps, 'flush_taps': flsh,
                     'flush_out_rows': flush_out_rows})
     return out
@@ -85,6 +100,7 @@ def build_json(vd):
         kr, kc     = cfg['kern_rows'], cfg['kern_cols']
         e['half_r'] = (kr - 1) // 2
         e['half_c'] = (kc - 1) // 2
+        e['streaming'] = (not cfg['flush']) or (cfg.get('edge_mode', 'ZERO') == 'TOROIDAL')
         d = vd[idx]
         e['frames']         = d['frames']         if d else []
         e['taps']           = d['taps']           if d else []
@@ -174,6 +190,7 @@ hr.sp{border:none;border-top:1px solid var(--bdr);margin:2px 0}
 .ph-FILL{background:#0a2030;color:#4499cc}
 .ph-OUTPUT{background:#0a2a10;color:#44bb66}
 .ph-FLUSH_OUT{background:#002a2a;color:#33bbbb}
+.ph-TAIL_OUT{background:#1a2a00;color:#88bb44}
 .ph-DUMMY{background:#181828;color:#556688}
 .ph-FLUSH{background:#002020;color:#338888}
 /* Center panel */
@@ -464,18 +481,29 @@ let mode='explore';
 // output: null | {out_r,out_c,fn,taps,is_flush}
 function getOutput(c,p2){
   if(!p2)return null;
-  const hr=c.half_r,hc=c.half_c,lw=c.line_width,fh=c.frame_height;
+  const hr=c.half_r,hc=c.half_c,lw=c.line_width,fh=c.frame_height,nf=c.num_frames;
+  if(c.streaming){
+    // Cross-frame output: global_row drives output coordinates.
+    const global_row=p2.fn*fh+p2.row;
+    if(global_row<hr||p2.col_eff<hc)return null;
+    const o_r_global=global_row-hr;
+    const out_fn=Math.floor(o_r_global/fh);
+    const o_r=o_r_global%fh;
+    const o_c=p2.col_eff-hc;
+    if(o_c>=lw||out_fn>=nf)return null;
+    const taps=(c.taps[out_fn]||[])[o_r*lw+o_c];
+    return taps?{out_r:o_r,out_c:o_c,fn:out_fn,taps,is_flush:false}:null;
+  }
+  // FLUSH=true non-TOROIDAL: per-frame row check.
   if(p2.row<hr||p2.col_eff<hc)return null;
   const o_r=p2.row-hr,o_c=p2.col_eff-hc;
   if(o_c>=lw)return null;
   if(p2.row>=fh){
-    // Flush virtual row
     const foi=c.flush_out_rows.indexOf(o_r);
     if(foi<0)return null;
     const taps=(c.flush_taps[p2.fn]||[])[foi*lw+o_c];
     return taps?{out_r:o_r,out_c:o_c,fn:p2.fn,taps,is_flush:true}:null;
   }
-  // Real row
   const taps=(c.taps[p2.fn]||[])[o_r*lw+o_c];
   return taps?{out_r:o_r,out_c:o_c,fn:p2.fn,taps,is_flush:false}:null;
 }
@@ -491,12 +519,13 @@ function buildTimeline(c){
   const addAccept=(pix)=>{
     const out=getOutput(c,p2);
     let phase;
-    if(out)                                       phase='OUTPUT';
-    else if(pix.is_flush_row&&!pix.is_dummy)       phase='FLUSH';
-    else if(pix.is_dummy&&!out)                    phase='DUMMY';
-    else                                           phase='FILL';
-    // Refine: flush row producing an output
-    if(out&&p2&&p2.row>=fh) phase='FLUSH_OUT';
+    if(out)                                        phase='OUTPUT';
+    else if(pix.is_flush_row&&!pix.is_dummy)        phase='FLUSH';
+    else if(pix.is_dummy&&!out)                     phase='DUMMY';
+    else                                            phase='FILL';
+    // Refine: flush row or streaming-tail producing an output
+    if(out&&p2&&p2.row>=fh)                         phase='FLUSH_OUT';
+    if(out&&c.streaming&&p2&&out.fn<p2.fn)          phase='TAIL_OUT';
     cyc.push({cycle:cyc.length,phase,t0:pix,t1:p1,t2:p2,output:out,stall_note:null});
     p2=p1; p1=pix; acc++;
   };
@@ -540,7 +569,7 @@ function buildTimeline(c){
   // Two drain cycles so last two pixels get their output shown
   for(let i=0;i<2;i++){
     const out=getOutput(c,p2);
-    const phase=out?(p2&&p2.row>=fh?'FLUSH_OUT':'OUTPUT'):'FILL';
+    const phase=out?(p2&&p2.row>=fh?'FLUSH_OUT':(c.streaming&&out&&p2&&out.fn<p2.fn?'TAIL_OUT':'OUTPUT')):'FILL';
     cyc.push({cycle:cyc.length,phase,t0:null,t1:p1,t2:p2,output:out,stall_note:null});
     p2=p1; p1=null;
   }
@@ -733,6 +762,7 @@ const PHASE_DESC={
   FILL:      'Pixel accepted — pipeline filling, no output yet',
   OUTPUT:    'Pixel accepted — real frame output at port this cycle',
   FLUSH_OUT: 'Flush zero accepted — flush output at port this cycle',
+  TAIL_OUT:  'Next-frame pixel accepted — streaming tail output for previous frame',
   DUMMY:     'Dummy column zero accepted — right-edge padding',
   FLUSH:     'Flush zero row accepted — pipeline draining',
 };
@@ -742,6 +772,7 @@ const PHASE_INFOSTR={
   FILL:     n=>n.t0?pixStr(n.t0):'drain',
   OUTPUT:   n=>n.t0?pixStr(n.t0):'drain',
   FLUSH_OUT:n=>n.t0?pixStr(n.t0):'drain',
+  TAIL_OUT: n=>n.t0?pixStr(n.t0):'drain',
   DUMMY:    n=>n.t0?`ce=${n.t0.col_eff}`:'',
   FLUSH:    n=>n.t0?`r=${n.t0.row},ce=${n.t0.col_eff}`:'',
 };
@@ -904,6 +935,8 @@ function renderSimLegend(c){
     rows.push({sw:'background:#fd8d3c;opacity:.55',txt:'Amber dim = replicated edge (REPLICATE)'});
   if(c.edge_mode==='TOROIDAL')
     rows.push({sw:'background:#b07adf;opacity:.55',txt:'Purple dim = toroidal wrap (TOROIDAL)'});
+  if(c.streaming&&c.half_r>0)
+    rows.push({sw:'background:#1a2a00;border:2px solid #88bb44',txt:'Green-dim = streaming tail output (previous frame)'});
   if(c.flush&&c.half_r>0)
     rows.push({sw:'background:#141428;border:2px dashed #dfb050',txt:'Hatched = flush-injected zeros'});
   document.getElementById('sl-rows').innerHTML=

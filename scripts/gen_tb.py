@@ -116,41 +116,57 @@ def gen_vectors(cfg, prefix, out_dir):
     half_c    = (kc - 1) // 2
     eff_width = lw + half_c   # real pixels + dummy col-pad pixels per row
 
+    # Streaming: FLUSH=false or TOROIDAL uses cross-frame output triggering.
+    # FLUSH=true non-TOROIDAL: per-frame output + injected flush rows.
+    streaming = (not flush) or (mode == "TOROIDAL")
+
+    frames       = [make_frame(fn, fh, lw, dw) for fn in range(nf)]
     all_pixels   = []
     all_taps     = []
     push_history = []   # every push including dummy-col zeros (for TOROIDAL causal model)
 
     for fn in range(nf):
-        frame = make_frame(fn, fh, lw, dw)
+        frame = frames[fn]
         all_pixels.extend(frame)
 
         for row in range(fh):
+            global_row = fn * fh + row
             for col_eff in range(eff_width):
                 pix = frame[row * lw + col_eff] if col_eff < lw else 0
                 push_history.append(pix)
-                # Output fires when the pipeline has enough rows and columns buffered.
-                if col_eff >= half_c and row >= half_r:
-                    out_r = row - half_r
-                    out_c = col_eff - half_c
-                    if mode == "TOROIDAL":
-                        all_taps.append(compute_taps_toroidal(push_history, kr, kc, eff_width))
-                    else:
+
+                if streaming:
+                    # Output fires when enough data has arrived globally.
+                    if col_eff >= half_c and global_row >= half_r:
+                        out_r_global = global_row - half_r
+                        out_fn_local = out_r_global // fh
+                        out_r        = out_r_global % fh
+                        out_c        = col_eff - half_c
+                        if mode == "TOROIDAL":
+                            all_taps.append(
+                                compute_taps_toroidal(push_history, kr, kc, eff_width))
+                        else:
+                            all_taps.append(
+                                compute_taps(frames[out_fn_local], out_r, out_c,
+                                             kr, kc, fh, lw, mode))
+                else:
+                    # FLUSH=true non-TOROIDAL: per-frame output condition.
+                    if col_eff >= half_c and row >= half_r:
+                        out_r = row - half_r
+                        out_c = col_eff - half_c
                         all_taps.append(compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode))
 
-        if flush and half_r > 0:
+        # Flush rows: FLUSH=true, non-TOROIDAL only.
+        if flush and half_r > 0 and mode != "TOROIDAL":
             for flush_row in range(half_r):
                 virtual_r = fh + flush_row
                 out_r = virtual_r - half_r
                 for col_eff in range(eff_width):
                     push_history.append(0)
-                    # out_r < 0 when FH < HALF_R: RTL suppresses valid_out_d1,
-                    # no output fires. Skip expected line; still append push_history.
+                    # out_r < 0 when FH < HALF_R: RTL suppresses valid_out_d1.
                     if col_eff >= half_c and out_r >= 0:
                         out_c = col_eff - half_c
-                        if mode == "TOROIDAL":
-                            all_taps.append(compute_taps_toroidal(push_history, kr, kc, eff_width))
-                        else:
-                            all_taps.append(compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode))
+                        all_taps.append(compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode))
 
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, f'{prefix}input.txt'), 'w') as f:
