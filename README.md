@@ -8,18 +8,26 @@ only; all verification is done in Vivado xsim.
 
 ## What This Design Does
 
-For every input pixel it receives, the design outputs the M×N neighbourhood of pixel values
-centred on (and trailing) that pixel — one AXI4-Stream port per tap. This is the raw data
-required for a 2D convolution kernel: multiply each tap by its coefficient and sum. The
-multiplication and accumulation are downstream and **not** part of this design.
+For each output position (r, c), the design presents the M×N neighbourhood of pixel values
+centred on pixel (r, c) — one AXI4-Stream port per tap. This is the raw data required for
+a 2D convolution kernel: multiply each tap by its coefficient and sum. The multiplication
+and accumulation are downstream and **not** part of this design.
+
+The output for position (r, c) fires 2 clock cycles after the design accepts the pixel at
+(r + HALF_R, c + HALF_C) — the bottom-right corner of the window — where
+`HALF_R = (KERN_ROWS−1)/2` and `HALF_C = (KERN_COLS−1)/2`.
 
 ```
-Input stream          Output taps (3×3 example, 9 ports)
-─────────────         ──────────────────────────────────
- pixel (r,c)    →     tap[0][0]  tap[0][1]  tap[0][2]   (oldest row, leftward)
-                       tap[1][0]  tap[1][1]  tap[1][2]
-                       tap[2][0]  tap[2][1]  tap[2][2]   (current row, current→left)
+Output position (r,c)   Output taps (3×3 example — HALF_R=1, HALF_C=1)
+─────────────────────   ──────────────────────────────────────────────────
+                          tap[0][0]  tap[0][1]  tap[0][2]   row r−1  (oldest row)
+        ↕                 tap[1][0] [tap[1][1]] tap[1][2]   row r    ([centre] = pixel(r,c))
+                          tap[2][0]  tap[2][1]  tap[2][2]   row r+1  (newest row; tap[2][2] = trigger pixel)
+                           col c−1    col c      col c+1
 ```
+
+Trigger pixel: the design accepts (r+1, c+1) at time T; 2 cycles later m_tvalid fires and all
+9 tap ports carry the window centred on (r, c).
 
 ---
 
@@ -33,7 +41,8 @@ Three sub-blocks instantiated inside the top-level `conv2d` entity:
 | `line_buf` | `src/line_buf.vhd` | BRAM-based row store (KERN_ROWS−1 rows × LINE_WIDTH pixels); infers 2× RAMB18 on ZedBoard for 3×3 8-bit |
 | `win_buf` | `src/win_buf.vhd` | FF shift-register column window (KERN_ROWS × KERN_COLS taps) |
 
-**Pipeline depth:** 3 clock cycles from pixel accepted to tap output valid.
+**Pipeline depth:** 2 clock cycles from trigger pixel accepted to tap output valid
+(accept → `p_delay` registers `valid_out_d1` → `p_out_reg` asserts `m_tvalid`).
 
 **Back-pressure:** all M×N `m_tready` signals are AND-gated; the pipeline stalls cleanly
 when any downstream consumer is not ready. The BRAM synchronous read is gated by `all_ready`
@@ -115,9 +124,10 @@ the start of a new frame) independently.
 The split avoids both problems: long rows go to BRAM (area-efficient), the small local
 window goes to FFs (zero-latency, no inference ambiguity).
 
-The synchronous read latency of BRAM is the reason for the 3-stage pipeline: accept →
-delay (BRAM data settles) → capture window + output. If BRAM had zero read latency the
-design could be 2 stages.
+The synchronous read latency of BRAM drives the 2-stage pipeline: the trigger pixel is
+accepted at T, BRAM data settles at T+1, and `p_out_reg` captures the full window at T+2
+(asserts `m_tvalid`). Without BRAM (e.g. fully FF-based storage), the pipeline would be
+1 stage — but BRAM read latency makes the extra register stage unavoidable.
 
 ---
 
@@ -190,13 +200,14 @@ window — there is no older-row data above them from within the same frame. The
 eventually produce output in the *next* frame (as their data sits in BRAM while the next
 frame's rows arrive), but that mixes frames.
 
-FLUSH solves this by injecting `KERN_ROWS−1` zero-filled dummy rows after the last real
-pixel, stalling the real input (`s_tready` deasserted) until the flush completes. This
-pushes the final real rows through the pipeline before the next frame's SOF arrives.
+FLUSH solves this by injecting `HALF_R = (KERN_ROWS−1)/2` zero-filled dummy rows after the
+last real pixel, stalling the real input (`s_tready` deasserted) until the flush completes.
+This pushes the final `HALF_R` real rows through the pipeline before the next frame's SOF
+arrives.
 
-The cost is `(KERN_ROWS−1) × LINE_WIDTH` extra clock cycles per frame — 2 × 1920 = 3840
-cycles for a 3×3 kernel on a 1080p stream — which is negligible against the 2,073,600
-cycles per frame at 1080p.
+The cost is `HALF_R × LINE_WIDTH` extra clock cycles per frame — 1 × 1920 = 1920 cycles for
+a 3×3 kernel on a 1080p stream — which is negligible against the 2,073,600 cycles per frame
+at 1080p.
 
 ---
 
@@ -212,7 +223,7 @@ All configuration is compile-time. There is no runtime register interface.
 | `LINE_WIDTH` | positive | 1920 | Pixels per line |
 | `FRAME_HEIGHT` | positive | 1080 | Lines per frame |
 | `EDGE_MODE` | string | `"ZERO"` | Edge handling: `"ZERO"`, `"REPLICATE"`, `"TOROIDAL"` |
-| `FLUSH` | boolean | `false` | Inject KERN_ROWS−1 dummy rows after each frame end |
+| `FLUSH` | boolean | `false` | Inject HALF_R = (KERN_ROWS−1)/2 dummy rows after each frame end |
 
 ---
 
@@ -275,91 +286,96 @@ register's natural content (zero on the very first frame, previous-frame data th
 
 ## FLUSH Mode
 
-When `FLUSH=true`, after the last pixel of each frame the design injects `KERN_ROWS−1`
-dummy zero-rows. This ensures the final `KERN_ROWS−1` real rows each produce a valid
-output window (without FLUSH they would not, as their older-row taps never fill). Real
-input is stalled (`s_tready` deasserted) during the flush. The next SOF pixel re-arms
-the design correctly.
+When `FLUSH=true`, after the last pixel of each frame the design injects `HALF_R =
+(KERN_ROWS−1)/2` dummy zero-rows. In the centred window model, output position (out_r, out_c)
+fires when the trigger pixel at row `out_r + HALF_R` is accepted. Without flush, the last
+`HALF_R` real rows of a frame never produce output because there are no rows above them
+within the same frame. Flush injects exactly `HALF_R` zero-filled dummy rows, pushing those
+real rows through. Real input is stalled (`s_tready` deasserted) during the flush. The next
+SOF pixel re-arms the design correctly.
+
+The cost is `HALF_R × EFF_WIDTH` extra clock cycles per frame — 1 × 1920 = 1920 cycles for
+a 3×3 kernel on a 1080p stream — negligible against the 2,073,600 cycles per frame at 1080p.
 
 ---
 
 ## Verified Configurations
 
 All 58 configurations below pass bit-exactly in Vivado xsim (recommended simulation
-time: 8000 ns). 3 back-pressure scenarios exercised (CFG01, CFG40, CFG41).
+time: 8000 ns). 3 back-pressure scenarios exercised (CFG01, CFG40, CFG55).
 
 ### Standard matrix — DATA_WIDTH × kernel × EDGE_MODE × FLUSH (8×8 frame)
 
 | # | DATA_WIDTH | Kernel | EDGE_MODE | FLUSH | Outputs checked |
 |---|---|---|---|---|---|
-| CFG01 | 8 | 3×3 | ZERO | off | 192 (+ back-pressure) |
-| CFG02 | 8 | 3×3 | ZERO | on | 240 |
-| CFG03 | 8 | 3×3 | REPLICATE | off | 192 |
-| CFG04 | 8 | 3×3 | REPLICATE | on | 240 |
-| CFG05 | 8 | 3×3 | TOROIDAL | off | 192 |
-| CFG06 | 8 | 3×3 | TOROIDAL | on | 240 |
-| CFG07 | 8 | 5×5 | ZERO | off | 192 |
-| CFG08 | 8 | 5×5 | ZERO | on | 288 |
-| CFG09 | 8 | 5×5 | REPLICATE | off | 192 |
-| CFG10 | 8 | 5×5 | REPLICATE | on | 288 |
-| CFG11 | 8 | 5×5 | TOROIDAL | off | 192 |
-| CFG12 | 8 | 5×5 | TOROIDAL | on | 288 |
-| CFG13 | 8 | 3×5 | ZERO | off | 192 |
-| CFG14 | 8 | 3×5 | ZERO | on | 240 |
-| CFG15 | 8 | 3×5 | REPLICATE | off | 192 |
-| CFG16 | 8 | 3×5 | REPLICATE | on | 240 |
-| CFG17 | 8 | 3×5 | TOROIDAL | off | 192 |
-| CFG18 | 8 | 3×5 | TOROIDAL | on | 240 |
-| CFG19 | 16 | 3×3 | ZERO | off | 192 |
-| CFG20 | 16 | 3×3 | ZERO | on | 240 |
-| CFG21 | 16 | 3×3 | REPLICATE | off | 192 |
-| CFG22 | 16 | 3×3 | REPLICATE | on | 240 |
-| CFG23 | 16 | 3×3 | TOROIDAL | off | 192 |
-| CFG24 | 16 | 3×3 | TOROIDAL | on | 240 |
-| CFG25 | 16 | 5×5 | ZERO | off | 192 |
-| CFG26 | 16 | 5×5 | ZERO | on | 288 |
-| CFG27 | 16 | 5×5 | REPLICATE | off | 192 |
-| CFG28 | 16 | 5×5 | REPLICATE | on | 288 |
-| CFG29 | 16 | 5×5 | TOROIDAL | off | 192 |
-| CFG30 | 16 | 5×5 | TOROIDAL | on | 288 |
-| CFG31 | 16 | 3×5 | ZERO | off | 192 |
-| CFG32 | 16 | 3×5 | ZERO | on | 240 |
-| CFG33 | 16 | 3×5 | REPLICATE | off | 192 |
-| CFG34 | 16 | 3×5 | REPLICATE | on | 240 |
-| CFG35 | 16 | 3×5 | TOROIDAL | off | 192 |
-| CFG36 | 16 | 3×5 | TOROIDAL | on | 240 |
+| CFG01 | 8 | 3×3 | ZERO | off | 168 (+ back-pressure) |
+| CFG02 | 8 | 3×3 | ZERO | on | 192 |
+| CFG03 | 8 | 3×3 | REPLICATE | off | 168 |
+| CFG04 | 8 | 3×3 | REPLICATE | on | 192 |
+| CFG05 | 8 | 3×3 | TOROIDAL | off | 168 |
+| CFG06 | 8 | 3×3 | TOROIDAL | on | 192 |
+| CFG07 | 8 | 5×5 | ZERO | off | 144 |
+| CFG08 | 8 | 5×5 | ZERO | on | 192 |
+| CFG09 | 8 | 5×5 | REPLICATE | off | 144 |
+| CFG10 | 8 | 5×5 | REPLICATE | on | 192 |
+| CFG11 | 8 | 5×5 | TOROIDAL | off | 144 |
+| CFG12 | 8 | 5×5 | TOROIDAL | on | 192 |
+| CFG13 | 8 | 3×5 | ZERO | off | 168 |
+| CFG14 | 8 | 3×5 | ZERO | on | 192 |
+| CFG15 | 8 | 3×5 | REPLICATE | off | 168 |
+| CFG16 | 8 | 3×5 | REPLICATE | on | 192 |
+| CFG17 | 8 | 3×5 | TOROIDAL | off | 168 |
+| CFG18 | 8 | 3×5 | TOROIDAL | on | 192 |
+| CFG19 | 16 | 3×3 | ZERO | off | 168 |
+| CFG20 | 16 | 3×3 | ZERO | on | 192 |
+| CFG21 | 16 | 3×3 | REPLICATE | off | 168 |
+| CFG22 | 16 | 3×3 | REPLICATE | on | 192 |
+| CFG23 | 16 | 3×3 | TOROIDAL | off | 168 |
+| CFG24 | 16 | 3×3 | TOROIDAL | on | 192 |
+| CFG25 | 16 | 5×5 | ZERO | off | 144 |
+| CFG26 | 16 | 5×5 | ZERO | on | 192 |
+| CFG27 | 16 | 5×5 | REPLICATE | off | 144 |
+| CFG28 | 16 | 5×5 | REPLICATE | on | 192 |
+| CFG29 | 16 | 5×5 | TOROIDAL | off | 144 |
+| CFG30 | 16 | 5×5 | TOROIDAL | on | 192 |
+| CFG31 | 16 | 3×5 | ZERO | off | 168 |
+| CFG32 | 16 | 3×5 | ZERO | on | 192 |
+| CFG33 | 16 | 3×5 | REPLICATE | off | 168 |
+| CFG34 | 16 | 3×5 | REPLICATE | on | 192 |
+| CFG35 | 16 | 3×5 | TOROIDAL | off | 168 |
+| CFG36 | 16 | 3×5 | TOROIDAL | on | 192 |
 
 ### Non-square frames and degenerate sizes
 
 | # | DATA_WIDTH | Kernel | EDGE_MODE | FLUSH | Frame | Outputs checked |
 |---|---|---|---|---|---|---|
-| CFG37 | 8 | 3×3 | ZERO | off | 16×4 | 192 (+ back-pressure) |
-| CFG38 | 8 | 3×3 | REPLICATE | off | 16×4 | 192 |
-| CFG39 | 8 | 3×3 | TOROIDAL | off | 16×4 | 192 |
-| CFG40 | 8 | 3×3 | ZERO | on | 16×4 | 288 (+ back-pressure) |
-| CFG41 | 8 | 5×5 | ZERO | on | 16×4 | 384 (+ back-pressure) |
-| CFG42 | 8 | 3×3 | ZERO | off | 4×16 | 192 |
-| CFG43 | 8 | 3×3 | REPLICATE | off | 4×16 | 192 |
-| CFG44 | 8 | 3×3 | TOROIDAL | off | 4×16 | 192 |
-| CFG45 | 8 | 3×3 | ZERO | off | 3×3 | 27 |
-| CFG46 | 8 | 3×3 | REPLICATE | off | 3×3 | 27 |
-| CFG47 | 8 | 3×3 | ZERO | on | 3×3 | 45 |
-| CFG48 | 8 | 5×5 | ZERO | off | 5×5 | 75 |
-| CFG49 | 8 | 5×5 | REPLICATE | off | 5×5 | 75 |
-| CFG50 | 8 | 3×3 | ZERO | on | 8×1 | 72 |
-| CFG51 | 8 | 5×5 | ZERO | on | 8×1 | 120 |
+| CFG37 | 8 | 3×3 | ZERO | off | 16×4 | 144 |
+| CFG38 | 8 | 3×3 | REPLICATE | off | 16×4 | 144 |
+| CFG39 | 8 | 3×3 | TOROIDAL | off | 16×4 | 144 |
+| CFG40 | 8 | 3×3 | ZERO | on | 16×4 | 192 (+ back-pressure) |
+| CFG41 | 8 | 5×5 | ZERO | on | 16×4 | 192 |
+| CFG42 | 8 | 3×3 | ZERO | off | 4×16 | 180 |
+| CFG43 | 8 | 3×3 | REPLICATE | off | 4×16 | 180 |
+| CFG44 | 8 | 3×3 | TOROIDAL | off | 4×16 | 180 |
+| CFG45 | 8 | 3×3 | ZERO | off | 3×3 | 18 |
+| CFG46 | 8 | 3×3 | REPLICATE | off | 3×3 | 18 |
+| CFG47 | 8 | 3×3 | ZERO | on | 3×3 | 27 |
+| CFG48 | 8 | 5×5 | ZERO | off | 5×5 | 45 |
+| CFG49 | 8 | 5×5 | REPLICATE | off | 5×5 | 45 |
+| CFG50 | 8 | 3×3 | ZERO | on | 8×1 | 24 |
+| CFG51 | 8 | 5×5 | ZERO | on | 8×1 | 24 |
 
 ### Additional data widths and kernel sizes
 
 | # | DATA_WIDTH | Kernel | EDGE_MODE | FLUSH | Outputs checked |
 |---|---|---|---|---|---|
-| CFG52 | 24 | 3×3 | ZERO | off | 192 |
-| CFG53 | 24 | 3×3 | REPLICATE | off | 192 |
-| CFG54 | 24 | 5×5 | ZERO | on | 288 |
-| CFG55 | 8 | 7×7 | ZERO | off | 192 |
-| CFG56 | 8 | 7×7 | REPLICATE | off | 192 |
-| CFG57 | 8 | 7×7 | TOROIDAL | off | 192 |
-| CFG58 | 8 | 7×7 | ZERO | on | 336 |
+| CFG52 | 24 | 3×3 | ZERO | off | 168 |
+| CFG53 | 24 | 3×3 | REPLICATE | off | 168 |
+| CFG54 | 24 | 5×5 | ZERO | on | 192 |
+| CFG55 | 8 | 7×7 | ZERO | off | 120 (+ back-pressure) |
+| CFG56 | 8 | 7×7 | REPLICATE | off | 120 |
+| CFG57 | 8 | 7×7 | TOROIDAL | off | 120 |
+| CFG58 | 8 | 7×7 | ZERO | on | 192 |
 
 ---
 
@@ -450,22 +466,23 @@ Click the **Explore** button (or press `E`) to enter Explore mode.
 Click the **Simulate** button (or press `S`) to enter Simulate mode.
 
 Simulate mode steps through every clock cycle at which the DUT produces a valid output,
-showing the 3-stage pipeline in real time.
+showing the 2-stage pipeline in real time.
 
 #### Pipeline diagram
 
-Three stage cards are shown left-to-right:
+Two stage cards are shown left-to-right:
 
 | Stage | Colour | What it shows |
 |---|---|---|
-| **ACCEPT** | Green | The pixel currently entering the pipeline (being accepted from the input stream) |
-| **DELAY** | Amber | The pixel sitting in the 1-cycle delay register |
-| **OUTPUT** | Blue | The pixel currently producing a valid tap window at the output |
+| **ACCEPT** | Green | The trigger pixel accepted from the input stream 2 cycles before this output. This is pixel (out_r + HALF_R, out_c + HALF_C) — the bottom-right corner of the window. |
+| **OUTPUT** | Blue | The window output now valid at `m_tdata` / `m_tvalid`. The centre of this window is pixel (out_r, out_c). |
 
 Each card shows the pixel's frame number, row, column, and raw value. Flush-injected
-pixels (dummy zero-rows when FLUSH=on) are labelled *flush*.
+pixels (dummy zero rows when FLUSH=on) are labelled *flush* and appear in the padding
+border of the frame canvas.
 
-The frame canvas highlights all three pipeline positions simultaneously.
+The frame canvas highlights both pipeline positions simultaneously: the trigger pixel
+(ACCEPT, green border) and the output window footprint (OUTPUT, blue border).
 
 #### Playback controls
 
