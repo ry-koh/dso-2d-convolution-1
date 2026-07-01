@@ -11,19 +11,19 @@
 -- All four frame edges produce OOB taps; EDGE_MODE handles them:
 --   "ZERO"      -- OOB positions output 0.
 --   "REPLICATE" -- OOB positions clamp to the nearest frame edge pixel.
---   "TOROIDAL"  -- left/top OOB wraps mod frame dims (causal approximation);
---                  right/bottom OOB falls back to 0 (future data unavailable).
+--   "EXTEND"    -- alias for "REPLICATE".
+--   "TOROIDAL"  -- stream-linear wrap: row suffix/prefix supply horizontal OOB.
 --
 -- Effective per-row push count = LINE_WIDTH + HALF_C (EFF_WIDTH):
 --   cols 0..LINE_WIDTH-1   : real pixels from s_tdata
 --   cols LINE_WIDTH..EFF_WIDTH-1 : dummy zero pixels injected internally
 -- This produces the right-edge pixel outputs without extra buffering.
 --
--- FLUSH=true (ZERO/REPLICATE): after last real row, injects HALF_R dummy
+-- FLUSH=true: after last real row, injects HALF_R dummy
 -- zero-rows so the bottom HALF_R rows complete their windows within the frame.
 -- FLUSH=false (streaming): bottom HALF_R rows of frame N are triggered by the
 -- first HALF_R rows of frame N+1; no dummy rows injected.
--- TOROIDAL always uses streaming regardless of the FLUSH generic.
+-- TOROIDAL + FLUSH=true uses dummy rows, not next-frame real pixels.
 --
 -- BRAM count: KERN_ROWS-1 (same as bottom-right design).
 -- Pipeline depth: 3 stages (accept -> delay -> output).
@@ -69,6 +69,11 @@ architecture rtl of conv2d is
     constant HALF_C       : natural  := (KERN_COLS - 1) / 2;
     -- Effective columns per row: LINE_WIDTH real + HALF_C dummy column pixels.
     constant EFF_WIDTH    : positive := LINE_WIDTH + HALF_C;
+    constant FRAME_PIXELS : positive := LINE_WIDTH * FRAME_HEIGHT;
+    constant TOR_MAX_POS  : natural  := HALF_R * LINE_WIDTH + HALF_C;
+    constant TOR_BUF_DEPTH : positive := 2 * TOR_MAX_POS + 1;
+    constant STREAM_DIRECT : boolean := EDGE_MODE = "TOROIDAL"
+                                      or (FRAME_HEIGHT <= HALF_R and not FLUSH);
 
     signal col_cnt    : natural range 0 to EFF_WIDTH    - 1;
     signal row_cnt    : natural range 0 to FRAME_HEIGHT - 1;
@@ -80,12 +85,17 @@ architecture rtl of conv2d is
     signal push           : std_logic;
     signal push_data      : std_logic_vector(DATA_WIDTH - 1 downto 0);
 
+    type prefix_t is array (0 to HALF_C) of std_logic_vector(DATA_WIDTH - 1 downto 0);
+    signal row_prefix : prefix_t;
+    signal prefix_pix : std_logic_vector(DATA_WIDTH - 1 downto 0);
+
     -- FLUSH FSM
     signal flushing      : boolean   := false;
     signal flush_push    : std_logic := '0';
     signal flush_row_cnt : natural range 0 to KERN_ROWS - 1 := 0;
+    signal tor_flush_push : std_logic := '0';
 
-    -- Streaming tail (FLUSH=false or TOROIDAL)
+    -- Streaming tail (FLUSH=false)
     signal tailing   : boolean := false;
     signal tail_cnt  : natural range 0 to KERN_ROWS - 1 := 0;
 
@@ -101,7 +111,8 @@ architecture rtl of conv2d is
     signal wb_new_row   : std_logic;
     signal wb_row_valid : std_logic_vector(NUM_BUF_ROWS - 1 downto 0);
 
-    signal toroidal_armed : std_logic := '0';
+    signal toroidal_armed     : std_logic := '0';
+    signal toroidal_row_count : natural range 0 to NUM_BUF_ROWS := 0;
     signal wb_tap_out     : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
     -- 1-cycle delay stage
@@ -113,6 +124,13 @@ architecture rtl of conv2d is
     -- row_cnt_d1 extended to cover flush virtual rows FRAME_HEIGHT..FRAME_HEIGHT+KERN_ROWS-2
     signal row_cnt_d1   : natural range 0 to FRAME_HEIGHT + KERN_ROWS - 2;
 
+    signal valid_out_d2 : std_logic;
+    signal tlast_d2     : std_logic;
+    signal tuser_d2     : std_logic;
+    signal col_cnt_d2   : natural range 0 to EFF_WIDTH    - 1;
+    signal row_cnt_d2   : natural range 0 to FRAME_HEIGHT + KERN_ROWS - 2;
+    signal wb_tap_d2    : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
+
     -- Registered output (coordinates valid only when m_tvalid_r='1')
     signal m_tdata_r  : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
     signal m_tvalid_r : std_logic;
@@ -120,6 +138,20 @@ architecture rtl of conv2d is
     signal m_tuser_r  : std_logic;
     signal m_col_r    : natural range 0 to LINE_WIDTH   - 1;
     signal m_row_r    : natural range 0 to FRAME_HEIGHT - 1;
+
+    type tor_buf_t is array (0 to TOR_BUF_DEPTH - 1) of std_logic_vector(DATA_WIDTH - 1 downto 0);
+
+    signal tor_buf      : tor_buf_t;
+    signal tor_warm_cnt : natural range 0 to TOR_MAX_POS + 1 := 0;
+    signal tor_real_cnt : natural range 0 to FRAME_PIXELS := 0;
+    signal tor_out_cnt  : natural range 0 to FRAME_PIXELS := 0;
+    signal tor_flush_cnt : natural range 0 to TOR_MAX_POS := 0;
+    signal tor_tdata_r  : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
+    signal tor_tvalid_r : std_logic := '0';
+    signal tor_tlast_r  : std_logic := '0';
+    signal tor_tuser_r  : std_logic := '0';
+
+    signal edge_tdata : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
 
 begin
 
@@ -137,47 +169,81 @@ begin
     end process;
 
     -- Accept real pixels only when in real-column range and not flushing.
-    pixel_accepted <= s_tvalid and all_ready and not flush_push
-                      when col_cnt < LINE_WIDTH else '0';
+    pixel_accepted <= s_tvalid and all_ready and not flush_push and not tor_flush_push
+                      when (EDGE_MODE = "TOROIDAL" or col_cnt < LINE_WIDTH) else '0';
 
     -- Dummy column pixels injected when col_cnt is in the padding range.
     col_pad_push   <= all_ready and not flush_push
-                      when (HALF_C > 0 and col_cnt >= LINE_WIDTH) else '0';
+                      when (EDGE_MODE /= "TOROIDAL" and HALF_C > 0 and col_cnt >= LINE_WIDTH) else '0';
 
-    s_tready  <= all_ready and not flush_push when col_cnt < LINE_WIDTH else '0';
+    s_tready  <= all_ready and not tor_flush_push when EDGE_MODE = "TOROIDAL" else
+                 all_ready and not flush_push when col_cnt < LINE_WIDTH else '0';
 
-    push      <= pixel_accepted or col_pad_push or (flush_push and all_ready);
-    push_data <= s_tdata when pixel_accepted = '1' else (others => '0');
+    push      <= pixel_accepted or col_pad_push or (flush_push and all_ready)
+                 or (tor_flush_push and all_ready);
+    push_data <= s_tdata when pixel_accepted = '1'
+                 else prefix_pix when EDGE_MODE = "TOROIDAL" and col_pad_push = '1'
+                 else (others => '0');
+
+    p_prefix_mux : process (col_cnt, row_prefix)
+    begin
+        prefix_pix <= (others => '0');
+        if HALF_C > 0 and col_cnt >= LINE_WIDTH then
+            prefix_pix <= row_prefix(col_cnt - LINE_WIDTH);
+        end if;
+    end process p_prefix_mux;
+
+    p_prefix : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                for i in 0 to HALF_C loop
+                    row_prefix(i) <= (others => '0');
+                end loop;
+            elsif pixel_accepted = '1' and col_cnt < HALF_C then
+                row_prefix(col_cnt) <= s_tdata;
+            elsif flush_push = '1' and all_ready = '1' and col_cnt < HALF_C then
+                row_prefix(col_cnt) <= (others => '0');
+            end if;
+        end if;
+    end process p_prefix;
 
     -- -----------------------------------------------------------------------
-    -- TOROIDAL armed flag
+    -- TOROIDAL stream-row warmup.
+    -- row_cnt is frame-local, so short frames may never reach KERN_ROWS-1.
+    -- Count completed streamed rows across frame boundaries instead.
     -- -----------------------------------------------------------------------
     p_tor_arm : process (clk)
     begin
         if rising_edge(clk) then
             if rst = '1' then
-                toroidal_armed <= '0';
-            elsif EDGE_MODE = "TOROIDAL" and row_cnt >= KERN_ROWS - 1 then
-                toroidal_armed <= '1';
+                toroidal_armed     <= '0';
+                toroidal_row_count <= 0;
+            elsif EDGE_MODE = "TOROIDAL"
+                  and push = '1'
+                  and col_cnt = EFF_WIDTH - 1
+                  and toroidal_armed = '0'
+            then
+                if toroidal_row_count = NUM_BUF_ROWS - 1 then
+                    toroidal_armed     <= '1';
+                    toroidal_row_count <= NUM_BUF_ROWS;
+                else
+                    toroidal_row_count <= toroidal_row_count + 1;
+                end if;
             end if;
         end if;
     end process p_tor_arm;
 
-    -- For TOROIDAL: disable new_row clear (retains row tail for column wrap)
-    -- and disable row_valid masking once BRAM has been fully written once.
-    -- During dummy-column pushes force row_valid=0 regardless of TOROIDAL so
-    -- that OOB right-side taps in win_buf are zero (p_edge_out remaps them).
+    -- For TOROIDAL: disable new_row clear so left OOB columns keep the
+    -- previous streamed row suffix.  FLUSH=true keeps row_valid masking active
+    -- so frame boundaries do not mix.
     wb_new_row <= '0' when EDGE_MODE = "TOROIDAL" else new_row;
 
-    wb_row_valid <= (others => '1')
-                    when EDGE_MODE = "TOROIDAL"
-                         and toroidal_armed = '1'
-                         and col_cnt < LINE_WIDTH
-                    else row_valid;
+    wb_row_valid <= row_valid;
 
     -- -----------------------------------------------------------------------
-    -- FLUSH FSM (ZERO/REPLICATE FLUSH=true) and streaming tail (FLUSH=false
-    -- or TOROIDAL).  Mutually exclusive: at most one is active at a time.
+    -- FLUSH FSM (FLUSH=true) and streaming tail (FLUSH=false).
+    -- Mutually exclusive: at most one is active at a time.
     -- -----------------------------------------------------------------------
     p_flush : process (clk)
     begin
@@ -191,14 +257,16 @@ begin
             else
                 -- Activation: fire once at the last push of each real frame.
                 if not flushing and not tailing then
-                    if FLUSH and HALF_R > 0 and EDGE_MODE /= "TOROIDAL"
+                    if EDGE_MODE /= "TOROIDAL"
+                       and FLUSH and HALF_R > 0
                        and push = '1'
                        and row_cnt = FRAME_HEIGHT - 1
                        and col_cnt = EFF_WIDTH - 1 then
                         flushing      <= true;
                         flush_push    <= '1';
                         flush_row_cnt <= 0;
-                    elsif (not FLUSH or EDGE_MODE = "TOROIDAL") and HALF_R > 0
+                    elsif EDGE_MODE /= "TOROIDAL"
+                       and not FLUSH and HALF_R > 0
                        and push = '1'
                        and row_cnt = FRAME_HEIGHT - 1
                        and col_cnt = EFF_WIDTH - 1 then
@@ -269,24 +337,37 @@ begin
     -- BRAM addressing.
     -- Write suppressed for dummy column positions (col_cnt >= LINE_WIDTH).
     -- Read one column ahead (synchronous-read latency compensation).
-    -- During dummy-col or flush, lb_rd_col=0; row_valid=0 zeroes older rows.
+    -- During non-TOROIDAL dummy-col or flush, lb_rd_col=0; row_valid=0 zeroes
+    -- older rows. TOROIDAL dummy columns walk the row prefix for older rows.
     -- -----------------------------------------------------------------------
     lb_wr_en  <= push when col_cnt < LINE_WIDTH else '0';
     lb_wr_col <= col_cnt when col_cnt < LINE_WIDTH else 0;
-    lb_rd_col <= col_cnt + 1 when col_cnt < LINE_WIDTH - 1 else 0;
+    lb_rd_col <= col_cnt + 1 when col_cnt < LINE_WIDTH - 1 else
+                 (col_cnt - LINE_WIDTH + 1) mod LINE_WIDTH
+                 when EDGE_MODE = "TOROIDAL"
+                      and col_cnt >= LINE_WIDTH
+                      and col_cnt < EFF_WIDTH - 1 else
+                 0;
 
     -- -----------------------------------------------------------------------
     -- row_valid / new_row for win_buf zero-extend.
-    -- During dummy-column pushes, force row_valid=0 so win_buf inserts zeros
-    -- for older rows (right-OOB handled combinationally by p_edge_out).
+    -- During non-TOROIDAL dummy-column pushes, force row_valid=0 so win_buf
+    -- inserts zeros. TOROIDAL keeps row validity so BRAM col 0 supplies row
+    -- prefixes for right-edge stream-linear wrap.
     -- -----------------------------------------------------------------------
     new_row <= '1' when col_cnt = 0 and push = '1' else '0';
 
-    p_row_valid : process (row_cnt, flushing, flush_row_cnt, col_cnt, tailing)
+    p_row_valid : process (row_cnt, flushing, flush_row_cnt, col_cnt, tailing, toroidal_row_count)
     begin
         for r in 0 to NUM_BUF_ROWS - 1 loop
-            if col_cnt >= LINE_WIDTH then
+            if col_cnt >= LINE_WIDTH and EDGE_MODE /= "TOROIDAL" then
                 row_valid(r) <= '0';
+            elsif EDGE_MODE = "TOROIDAL" and not FLUSH then
+                if toroidal_row_count >= KERN_ROWS - 1 - r then
+                    row_valid(r) <= '1';
+                else
+                    row_valid(r) <= '0';
+                end if;
             elsif tailing then
                 row_valid(r) <= '1';   -- BRAM holds complete previous-frame data
             elsif flushing then
@@ -321,10 +402,22 @@ begin
                 tuser_d1     <= '0';
                 col_cnt_d1   <= 0;
                 row_cnt_d1   <= 0;
+                valid_out_d2 <= '0';
+                tlast_d2     <= '0';
+                tuser_d2     <= '0';
+                col_cnt_d2   <= 0;
+                row_cnt_d2   <= 0;
+                wb_tap_d2    <= (others => '0');
             elsif all_ready = '1' then
+                valid_out_d2 <= valid_out_d1;
+                tlast_d2     <= tlast_d1;
+                tuser_d2     <= tuser_d1;
+                col_cnt_d2   <= col_cnt_d1;
+                row_cnt_d2   <= row_cnt_d1;
+                wb_tap_d2    <= wb_tap_out;
+
                 push_d1    <= push;
                 col_cnt_d1 <= col_cnt;
-
                 -- Virtual row coordinate for coordinate tracking.
                 -- Flush uses FRAME_HEIGHT + flush_row_cnt as the virtual row.
                 -- SOF resets output row to 0 (col_cnt_d1 will reflect col 0).
@@ -384,18 +477,18 @@ begin
                 m_col_r    <= 0;
                 m_row_r    <= 0;
             elsif all_ready = '1' then
-                m_tdata_r  <= wb_tap_out;
-                m_tvalid_r <= valid_out_d1;
-                m_tlast_r  <= tlast_d1 and valid_out_d1;
-                m_tuser_r  <= tuser_d1;
+                m_tdata_r  <= wb_tap_d2;
+                m_tvalid_r <= valid_out_d2;
+                m_tlast_r  <= tlast_d2 and valid_out_d2;
+                m_tuser_r  <= tuser_d2;
                 -- Output coordinates (safe to read only when m_tvalid_r='1').
-                if col_cnt_d1 >= HALF_C then
-                    m_col_r <= col_cnt_d1 - HALF_C;
+                if col_cnt_d2 >= HALF_C then
+                    m_col_r <= col_cnt_d2 - HALF_C;
                 else
                     m_col_r <= 0;
                 end if;
-                if row_cnt_d1 >= HALF_R then
-                    m_row_r <= row_cnt_d1 - HALF_R;
+                if row_cnt_d2 >= HALF_R then
+                    m_row_r <= row_cnt_d2 - HALF_R;
                 else
                     m_row_r <= 0;
                 end if;
@@ -403,9 +496,216 @@ begin
         end if;
     end process p_out_reg;
 
-    m_tvalid <= m_tvalid_r;
-    m_tlast  <= m_tlast_r;
-    m_tuser  <= m_tuser_r;
+    -- -----------------------------------------------------------------------
+    -- TOROIDAL stream-linear window path.
+    --
+    -- The TOROIDAL vectors use flat stream offsets, not independent row/column
+    -- wrapping.  Delay output until the furthest positive tap is present, then
+    -- fetch each tap by its flat offset from a shift register.  FLUSH=true
+    -- appends zero samples after each frame; FLUSH=false lets the next frame
+    -- provide the positive tail.
+    -- -----------------------------------------------------------------------
+    p_toroidal : process (clk)
+        variable next_buf    : tor_buf_t;
+        variable tap_offset  : integer;
+        variable age         : integer;
+        variable next_warm   : natural range 0 to TOR_MAX_POS + 1;
+        variable next_real   : natural range 0 to FRAME_PIXELS;
+        variable next_out    : natural range 0 to FRAME_PIXELS;
+        variable next_flush  : natural range 0 to TOR_MAX_POS;
+        variable do_push     : boolean;
+        variable real_push   : boolean;
+        variable flush_push_v : boolean;
+        variable out_valid_v : boolean;
+        variable center_idx  : integer;
+        variable center_base : integer;
+        variable center_local : integer;
+        variable center_row_i : integer;
+        variable center_col_i : integer;
+        variable src_row_i   : integer;
+        variable src_col_i   : integer;
+        variable tap_flat    : integer;
+        variable tap_y       : integer;
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                for i in 0 to TOR_BUF_DEPTH - 1 loop
+                    tor_buf(i) <= (others => '0');
+                end loop;
+                tor_warm_cnt  <= 0;
+                tor_real_cnt  <= 0;
+                tor_out_cnt   <= 0;
+                tor_flush_cnt <= 0;
+                tor_flush_push <= '0';
+                tor_tdata_r   <= (others => '0');
+                tor_tvalid_r  <= '0';
+                tor_tlast_r   <= '0';
+                tor_tuser_r   <= '0';
+            elsif all_ready = '1' then
+                next_buf := tor_buf;
+                next_warm := tor_warm_cnt;
+                next_real := tor_real_cnt;
+                next_out := tor_out_cnt;
+                next_flush := tor_flush_cnt;
+                real_push := STREAM_DIRECT and pixel_accepted = '1';
+                flush_push_v := STREAM_DIRECT and tor_flush_push = '1';
+                do_push := real_push or flush_push_v;
+
+                tor_tvalid_r <= '0';
+                tor_tlast_r  <= '0';
+                tor_tuser_r  <= '0';
+
+                if not STREAM_DIRECT then
+                    tor_flush_push <= '0';
+                elsif do_push then
+                    for i in TOR_BUF_DEPTH - 1 downto 1 loop
+                        next_buf(i) := next_buf(i - 1);
+                    end loop;
+
+                    if real_push then
+                        next_buf(0) := s_tdata;
+                    else
+                        next_buf(0) := (others => '0');
+                    end if;
+
+                    if next_warm < TOR_MAX_POS + 1 then
+                        next_warm := next_warm + 1;
+                    end if;
+
+                    if real_push then
+                        if next_real < FRAME_PIXELS then
+                            next_real := next_real + 1;
+                        end if;
+                        if FLUSH and next_real = FRAME_PIXELS then
+                            next_flush := TOR_MAX_POS;
+                        end if;
+                    elsif next_flush > 0 then
+                        next_flush := next_flush - 1;
+                    end if;
+
+                    out_valid_v := next_warm = TOR_MAX_POS + 1
+                                   and ((not FLUSH) or next_out < FRAME_PIXELS);
+
+                    if out_valid_v then
+                        center_idx := integer(next_out);
+                        for tr in 0 to KERN_ROWS - 1 loop
+                            for tc in 0 to KERN_COLS - 1 loop
+                                tap_offset := (tr - integer(HALF_R)) * LINE_WIDTH
+                                              + tc - integer(HALF_C);
+                                tap_flat := center_idx + tap_offset;
+                                tap_y := center_idx / LINE_WIDTH
+                                         + tr - integer(HALF_R);
+                                age := integer(TOR_MAX_POS) - tap_offset;
+                                if EDGE_MODE /= "TOROIDAL" then
+                                    center_local := center_idx mod FRAME_PIXELS;
+                                    center_base := center_idx - center_local;
+                                    center_row_i := center_local / LINE_WIDTH;
+                                    center_col_i := center_local mod LINE_WIDTH;
+                                    src_row_i := center_row_i + tr - integer(HALF_R);
+                                    src_col_i := center_col_i + tc - integer(HALF_C);
+
+                                    if EDGE_MODE = "ZERO"
+                                       and (src_row_i < 0
+                                            or src_row_i >= FRAME_HEIGHT
+                                            or src_col_i < 0
+                                            or src_col_i >= LINE_WIDTH)
+                                    then
+                                        tor_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                                     downto (tr * KERN_COLS + tc) * DATA_WIDTH)
+                                            <= (others => '0');
+                                    else
+                                        if src_row_i < 0 then
+                                            src_row_i := 0;
+                                        elsif src_row_i >= FRAME_HEIGHT then
+                                            src_row_i := FRAME_HEIGHT - 1;
+                                        end if;
+
+                                        if src_col_i < 0 then
+                                            src_col_i := 0;
+                                        elsif src_col_i >= LINE_WIDTH then
+                                            src_col_i := LINE_WIDTH - 1;
+                                        end if;
+
+                                        tap_flat := center_base + src_row_i * LINE_WIDTH + src_col_i;
+                                        age := integer(TOR_MAX_POS) - (tap_flat - center_idx);
+                                        tor_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                                     downto (tr * KERN_COLS + tc) * DATA_WIDTH)
+                                            <= next_buf(age);
+                                    end if;
+                                elsif EDGE_MODE = "TOROIDAL"
+                                      and FLUSH
+                                      and (tap_y < 0
+                                           or tap_y >= FRAME_HEIGHT
+                                           or tap_flat < 0
+                                           or tap_flat >= FRAME_PIXELS)
+                                then
+                                    tor_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                                 downto (tr * KERN_COLS + tc) * DATA_WIDTH)
+                                        <= (others => '0');
+                                else
+                                    tor_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                                 downto (tr * KERN_COLS + tc) * DATA_WIDTH)
+                                        <= next_buf(age);
+                                end if;
+                            end loop;
+                        end loop;
+
+                        tor_tvalid_r <= '1';
+                        if next_out mod LINE_WIDTH = 0 then
+                            tor_tuser_r <= '1';
+                        end if;
+                        if next_out mod LINE_WIDTH = LINE_WIDTH - 1 then
+                            tor_tlast_r <= '1';
+                        end if;
+
+                        if next_out = FRAME_PIXELS - 1 then
+                            next_out := 0;
+                            if FLUSH then
+                                next_warm := 0;
+                                next_real := 0;
+                                for i in 0 to TOR_BUF_DEPTH - 1 loop
+                                    next_buf(i) := (others => '0');
+                                end loop;
+                            end if;
+                        else
+                            next_out := next_out + 1;
+                        end if;
+                    end if;
+
+                    tor_buf <= next_buf;
+                    tor_warm_cnt <= next_warm;
+                    tor_real_cnt <= next_real;
+                    tor_out_cnt <= next_out;
+                    tor_flush_cnt <= next_flush;
+
+                    if (FLUSH or not real_push) and next_flush > 0 then
+                        tor_flush_push <= '1';
+                    else
+                        tor_flush_push <= '0';
+                    end if;
+                    if not FLUSH and flush_push_v and next_flush = 0 then
+                        tor_real_cnt <= 0;
+                    end if;
+                elsif STREAM_DIRECT
+                      and not FLUSH
+                      and s_tvalid = '0'
+                      and tor_real_cnt > 0
+                      and tor_flush_cnt = 0
+                      and HALF_C > 0
+                then
+                    tor_flush_cnt <= HALF_C;
+                    tor_flush_push <= '1';
+                else
+                    tor_flush_push <= '0';
+                end if;
+            end if;
+        end if;
+    end process p_toroidal;
+
+    m_tvalid <= tor_tvalid_r when STREAM_DIRECT else m_tvalid_r;
+    m_tlast  <= tor_tlast_r  when STREAM_DIRECT else m_tlast_r;
+    m_tuser  <= tor_tuser_r  when STREAM_DIRECT else m_tuser_r;
+    m_tdata  <= tor_tdata_r  when STREAM_DIRECT else edge_tdata;
 
     -- -----------------------------------------------------------------------
     -- Edge mode output mux (combinational, centred-window coordinates).
@@ -416,12 +716,16 @@ begin
     --
     -- OOB on all four sides (left, right, top, bottom).
     -- ZERO: win_buf already stores 0 for all OOB positions — pass through.
-    -- REPLICATE: clamp both coords to [0,dim-1]; derive source tap indices.
-    -- TOROIDAL: causal; right/bottom OOB falls back to win_buf content (0).
+    -- REPLICATE/EXTEND: clamp both coords to [0,dim-1]; derive source tap indices.
+    -- TOROIDAL: pass through the stream-linear window built by prefix columns
+    -- and, when FLUSH=false, next-frame continuation.
     -- -----------------------------------------------------------------------
     p_edge_out : process (m_tdata_r, m_col_r, m_row_r)
         variable cx   : integer;
         variable cy   : integer;
+        variable flat_idx : integer;
+        variable src_row  : integer;
+        variable src_col  : integer;
         variable cxc  : integer;
         variable cyc  : integer;
         variable tc_s : integer;
@@ -432,8 +736,31 @@ begin
             for tc in 0 to KERN_COLS - 1 loop
                 cx := integer(m_col_r) + tc - integer(HALF_C);
                 cy := integer(m_row_r) + tr - integer(HALF_R);
+                flat_idx := integer(m_row_r) * LINE_WIDTH + integer(m_col_r)
+                            + (tr - integer(HALF_R)) * LINE_WIDTH
+                            + (tc - integer(HALF_C));
 
-                if EDGE_MODE = "REPLICATE"
+                if EDGE_MODE = "TOROIDAL"
+                   and (flat_idx < 0
+                        or (FLUSH and flat_idx >= FRAME_HEIGHT * LINE_WIDTH))
+                then
+                    pix := (others => '0');
+                elsif EDGE_MODE = "TOROIDAL" and flat_idx < FRAME_HEIGHT * LINE_WIDTH then
+                    src_row := flat_idx / LINE_WIDTH;
+                    src_col := flat_idx mod LINE_WIDTH;
+                    tr_s := src_row - integer(m_row_r) + integer(HALF_R);
+                    tc_s := src_col - integer(m_col_r) + integer(HALF_C);
+
+                    if tr_s >= 0 and tr_s < KERN_ROWS
+                       and tc_s >= 0 and tc_s < KERN_COLS
+                    then
+                        pix := m_tdata_r((tr_s * KERN_COLS + tc_s + 1) * DATA_WIDTH - 1
+                                          downto (tr_s * KERN_COLS + tc_s) * DATA_WIDTH);
+                    else
+                        pix := m_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                          downto (tr * KERN_COLS + tc) * DATA_WIDTH);
+                    end if;
+                elsif (EDGE_MODE = "REPLICATE" or EDGE_MODE = "EXTEND")
                    and (cx < 0 or cx >= LINE_WIDTH or cy < 0 or cy >= FRAME_HEIGHT)
                 then
                     -- Clamp each axis independently.
@@ -462,8 +789,8 @@ begin
                                       downto (tr * KERN_COLS + tc) * DATA_WIDTH);
                 end if;
 
-                m_tdata((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
-                         downto (tr * KERN_COLS + tc) * DATA_WIDTH) <= pix;
+                edge_tdata((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                            downto (tr * KERN_COLS + tc) * DATA_WIDTH) <= pix;
             end loop;
         end loop;
     end process p_edge_out;

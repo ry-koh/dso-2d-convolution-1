@@ -22,15 +22,8 @@ _dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _dir)
 from gen_tb import CONFIGS, N
 
-# Back-pressure scenarios (0-indexed config indices)
-BP_INFO = {
-    0:  {'type': 'post_reset', 'stall_cycles': 10,
-         'note': 'Back-pressure: m_tready(0)=0 for 10 cycles post-reset'},
-    39: {'type': 'mid_sim',   'start_cycle': 210, 'stall_cycles': 15,
-         'note': 'Back-pressure: m_tready(0)=0 for 15 cycles mid-flush (cycles 210-224 post-reset)'},
-    54: {'type': 'post_reset', 'stall_cycles': 10,
-         'note': 'Back-pressure: m_tready(NUM_TAPS-1)=0 for 10 cycles post-reset (last tap port)'},
-}
+# Import BP_INFO from gen_tb (keeps visualize.py in sync automatically).
+from gen_tb import BP_INFO
 
 
 def cfg_label(c):
@@ -43,7 +36,7 @@ def cfg_label(c):
 def load_vectors(vec_dir):
     out = []
     for idx, cfg in enumerate(CONFIGS):
-        pre = f"c{idx+1:02d}_"
+        pre = f"c{idx+1:03d}_"
         lw, fh, nf = cfg['line_width'], cfg['frame_height'], cfg['num_frames']
         kr, kc, fl = cfg['kern_rows'], cfg['kern_cols'], cfg['flush']
         mode   = cfg.get('edge_mode', 'ZERO')

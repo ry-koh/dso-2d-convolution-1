@@ -41,7 +41,7 @@ architecture rtl of line_buf is
     type ram_t        is array (0 to LINE_WIDTH - 1) of std_logic_vector(DATA_WIDTH - 1 downto 0);
     type bram_array_t is array (0 to NUM_ROWS - 1)  of ram_t;
 
-    signal mem     : bram_array_t;
+    signal mem     : bram_array_t := (others => (others => (others => '0')));
     signal rd_raw  : std_logic_vector(DATA_WIDTH * NUM_ROWS - 1 downto 0);
 
     attribute ram_style        : string;
