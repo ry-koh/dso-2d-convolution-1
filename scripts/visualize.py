@@ -17,7 +17,6 @@ Run from the repo root.
 """
 
 import argparse
-import itertools
 import os
 import sys
 
@@ -27,38 +26,20 @@ import matplotlib.patches as mpatches
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# Configuration table (mirrors gen_tb.py exactly)
+# Configuration table — imported from gen_tb.py to stay in sync automatically
 # ---------------------------------------------------------------------------
 
-DATA_WIDTHS  = [8, 16]
-KERNEL_SIZES = [(3, 3), (5, 5), (3, 5)]
-EDGE_MODES   = ["ZERO", "REPLICATE", "TOROIDAL"]
-FLUSH_VALUES = [False, True]
-LINE_WIDTH   = 8
-FRAME_HEIGHT = 8
-NUM_FRAMES   = 3
-
-CONFIGS = []
-for dw, (kr, kc), mode, flush in itertools.product(
-        DATA_WIDTHS, KERNEL_SIZES, EDGE_MODES, FLUSH_VALUES):
-    CONFIGS.append({
-        'data_width':   dw,
-        'kern_rows':    kr,
-        'kern_cols':    kc,
-        'line_width':   LINE_WIDTH,
-        'frame_height': FRAME_HEIGHT,
-        'num_frames':   NUM_FRAMES,
-        'edge_mode':    mode,
-        'flush':        flush,
-    })
-
-N = len(CONFIGS)
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _script_dir)
+from gen_tb import CONFIGS, N  # noqa: E402
 
 
 def cfg_label(cfg):
     kr, kc = cfg['kern_rows'], cfg['kern_cols']
     flush_str = "FLUSH=on" if cfg['flush'] else "FLUSH=off"
-    return f"{cfg['data_width']}b {kr}x{kc} {cfg['edge_mode']} {flush_str}"
+    lw, fh = cfg['line_width'], cfg['frame_height']
+    frame_str = f" {lw}x{fh}frame" if (lw, fh) != (8, 8) else ""
+    return f"{cfg['data_width']}b {kr}x{kc} {cfg['edge_mode']} {flush_str}{frame_str}"
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +295,7 @@ def draw_flush_taps(ax, flush_taps_frame, cfg, flush_row, col):
     ax.set_xticklabels(x_labels, fontsize=8)
     ax.set_yticklabels(y_labels, fontsize=8)
     ax.set_xlabel("image col", fontsize=8)
-    ax.set_ylabel("image row (>=8 = flush zero)", fontsize=8)
+    ax.set_ylabel(f"image row (>={fh} = flush zero)", fontsize=8)
     ax.tick_params(length=0)
 
     dw   = cfg['data_width']
@@ -497,7 +478,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", "-c", type=int, default=4,
-                    help="Config number 1..36 (default: 4 = 8b 3x3 REPLICATE FLUSH=on)")
+                    help=f"Config number 1..{N} (default: 4 = 8b 3x3 REPLICATE FLUSH=on)")
     ap.add_argument("--frame",  "-n", type=int, default=0,
                     help="Initial frame index 0..2 (default: 0)")
     ap.add_argument("--row",    "-r", type=int, default=3,
@@ -508,7 +489,7 @@ def main():
                     default=os.path.join("tb", "vectors"),
                     help="Directory containing vector files (default: tb/vectors)")
     ap.add_argument("--list", "-l", action="store_true",
-                    help="Print all 36 configs and exit")
+                    help=f"Print all {N} configs and exit")
     args = ap.parse_args()
 
     if args.list:
