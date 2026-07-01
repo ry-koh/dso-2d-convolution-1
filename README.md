@@ -400,11 +400,15 @@ README.md             This file
 1. Create a Vivado project targeting **XC7Z020-CLG484-1**.
 2. Add `src/line_buf.vhd`, `src/win_buf.vhd`, `src/conv2d.vhd` as design sources.
 3. Add `tb/conv2d_tb.vhd` as a simulation source.
-4. Copy the entire `tb/vectors/` folder to a path accessible from the simulation
+4. **Set all four `.vhd` files to VHDL 2008.** Right-click each file in the Sources
+   panel → Properties → File type → **VHDL 2008**. The testbench uses VHDL-2008
+   constructs (unary reduction operator `(and ...)`) that will not compile under
+   VHDL 1993 — Vivado defaults to 1993, so this step is required.
+5. Copy the entire `tb/vectors/` folder to a path accessible from the simulation
    working directory (Vivado xsim uses the project's `<project>.sim/sim_1/behav/xsim/`
    folder; place `vectors/` there, or adjust the path constants in `conv2d_tb.vhd`).
-5. Set `conv2d_tb` as the top-level simulation unit.
-6. Run Behavioral Simulation. The testbench prints `PASS` or `FAIL` for each config.
+6. Set `conv2d_tb` as the top-level simulation unit.
+7. Run Behavioral Simulation. The testbench prints `PASS` or `FAIL` for each config.
 
 To regenerate the testbench and vectors after changing frame parameters or the config
 matrix, run `python scripts/gen_tb.py` from the repo root, then repeat from step 2.

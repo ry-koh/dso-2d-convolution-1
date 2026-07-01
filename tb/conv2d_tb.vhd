@@ -4320,7 +4320,7 @@ begin
         wait until c01_rst = '0';
         file_open(f, C01_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c01_mvalid = '1' and c01_mready = ((c01_mready'range) => '1');
+            wait until rising_edge(clk) and c01_mvalid = '1' and (and c01_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -4358,7 +4358,7 @@ begin
         wait until c02_rst = '0';
         file_open(f, C02_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c02_mvalid = '1' and c02_mready = ((c02_mready'range) => '1');
+            wait until rising_edge(clk) and c02_mvalid = '1' and (and c02_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -4396,7 +4396,7 @@ begin
         wait until c03_rst = '0';
         file_open(f, C03_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c03_mvalid = '1' and c03_mready = ((c03_mready'range) => '1');
+            wait until rising_edge(clk) and c03_mvalid = '1' and (and c03_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -4434,7 +4434,7 @@ begin
         wait until c04_rst = '0';
         file_open(f, C04_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c04_mvalid = '1' and c04_mready = ((c04_mready'range) => '1');
+            wait until rising_edge(clk) and c04_mvalid = '1' and (and c04_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -4472,7 +4472,7 @@ begin
         wait until c05_rst = '0';
         file_open(f, C05_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c05_mvalid = '1' and c05_mready = ((c05_mready'range) => '1');
+            wait until rising_edge(clk) and c05_mvalid = '1' and (and c05_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -4510,7 +4510,7 @@ begin
         wait until c06_rst = '0';
         file_open(f, C06_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c06_mvalid = '1' and c06_mready = ((c06_mready'range) => '1');
+            wait until rising_edge(clk) and c06_mvalid = '1' and (and c06_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -4548,7 +4548,7 @@ begin
         wait until c07_rst = '0';
         file_open(f, C07_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c07_mvalid = '1' and c07_mready = ((c07_mready'range) => '1');
+            wait until rising_edge(clk) and c07_mvalid = '1' and (and c07_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -4586,7 +4586,7 @@ begin
         wait until c08_rst = '0';
         file_open(f, C08_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c08_mvalid = '1' and c08_mready = ((c08_mready'range) => '1');
+            wait until rising_edge(clk) and c08_mvalid = '1' and (and c08_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -4624,7 +4624,7 @@ begin
         wait until c09_rst = '0';
         file_open(f, C09_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c09_mvalid = '1' and c09_mready = ((c09_mready'range) => '1');
+            wait until rising_edge(clk) and c09_mvalid = '1' and (and c09_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -4662,7 +4662,7 @@ begin
         wait until c10_rst = '0';
         file_open(f, C10_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c10_mvalid = '1' and c10_mready = ((c10_mready'range) => '1');
+            wait until rising_edge(clk) and c10_mvalid = '1' and (and c10_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -4700,7 +4700,7 @@ begin
         wait until c11_rst = '0';
         file_open(f, C11_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c11_mvalid = '1' and c11_mready = ((c11_mready'range) => '1');
+            wait until rising_edge(clk) and c11_mvalid = '1' and (and c11_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -4738,7 +4738,7 @@ begin
         wait until c12_rst = '0';
         file_open(f, C12_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c12_mvalid = '1' and c12_mready = ((c12_mready'range) => '1');
+            wait until rising_edge(clk) and c12_mvalid = '1' and (and c12_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -4776,7 +4776,7 @@ begin
         wait until c13_rst = '0';
         file_open(f, C13_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c13_mvalid = '1' and c13_mready = ((c13_mready'range) => '1');
+            wait until rising_edge(clk) and c13_mvalid = '1' and (and c13_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -4814,7 +4814,7 @@ begin
         wait until c14_rst = '0';
         file_open(f, C14_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c14_mvalid = '1' and c14_mready = ((c14_mready'range) => '1');
+            wait until rising_edge(clk) and c14_mvalid = '1' and (and c14_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -4852,7 +4852,7 @@ begin
         wait until c15_rst = '0';
         file_open(f, C15_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c15_mvalid = '1' and c15_mready = ((c15_mready'range) => '1');
+            wait until rising_edge(clk) and c15_mvalid = '1' and (and c15_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -4890,7 +4890,7 @@ begin
         wait until c16_rst = '0';
         file_open(f, C16_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c16_mvalid = '1' and c16_mready = ((c16_mready'range) => '1');
+            wait until rising_edge(clk) and c16_mvalid = '1' and (and c16_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -4928,7 +4928,7 @@ begin
         wait until c17_rst = '0';
         file_open(f, C17_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c17_mvalid = '1' and c17_mready = ((c17_mready'range) => '1');
+            wait until rising_edge(clk) and c17_mvalid = '1' and (and c17_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -4966,7 +4966,7 @@ begin
         wait until c18_rst = '0';
         file_open(f, C18_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c18_mvalid = '1' and c18_mready = ((c18_mready'range) => '1');
+            wait until rising_edge(clk) and c18_mvalid = '1' and (and c18_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5004,7 +5004,7 @@ begin
         wait until c19_rst = '0';
         file_open(f, C19_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c19_mvalid = '1' and c19_mready = ((c19_mready'range) => '1');
+            wait until rising_edge(clk) and c19_mvalid = '1' and (and c19_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5042,7 +5042,7 @@ begin
         wait until c20_rst = '0';
         file_open(f, C20_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c20_mvalid = '1' and c20_mready = ((c20_mready'range) => '1');
+            wait until rising_edge(clk) and c20_mvalid = '1' and (and c20_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5080,7 +5080,7 @@ begin
         wait until c21_rst = '0';
         file_open(f, C21_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c21_mvalid = '1' and c21_mready = ((c21_mready'range) => '1');
+            wait until rising_edge(clk) and c21_mvalid = '1' and (and c21_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5118,7 +5118,7 @@ begin
         wait until c22_rst = '0';
         file_open(f, C22_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c22_mvalid = '1' and c22_mready = ((c22_mready'range) => '1');
+            wait until rising_edge(clk) and c22_mvalid = '1' and (and c22_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5156,7 +5156,7 @@ begin
         wait until c23_rst = '0';
         file_open(f, C23_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c23_mvalid = '1' and c23_mready = ((c23_mready'range) => '1');
+            wait until rising_edge(clk) and c23_mvalid = '1' and (and c23_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5194,7 +5194,7 @@ begin
         wait until c24_rst = '0';
         file_open(f, C24_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c24_mvalid = '1' and c24_mready = ((c24_mready'range) => '1');
+            wait until rising_edge(clk) and c24_mvalid = '1' and (and c24_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5232,7 +5232,7 @@ begin
         wait until c25_rst = '0';
         file_open(f, C25_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c25_mvalid = '1' and c25_mready = ((c25_mready'range) => '1');
+            wait until rising_edge(clk) and c25_mvalid = '1' and (and c25_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5270,7 +5270,7 @@ begin
         wait until c26_rst = '0';
         file_open(f, C26_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c26_mvalid = '1' and c26_mready = ((c26_mready'range) => '1');
+            wait until rising_edge(clk) and c26_mvalid = '1' and (and c26_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5308,7 +5308,7 @@ begin
         wait until c27_rst = '0';
         file_open(f, C27_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c27_mvalid = '1' and c27_mready = ((c27_mready'range) => '1');
+            wait until rising_edge(clk) and c27_mvalid = '1' and (and c27_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5346,7 +5346,7 @@ begin
         wait until c28_rst = '0';
         file_open(f, C28_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c28_mvalid = '1' and c28_mready = ((c28_mready'range) => '1');
+            wait until rising_edge(clk) and c28_mvalid = '1' and (and c28_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5384,7 +5384,7 @@ begin
         wait until c29_rst = '0';
         file_open(f, C29_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c29_mvalid = '1' and c29_mready = ((c29_mready'range) => '1');
+            wait until rising_edge(clk) and c29_mvalid = '1' and (and c29_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5422,7 +5422,7 @@ begin
         wait until c30_rst = '0';
         file_open(f, C30_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c30_mvalid = '1' and c30_mready = ((c30_mready'range) => '1');
+            wait until rising_edge(clk) and c30_mvalid = '1' and (and c30_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5460,7 +5460,7 @@ begin
         wait until c31_rst = '0';
         file_open(f, C31_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c31_mvalid = '1' and c31_mready = ((c31_mready'range) => '1');
+            wait until rising_edge(clk) and c31_mvalid = '1' and (and c31_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5498,7 +5498,7 @@ begin
         wait until c32_rst = '0';
         file_open(f, C32_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c32_mvalid = '1' and c32_mready = ((c32_mready'range) => '1');
+            wait until rising_edge(clk) and c32_mvalid = '1' and (and c32_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5536,7 +5536,7 @@ begin
         wait until c33_rst = '0';
         file_open(f, C33_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c33_mvalid = '1' and c33_mready = ((c33_mready'range) => '1');
+            wait until rising_edge(clk) and c33_mvalid = '1' and (and c33_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5574,7 +5574,7 @@ begin
         wait until c34_rst = '0';
         file_open(f, C34_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c34_mvalid = '1' and c34_mready = ((c34_mready'range) => '1');
+            wait until rising_edge(clk) and c34_mvalid = '1' and (and c34_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5612,7 +5612,7 @@ begin
         wait until c35_rst = '0';
         file_open(f, C35_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c35_mvalid = '1' and c35_mready = ((c35_mready'range) => '1');
+            wait until rising_edge(clk) and c35_mvalid = '1' and (and c35_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5650,7 +5650,7 @@ begin
         wait until c36_rst = '0';
         file_open(f, C36_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c36_mvalid = '1' and c36_mready = ((c36_mready'range) => '1');
+            wait until rising_edge(clk) and c36_mvalid = '1' and (and c36_mready) = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -5688,7 +5688,7 @@ begin
         wait until c37_rst = '0';
         file_open(f, C37_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c37_mvalid = '1' and c37_mready = ((c37_mready'range) => '1');
+            wait until rising_edge(clk) and c37_mvalid = '1' and (and c37_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5726,7 +5726,7 @@ begin
         wait until c38_rst = '0';
         file_open(f, C38_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c38_mvalid = '1' and c38_mready = ((c38_mready'range) => '1');
+            wait until rising_edge(clk) and c38_mvalid = '1' and (and c38_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5764,7 +5764,7 @@ begin
         wait until c39_rst = '0';
         file_open(f, C39_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c39_mvalid = '1' and c39_mready = ((c39_mready'range) => '1');
+            wait until rising_edge(clk) and c39_mvalid = '1' and (and c39_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5802,7 +5802,7 @@ begin
         wait until c40_rst = '0';
         file_open(f, C40_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c40_mvalid = '1' and c40_mready = ((c40_mready'range) => '1');
+            wait until rising_edge(clk) and c40_mvalid = '1' and (and c40_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5840,7 +5840,7 @@ begin
         wait until c41_rst = '0';
         file_open(f, C41_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c41_mvalid = '1' and c41_mready = ((c41_mready'range) => '1');
+            wait until rising_edge(clk) and c41_mvalid = '1' and (and c41_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -5878,7 +5878,7 @@ begin
         wait until c42_rst = '0';
         file_open(f, C42_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c42_mvalid = '1' and c42_mready = ((c42_mready'range) => '1');
+            wait until rising_edge(clk) and c42_mvalid = '1' and (and c42_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5916,7 +5916,7 @@ begin
         wait until c43_rst = '0';
         file_open(f, C43_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c43_mvalid = '1' and c43_mready = ((c43_mready'range) => '1');
+            wait until rising_edge(clk) and c43_mvalid = '1' and (and c43_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5954,7 +5954,7 @@ begin
         wait until c44_rst = '0';
         file_open(f, C44_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c44_mvalid = '1' and c44_mready = ((c44_mready'range) => '1');
+            wait until rising_edge(clk) and c44_mvalid = '1' and (and c44_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -5992,7 +5992,7 @@ begin
         wait until c45_rst = '0';
         file_open(f, C45_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c45_mvalid = '1' and c45_mready = ((c45_mready'range) => '1');
+            wait until rising_edge(clk) and c45_mvalid = '1' and (and c45_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -6030,7 +6030,7 @@ begin
         wait until c46_rst = '0';
         file_open(f, C46_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c46_mvalid = '1' and c46_mready = ((c46_mready'range) => '1');
+            wait until rising_edge(clk) and c46_mvalid = '1' and (and c46_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -6068,7 +6068,7 @@ begin
         wait until c47_rst = '0';
         file_open(f, C47_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c47_mvalid = '1' and c47_mready = ((c47_mready'range) => '1');
+            wait until rising_edge(clk) and c47_mvalid = '1' and (and c47_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -6106,7 +6106,7 @@ begin
         wait until c48_rst = '0';
         file_open(f, C48_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c48_mvalid = '1' and c48_mready = ((c48_mready'range) => '1');
+            wait until rising_edge(clk) and c48_mvalid = '1' and (and c48_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -6144,7 +6144,7 @@ begin
         wait until c49_rst = '0';
         file_open(f, C49_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c49_mvalid = '1' and c49_mready = ((c49_mready'range) => '1');
+            wait until rising_edge(clk) and c49_mvalid = '1' and (and c49_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -6182,7 +6182,7 @@ begin
         wait until c50_rst = '0';
         file_open(f, C50_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c50_mvalid = '1' and c50_mready = ((c50_mready'range) => '1');
+            wait until rising_edge(clk) and c50_mvalid = '1' and (and c50_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -6220,7 +6220,7 @@ begin
         wait until c51_rst = '0';
         file_open(f, C51_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c51_mvalid = '1' and c51_mready = ((c51_mready'range) => '1');
+            wait until rising_edge(clk) and c51_mvalid = '1' and (and c51_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -6258,7 +6258,7 @@ begin
         wait until c52_rst = '0';
         file_open(f, C52_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c52_mvalid = '1' and c52_mready = ((c52_mready'range) => '1');
+            wait until rising_edge(clk) and c52_mvalid = '1' and (and c52_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -6296,7 +6296,7 @@ begin
         wait until c53_rst = '0';
         file_open(f, C53_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c53_mvalid = '1' and c53_mready = ((c53_mready'range) => '1');
+            wait until rising_edge(clk) and c53_mvalid = '1' and (and c53_mready) = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -6334,7 +6334,7 @@ begin
         wait until c54_rst = '0';
         file_open(f, C54_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c54_mvalid = '1' and c54_mready = ((c54_mready'range) => '1');
+            wait until rising_edge(clk) and c54_mvalid = '1' and (and c54_mready) = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -6372,7 +6372,7 @@ begin
         wait until c55_rst = '0';
         file_open(f, C55_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c55_mvalid = '1' and c55_mready = ((c55_mready'range) => '1');
+            wait until rising_edge(clk) and c55_mvalid = '1' and (and c55_mready) = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -6410,7 +6410,7 @@ begin
         wait until c56_rst = '0';
         file_open(f, C56_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c56_mvalid = '1' and c56_mready = ((c56_mready'range) => '1');
+            wait until rising_edge(clk) and c56_mvalid = '1' and (and c56_mready) = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -6448,7 +6448,7 @@ begin
         wait until c57_rst = '0';
         file_open(f, C57_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c57_mvalid = '1' and c57_mready = ((c57_mready'range) => '1');
+            wait until rising_edge(clk) and c57_mvalid = '1' and (and c57_mready) = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -6486,7 +6486,7 @@ begin
         wait until c58_rst = '0';
         file_open(f, C58_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c58_mvalid = '1' and c58_mready = ((c58_mready'range) => '1');
+            wait until rising_edge(clk) and c58_mvalid = '1' and (and c58_mready) = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
