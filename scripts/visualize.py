@@ -10,10 +10,9 @@ Open in any browser — no server required.
 
 Modes
 -----
-Explore   : click any pixel in the frame to inspect its tap window.
-Simulate  : step/play through every clock cycle in sequence, showing the
-            input pixel being accepted and the 3-stage pipeline draining
-            through to the output tap window.
+Explore   : click any pixel in the frame to inspect its centred tap window.
+Simulate  : step through every output event. Shows which pixel was accepted
+            1 clock ago to trigger that output (the TRIGGER pixel).
 """
 
 import json
@@ -41,25 +40,19 @@ def load_vectors(vec_dir):
         kr, kc, fl = cfg['kern_rows'], cfg['kern_cols'], cfg['flush']
         half_r = (kr - 1) // 2
         half_c = (kc - 1) // 2
-
-        # Flush outputs: virtual rows fh+0..fh+half_r-1 → out_r = fh+i-half_r
-        # Only generate output when out_r >= 0.
         flush_out_rows = []
         if fl and half_r > 0:
             for flush_row in range(half_r):
                 out_r = fh + flush_row - half_r
                 if out_r >= 0:
                     flush_out_rows.append(out_r)
-
         real_out_per_frame  = max(0, fh - half_r) * lw
         flush_out_per_frame = len(flush_out_rows) * lw
         tppf = real_out_per_frame + flush_out_per_frame
-
         ip = os.path.join(vec_dir, pre + "input.txt")
         ep = os.path.join(vec_dir, pre + "expected.txt")
         if not os.path.exists(ip) or not os.path.exists(ep):
-            out.append(None)
-            continue
+            out.append(None); continue
         with open(ip) as f:
             pxs = [int(x) for x in f if x.strip()]
         frames = [pxs[n * fh * lw:(n + 1) * fh * lw] for n in range(nf)]
@@ -70,12 +63,8 @@ def load_vectors(vec_dir):
             b = n * tppf
             taps.append(trows[b:b + real_out_per_frame])
             flsh.append(trows[b + real_out_per_frame:b + tppf] if flush_out_per_frame else [])
-        out.append({
-            'frames': frames,
-            'taps': taps,
-            'flush_taps': flsh,
-            'flush_out_rows': flush_out_rows,
-        })
+        out.append({'frames': frames, 'taps': taps, 'flush_taps': flsh,
+                    'flush_out_rows': flush_out_rows})
     return out
 
 
@@ -106,8 +95,6 @@ HTML = r"""<!DOCTYPE html>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;display:flex;height:100vh;overflow:hidden;
      background:#12121f;color:#e0e0e0;font-size:13px}
-
-/* ── Sidebar ─────────────────────────────────────────────────────────── */
 #sidebar{width:224px;min-width:224px;background:#1a1a2e;display:flex;
   flex-direction:column;padding:10px 8px;gap:7px;overflow-y:auto;
   border-right:1px solid #252540}
@@ -133,12 +120,7 @@ body{font-family:system-ui,sans-serif;display:flex;height:100vh;overflow:hidden;
 .cn{font-weight:700;color:#5a9fff;font-size:10px}
 .ci.active .cn{color:#90c0ff}
 hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
-
-/* ── Main ────────────────────────────────────────────────────────────── */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;
-  padding:8px;gap:6px;min-width:0}
-
-/* Mode bar */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:8px;gap:6px;min-width:0}
 #modebar{display:flex;align-items:center;gap:8px;flex-shrink:0}
 #modebar h1{font-size:13px;font-weight:700;color:#5a9fff;margin-right:4px}
 .mbtn{padding:4px 14px;border-radius:20px;border:1px solid #2a3a5a;
@@ -152,26 +134,19 @@ hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
 .bf{background:#3a2a00;color:#dfb050}
 #toplbl{font-size:11px;color:#6a7a8a;margin-left:2px}
 #pxinfo{margin-left:auto;font-size:11px;color:#c0a050;white-space:nowrap}
-
-/* ── Content ─────────────────────────────────────────────────────────── */
 #content{flex:1;display:flex;gap:8px;overflow:hidden;min-height:0}
 .panel{background:#1a1a2e;border-radius:8px;padding:8px;
   display:flex;flex-direction:column;gap:6px;overflow:hidden}
 #frame-panel{flex:1;min-width:0}
 #right-panel{width:340px;min-width:280px;display:flex;flex-direction:column;gap:8px}
-
-/* ── Frame panel controls ─────────────────────────────────────────────── */
 #explore-ctrl,#sim-ctrl{display:flex;flex-direction:column;gap:4px}
 #explore-ctrl.hidden,#sim-ctrl.hidden{display:none}
-
-/* Explore: frame nav + flush player */
 #fnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 #fnav button,#fctrl button{background:#1e2840;border:1px solid #2a3a5a;
   color:#c0d0e0;border-radius:4px;padding:3px 9px;cursor:pointer}
 #fnav button:hover,#fctrl button:hover{background:#3a6fdc;border-color:#3a6fdc}
 #flbl{font-size:12px;min-width:64px;text-align:center;color:#9ab0c0}
 #hint{font-size:10px;color:#3a4a5a}
-
 #fplay{display:none;flex-direction:column;gap:4px;padding-top:4px;
   border-top:1px solid #252540}
 #fplay.vis{display:flex}
@@ -188,10 +163,6 @@ hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
 .tlsep{color:#3a4a5a;font-size:16px;margin:0 2px;line-height:24px}
 #fctrl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 #fplbl{font-size:11px;color:#9090a0}
-#fspeed select{padding:2px 4px;background:#0e1428;border:1px solid #2a3a5a;
-  color:#c0d0e0;border-radius:3px;font-size:11px}
-
-/* Sim controls */
 #sim-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #sim-step-lbl{font-size:12px;color:#9ab0c0;min-width:110px}
 #sim-pos-lbl{font-size:11px;color:#7a8a9a}
@@ -199,37 +170,27 @@ hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
   border-radius:4px;padding:3px 9px;cursor:pointer;font-size:14px;line-height:1}
 .sbtn:hover{background:#3a6fdc;border-color:#3a6fdc}
 #scrubber{flex:1;min-width:80px;accent-color:#3a6fdc;cursor:pointer;height:4px}
-#sim-speed select{padding:2px 4px;background:#0e1428;border:1px solid #2a3a5a;
-  color:#c0d0e0;border-radius:3px;font-size:11px}
-
-/* Frame canvas wrap */
 .cwrap{overflow:auto;flex:1;min-height:0}
 canvas{display:block;image-rendering:pixelated;cursor:crosshair}
-
-/* ── Right panel ──────────────────────────────────────────────────────── */
-/* Pipeline (sim only) */
+/* Pipeline panel */
 #pipeline-panel{display:none;flex-direction:column;gap:4px;
   background:#141428;border-radius:6px;padding:8px;flex-shrink:0}
 #pipeline-panel.vis{display:flex}
 #pipe-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4a5a6a}
 .pstage{display:flex;align-items:center;gap:6px;padding:5px 8px;
   border-radius:5px;border:1px solid #252540;background:#1a1a2e}
-.pstage.s-out  {border-color:#3a6fdc}
-.pstage.s-dly  {border-color:#8a6a10}
-.pstage.s-in   {border-color:#1a6a30}
-.pstage.s-next {border-color:#303050;opacity:.6}
+.pstage.s-out{border-color:#3a6fdc}
+.pstage.s-trg{border-color:#1a6a30}
 .pstage-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.dot-out {background:#3a8fff}
-.dot-dly {background:#dfb050}
-.dot-in  {background:#3abf7a}
-.dot-next{background:#505070}
+.dot-out{background:#3a8fff}
+.dot-trg{background:#3abf7a}
 .pstage-info{flex:1;min-width:0}
 .pstage-label{font-size:10px;font-weight:700;color:#7a8a9a}
 .pstage-pos{font-size:11px;color:#c0d0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pstage-val{font-size:10px;color:#7a8a9a;font-family:monospace}
 .pstage-swatch{width:28px;height:28px;border-radius:3px;flex-shrink:0;border:1px solid #252540}
-.parrow{text-align:center;font-size:16px;color:#3a4a5a;line-height:1.2}
-
+.parrow{text-align:center;font-size:11px;color:#3a8a5a;line-height:1.6;
+  font-style:italic;padding:1px 0}
 /* Tap panel */
 #tap-panel{flex:1;display:flex;flex-direction:column;gap:5px;
   background:#141428;border-radius:6px;padding:8px;min-height:0;overflow:hidden}
@@ -249,8 +210,6 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
 </style>
 </head>
 <body>
-
-<!-- Sidebar -->
 <div id="sidebar">
   <h2>conv2d Visualiser</h2>
   <div class="fg"><span>Data width</span>
@@ -301,12 +260,10 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
   <div id="config-list"></div>
 </div>
 
-<!-- Main -->
 <div id="main">
-  <!-- Mode bar -->
   <div id="modebar">
     <h1>conv2d</h1>
-    <button class="mbtn act" id="btn-explore" onclick="setMode('explore')">&#128269; Explore</button>
+    <button class="mbtn act" id="btn-explore"  onclick="setMode('explore')">&#128269; Explore</button>
     <button class="mbtn"     id="btn-simulate" onclick="setMode('simulate')">&#9654; Simulate</button>
     <span id="b-mode" class="badge"></span>
     <span id="b-flush" class="badge bf" style="display:none">FLUSH</span>
@@ -315,21 +272,17 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
   </div>
 
   <div id="content">
-    <!-- Frame panel -->
     <div id="frame-panel" class="panel">
-
       <!-- Explore controls -->
       <div id="explore-ctrl">
         <div id="fnav">
           <button onclick="prevFrame()">&#9664;</button>
           <span id="flbl">Frame 0/2</span>
           <button onclick="nextFrame()">&#9654;</button>
-          <span id="hint" style="font-size:10px;color:#3a4a5a">
-            Click cell &middot; &uarr;&darr;&larr;&rarr; move &middot; , / . config &middot; Alt+&#8592;&#8594; frame
-          </span>
+          <span id="hint">Click pixel &middot; &uarr;&darr;&larr;&rarr; move &middot; , / . config &middot; Alt+&#8592;&#8594; frame</span>
         </div>
         <div id="fplay">
-          <div id="fplay-title">&#9881; Flush outputs</div>
+          <div id="fplay-title">&#9881; Flush outputs (bottom-edge pixels)</div>
           <div id="ftl"></div>
           <div id="fctrl">
             <button onclick="fPrev()">&#9664;</button>
@@ -337,8 +290,8 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
             <button onclick="fNext()">&#9654;</button>
             <button onclick="exitFlush()">&times; Real</button>
             <span id="fplbl"></span>
-            <span style="margin-left:auto;font-size:11px;color:#6a7a8a">
-              Speed: <select id="fspd">
+            <span style="margin-left:auto;font-size:11px;color:#6a7a8a">Speed:
+              <select id="fspd">
                 <option value="800">0.5&times;</option>
                 <option value="400" selected>1&times;</option>
                 <option value="200">2&times;</option>
@@ -352,15 +305,15 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
       <!-- Simulate controls -->
       <div id="sim-ctrl" class="hidden">
         <div id="sim-header">
-          <button class="sbtn" onclick="simGoFirst()" title="First">&#9198;</button>
-          <button class="sbtn" onclick="simStepBck()" title="Step back">&#9664;</button>
+          <button class="sbtn" onclick="simGoFirst()">&#9198;</button>
+          <button class="sbtn" onclick="simStepBck()">&#9664;</button>
           <button class="sbtn" id="btn-simplay" onclick="toggleSimPlay()">&#9654;</button>
-          <button class="sbtn" onclick="simStepFwd()" title="Step forward">&#9654;</button>
-          <button class="sbtn" onclick="simGoLast()" title="Last">&#9197;</button>
+          <button class="sbtn" onclick="simStepFwd()">&#9654;</button>
+          <button class="sbtn" onclick="simGoLast()">&#9197;</button>
           <input type="range" id="scrubber" min="0" value="0" oninput="scrubTo(+this.value)">
           <span id="sim-step-lbl">Step 0 / 0</span>
-          <span style="font-size:11px;color:#6a7a8a">
-            Speed: <select id="spd">
+          <span style="font-size:11px;color:#6a7a8a">Speed:
+            <select id="spd">
               <option value="1000">&#189;&times;</option>
               <option value="500" selected>1&times;</option>
               <option value="250">2&times;</option>
@@ -373,43 +326,29 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
         <div id="sim-pos-lbl"></div>
       </div>
 
-      <!-- Shared frame canvas -->
-      <div class="cwrap" id="frame-wrap">
-        <canvas id="fc"></canvas>
-      </div>
+      <div class="cwrap" id="frame-wrap"><canvas id="fc"></canvas></div>
     </div>
 
-    <!-- Right panel (pipeline + tap) -->
     <div id="right-panel">
-      <!-- Pipeline (simulate mode only) -->
+      <!-- Pipeline (simulate only) -->
       <div id="pipeline-panel">
-        <div id="pipe-title">Pipeline stages</div>
-        <div class="pstage s-in"   id="ps-in">
-          <div class="pstage-dot dot-in"></div>
+        <div id="pipe-title">Pipeline — each step = 1 output clock</div>
+        <div class="pstage s-trg" id="ps-trg">
+          <div class="pstage-dot dot-trg"></div>
           <div class="pstage-info">
-            <div class="pstage-label">&#9654; ACCEPT (stage 1)</div>
-            <div class="pstage-pos"  id="ps-in-pos">—</div>
-            <div class="pstage-val"  id="ps-in-val"></div>
+            <div class="pstage-label">&#9654; ACCEPT — pixel accepted this clock (green)</div>
+            <div class="pstage-pos" id="ps-trg-pos">—</div>
+            <div class="pstage-val" id="ps-trg-val"></div>
           </div>
-          <div class="pstage-swatch" id="ps-in-sw"></div>
+          <div class="pstage-swatch" id="ps-trg-sw"></div>
         </div>
-        <div class="parrow">&#8595;</div>
-        <div class="pstage s-dly"  id="ps-dly">
-          <div class="pstage-dot dot-dly"></div>
-          <div class="pstage-info">
-            <div class="pstage-label">&#9670; DELAY (stage 2)</div>
-            <div class="pstage-pos"  id="ps-dly-pos">—</div>
-            <div class="pstage-val"  id="ps-dly-val"></div>
-          </div>
-          <div class="pstage-swatch" id="ps-dly-sw"></div>
-        </div>
-        <div class="parrow">&#8595;</div>
-        <div class="pstage s-out"  id="ps-out">
+        <div class="parrow">&#8595; 1 register stage later &rarr; output valid</div>
+        <div class="pstage s-out" id="ps-out">
           <div class="pstage-dot dot-out"></div>
           <div class="pstage-info">
-            <div class="pstage-label">&#9646; OUTPUT (stage 3) &larr; current</div>
-            <div class="pstage-pos"  id="ps-out-pos">—</div>
-            <div class="pstage-val"  id="ps-out-val"></div>
+            <div class="pstage-label">&#9646; OUTPUT — window now at output port (blue)</div>
+            <div class="pstage-pos" id="ps-out-pos">—</div>
+            <div class="pstage-val" id="ps-out-val"></div>
           </div>
           <div class="pstage-swatch" id="ps-out-sw"></div>
         </div>
@@ -439,116 +378,411 @@ const CFG  = DATA.configs;
 const NTOT = CFG.length;
 
 // ── Color utilities ───────────────────────────────────────────────────────
-function ylOrRd(t) {
-  t = Math.max(0,Math.min(1,t));
+function ylOrRd(t){
+  t=Math.max(0,Math.min(1,t));
   const s=[[255,255,178],[253,141,60],[189,0,38]];
-  const i=t<.5?0:1, u=t<.5?t*2:(t-.5)*2;
+  const i=t<.5?0:1,u=t<.5?t*2:(t-.5)*2;
   return s[i].map((v,k)=>Math.round(v+u*(s[i+1][k]-v)));
 }
 function rgb(c){return`rgb(${c[0]},${c[1]},${c[2]})`}
 function lum(c){return(0.299*c[0]+0.587*c[1]+0.114*c[2])/255}
 function txtClr(c){return lum(c)>.5?'#111':'#eee'}
 
-// ── Explore state ─────────────────────────────────────────────────────────
-// ex.row   = centre image row (out_r), 0..fh-1
-// ex.col   = centre image col (out_c), 0..lw-1
-// ex.isFlush = true when current row is a flush output
-// ex.fr    = flush_idx into flush_out_rows (when isFlush)
-const ex = {ci:0, fn:0, row:3, col:3, isFlush:false, fr:0,
-            fplaying:false, ftimer:null};
+// ── State ─────────────────────────────────────────────────────────────────
+const ex={ci:0,fn:0,row:3,col:3,isFlush:false,fr:0,fplaying:false,ftimer:null};
+const sm={step:0,seq:[],playing:false,timer:null};
+let mode='explore';
 
-// ── Sim state ─────────────────────────────────────────────────────────────
-const sm = {step:0, seq:[], playing:false, timer:null};
-
-let mode = 'explore'; // 'explore' | 'simulate'
-
-// ── Build simulation sequence ─────────────────────────────────────────────
-// Centred window: output fires for out_r = 0..fh-half_r-1 (real),
-// then for each flush_out_rows entry.
+// ── Sequence builder ──────────────────────────────────────────────────────
 // Each element: {fn, out_r, out_c, is_flush, flush_idx}
-function buildSeq(c) {
-  const seq = [];
-  const lw = c.line_width, fh = c.frame_height, hr = c.half_r;
-  for (let fn=0; fn<c.num_frames; fn++) {
-    for (let r=0; r<Math.max(0, fh-hr); r++)
-      for (let col=0; col<lw; col++)
-        seq.push({fn, out_r:r, out_c:col, is_flush:false, flush_idx:-1});
-    c.flush_out_rows.forEach((out_r, fi) => {
-      for (let col=0; col<lw; col++)
-        seq.push({fn, out_r, out_c:col, is_flush:true, flush_idx:fi});
+function buildSeq(c){
+  const seq=[];
+  const lw=c.line_width,fh=c.frame_height,hr=c.half_r;
+  for(let fn=0;fn<c.num_frames;fn++){
+    for(let r=0;r<Math.max(0,fh-hr);r++)
+      for(let col=0;col<lw;col++)
+        seq.push({fn,out_r:r,out_c:col,is_flush:false,flush_idx:-1});
+    c.flush_out_rows.forEach((out_r,fi)=>{
+      for(let col=0;col<lw;col++)
+        seq.push({fn,out_r,out_c:col,is_flush:true,flush_idx:fi});
     });
   }
   return seq;
 }
 
-function getTaps(c, evt) {
-  if (!evt) return null;
-  if (evt.is_flush) {
-    const fi = evt.flush_idx * c.line_width + evt.out_c;
-    return c.flush_taps[evt.fn] && c.flush_taps[evt.fn][fi];
+function getTaps(c,evt){
+  if(!evt)return null;
+  if(evt.is_flush){
+    const fi=evt.flush_idx*c.line_width+evt.out_c;
+    return c.flush_taps[evt.fn]&&c.flush_taps[evt.fn][fi];
   }
-  const pi = evt.out_r * c.line_width + evt.out_c;
-  return c.taps[evt.fn] && c.taps[evt.fn][pi];
+  const pi=evt.out_r*c.line_width+evt.out_c;
+  return c.taps[evt.fn]&&c.taps[evt.fn][pi];
 }
 
-// Centre pixel value: tap[half_r][half_c] = frames[fn][out_r*lw + out_c]
-function getVal(c, evt) {
-  if (!evt || evt.is_flush) return 0;
-  return c.frames[evt.fn][evt.out_r * c.line_width + evt.out_c];
+// TRIGGER pixel: the pixel accepted 1 clock BEFORE this output fires.
+// When output (out_r, out_c) is valid, the RTL just accepted
+// the pixel at effective stream position (row = out_r+hr, col_eff = out_c+hc).
+// col_eff >= lw means it is a dummy-column zero, not a real pixel.
+// For flush outputs, row >= fh so it is a flush virtual zero.
+function getTriggerPixel(c,evt){
+  if(!evt)return null;
+  const lw=c.line_width,fh=c.frame_height,hr=c.half_r,hc=c.half_c;
+  const tRow=evt.out_r+hr;
+  const tCol=evt.out_c+hc;          // effective column (may be >= lw)
+  const isVirtual=tRow>=fh;          // flush virtual row
+  const isDummy=tCol>=lw;            // dummy column padding
+  const isReal=!isVirtual&&!isDummy;
+  const val=isReal?(c.frames[evt.fn]||[])[tRow*lw+tCol]||0:0;
+  return{row:tRow,col:tCol,val,isReal,isDummy,isVirtual};
 }
 
-function evtLabel(c, evt, slot) {
-  if (!evt) return slot < 0 ? '— (output not yet valid)' : '— (stream ended)';
-  if (evt.is_flush) return `F${evt.fn} · flush out_r=${evt.out_r} · col ${evt.out_c} · val=0`;
-  return `F${evt.fn} · out_r=${evt.out_r} · col ${evt.out_c} · val=${getVal(c,evt)}`;
+// ── Padding pixel value (for border display) ──────────────────────────────
+// pr,pc are real-frame coordinates (may be negative or >= fh/lw)
+function getPaddingPixel(c,frame,pr,pc){
+  const fh=c.frame_height,lw=c.line_width;
+  if(pr>=0&&pr<fh&&pc>=0&&pc<lw)return frame[pr*lw+pc];
+  // Flush bottom rows inject zeros
+  if(c.flush&&c.half_r>0&&pr>=fh&&pr<fh+c.half_r)return 0;
+  if(c.edge_mode==='ZERO')return 0;
+  if(c.edge_mode==='REPLICATE'){
+    const rr=Math.max(0,Math.min(pr,fh-1));
+    const rc=Math.max(0,Math.min(pc,lw-1));
+    return frame[rr*lw+rc];
+  }
+  if(c.edge_mode==='TOROIDAL'){
+    const rr=((pr%fh)+fh)%fh;
+    const rc=((pc%lw)+lw)%lw;
+    return frame[rr*lw+rc];
+  }
+  return 0;
+}
+
+// ── Hatch ─────────────────────────────────────────────────────────────────
+function hatch(ctx,x,y,w,h){
+  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  for(let d=-h;d<w+h;d+=7){ctx.beginPath();ctx.moveTo(x+d,y);ctx.lineTo(x+d+h,y+h);ctx.stroke();}
+  ctx.restore();
+}
+
+// ── Frame canvas ──────────────────────────────────────────────────────────
+// Canvas shows a border of half_r rows / half_c cols around the real frame,
+// filled with the edge-mode padding values so the user can see exactly what
+// each OOB tap reads.
+//
+// Coordinate mapping:
+//   canvas row = real_frame_row + half_r
+//   canvas col = real_frame_col + half_c
+// So the kernel footprint for output (out_r, out_c) spans canvas rows
+//   out_r .. out_r+kr-1  and  canvas cols  out_c .. out_c+kc-1
+// (the half_r/half_c offsets cancel exactly — very clean).
+//
+// highlights: [{out_r, out_c, style:'out'|'trg'|'ex'}]
+// kernelAnchor: {out_r, out_c} or null
+function renderFrameCanvas(c,frameIdx,highlights,kernelAnchor){
+  const lw=c.line_width,fh=c.frame_height;
+  const hr=c.half_r,hc=c.half_c;
+  const kr=c.kern_rows,kc=c.kern_cols,dw=c.data_width;
+  const vmax=(1<<Math.min(dw,30))-1;
+  const flushHr=c.flush&&hr>0?hr:0;
+  // canvas grid: rows -hr..fh+hr-1 in real coords = 0..fh+2hr-1 in canvas
+  const totR=fh+2*hr, totC=lw+2*hc;
+
+  const wrap=document.getElementById('frame-wrap');
+  const avW=wrap.clientWidth||400;
+  const cell=Math.max(10,Math.min(56,Math.floor(Math.min(avW,580)/Math.max(totC,totR,kr+2))));
+
+  const can=document.getElementById('fc');
+  can.width=totC*cell; can.height=totR*cell;
+  const ctx=can.getContext('2d');
+  ctx.clearRect(0,0,can.width,can.height);
+
+  const frame=c.frames[frameIdx]||[];
+
+  // Draw every cell (real frame + padding border)
+  for(let pr=-hr;pr<fh+hr;pr++){
+    for(let pc=-hc;pc<lw+hc;pc++){
+      const canR=pr+hr, canC=pc+hc;
+      const inReal=pr>=0&&pr<fh&&pc>=0&&pc<lw;
+      const inFlush=!inReal&&pr>=fh&&pr<fh+hr&&flushHr>0&&pc>=0&&pc<lw;
+      const val=getPaddingPixel(c,frame,pr,pc);
+      const norm=val/vmax;
+
+      if(inReal){
+        ctx.fillStyle=rgb(ylOrRd(norm));
+      } else if(inFlush){
+        ctx.fillStyle='#141428';
+      } else if(c.edge_mode==='ZERO'){
+        // OOB ZERO: dark grey
+        ctx.fillStyle='rgba(60,60,80,0.7)';
+      } else {
+        // OOB REPLICATE/TOROIDAL: show value at reduced opacity
+        const clr=ylOrRd(norm);
+        ctx.fillStyle=`rgba(${clr[0]},${clr[1]},${clr[2]},0.55)`;
+      }
+      ctx.fillRect(canC*cell,canR*cell,cell,cell);
+      if(inFlush)hatch(ctx,canC*cell,canR*cell,cell,cell);
+
+      // Cell border
+      ctx.strokeStyle=inReal?'rgba(0,0,0,0.18)':'rgba(100,100,150,0.15)';
+      ctx.lineWidth=.5;
+      ctx.strokeRect(canC*cell+.5,canR*cell+.5,cell-1,cell-1);
+
+      // Value text
+      if(cell>=16&&inReal){
+        const clr=ylOrRd(norm);
+        ctx.fillStyle=txtClr(clr);
+        ctx.font=`${Math.max(8,cell/4.5)|0}px monospace`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        const s=dw>8?`0x${val.toString(16).toUpperCase().padStart(Math.ceil(dw/4),'0')}`:`${val}`;
+        ctx.fillText(s,canC*cell+cell/2,canR*cell+cell/2);
+      } else if(cell>=16&&!inReal&&!inFlush&&c.edge_mode!=='ZERO'&&val>0){
+        ctx.fillStyle='rgba(220,220,220,0.6)';
+        ctx.font=`${Math.max(7,cell/5.5)|0}px monospace`;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(`${val}`,canC*cell+cell/2,canR*cell+cell/2);
+      }
+    }
+  }
+
+  // Real-frame border (thin white dashed)
+  ctx.setLineDash([4,3]);ctx.strokeStyle='rgba(180,180,220,0.35)';ctx.lineWidth=1;
+  ctx.strokeRect(hc*cell+.5,hr*cell+.5,lw*cell-1,fh*cell-1);
+  ctx.setLineDash([]);
+
+  // FLUSH border (amber dashed) around real frame
+  if(flushHr>0){
+    ctx.setLineDash([5,3]);ctx.strokeStyle='#dfb050';ctx.lineWidth=1.5;
+    ctx.strokeRect(hc*cell+.5,hr*cell+.5,lw*cell-1,fh*cell-1);
+    ctx.setLineDash([]);
+  }
+
+  // Kernel footprint — canvas coords = real coords (half offsets cancel)
+  if(kernelAnchor){
+    const ka=kernelAnchor;
+    ctx.fillStyle='rgba(58,111,220,0.18)';
+    for(let dr=0;dr<kr;dr++) for(let dc=0;dc<kc;dc++){
+      const cr=ka.out_r+dr,cc=ka.out_c+dc;
+      if(cr>=0&&cr<totR&&cc>=0&&cc<totC)ctx.fillRect(cc*cell+1,cr*cell+1,cell-2,cell-2);
+    }
+    ctx.strokeStyle='rgba(58,143,255,0.5)';ctx.lineWidth=1;
+    for(let dr=0;dr<kr;dr++) for(let dc=0;dc<kc;dc++){
+      const cr=ka.out_r+dr,cc=ka.out_c+dc;
+      if(cr>=0&&cr<totR&&cc>=0&&cc<totC)ctx.strokeRect(cc*cell+1,cr*cell+1,cell-2,cell-2);
+    }
+  }
+
+  // Highlights — canvas coords = real coords + (hr, hc)
+  const ST={
+    ex: {stroke:'#3a8fff',fill:'rgba(58,143,255,0)',   circle:true},
+    out:{stroke:'#3a8fff',fill:'rgba(58,143,255,0.18)',circle:false},
+    trg:{stroke:'#3abf7a',fill:'rgba(58,191,122,0.22)',circle:false},
+  };
+  for(const h of highlights){
+    const cr=h.out_r+hr, cc=h.out_c+hc;
+    if(cr<0||cr>=totR||cc<0||cc>=totC)continue;
+    const st=ST[h.style]||ST.ex;
+    const x=cc*cell,y=cr*cell;
+    ctx.fillStyle=st.fill;ctx.fillRect(x+2,y+2,cell-4,cell-4);
+    ctx.strokeStyle=st.stroke;ctx.lineWidth=2.5;
+    if(st.circle){ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*.32,0,2*Math.PI);ctx.stroke();}
+    else ctx.strokeRect(x+2,y+2,cell-4,cell-4);
+  }
+}
+
+// ── Tap canvas ────────────────────────────────────────────────────────────
+// taps[tr*kc + tc] — no reversal; tc=0 is leftmost column
+function renderTapCanvas(c,taps,out_r,out_c){
+  const kr=c.kern_rows,kc=c.kern_cols,dw=c.data_width;
+  const fh=c.frame_height,lw=c.line_width;
+  const hr=c.half_r,hc=c.half_c,em=c.edge_mode;
+  const vmax=(1<<Math.min(dw,30))-1;
+  if(!taps)return;
+  const tpW=document.getElementById('tap-panel').clientWidth-24-28;
+  const cell=Math.max(14,Math.min(56,Math.floor(Math.min(tpW,280)/Math.max(kr,kc))));
+
+  const colDiv=document.getElementById('tcol-labels');colDiv.innerHTML='';
+  for(let tc=0;tc<kc;tc++){
+    const sc=out_c+tc-hc,oob=sc<0||sc>=lw;
+    const el=document.createElement('div');
+    el.className='tlbl';el.style.width=cell+'px';el.style.height='14px';
+    el.style.color=oob?'#df5050':'#5a7a8a';el.textContent=sc;
+    colDiv.appendChild(el);
+  }
+  const rowDiv=document.getElementById('trow-labels');rowDiv.innerHTML='';
+  for(let tr=0;tr<kr;tr++){
+    const sr=out_r+tr-hr,oob=sr<0||sr>=fh;
+    const el=document.createElement('div');
+    el.className='tlbl';el.style.height=cell+'px';el.style.width='24px';
+    el.style.color=oob?'#df5050':'#5a7a8a';el.textContent=sr;
+    rowDiv.appendChild(el);
+  }
+
+  const can=document.getElementById('tc');
+  can.width=kc*cell;can.height=kr*cell;
+  const ctx=can.getContext('2d');
+  for(let tr=0;tr<kr;tr++) for(let tc=0;tc<kc;tc++){
+    const val=taps[tr*kc+tc];
+    const norm=val/vmax;
+    const sr=out_r+tr-hr,sc=out_c+tc-hc;
+    const isOob=sr<0||sr>=fh||sc<0||sc>=lw;
+    let face,edge;
+    if(isOob&&em==='ZERO')        {face=[90,90,110];edge=null;}
+    else if(isOob&&em==='REPLICATE'){face=ylOrRd(norm);edge='#4682b4';}
+    else if(isOob&&em==='TOROIDAL') {face=ylOrRd(norm);edge='#9370db';}
+    else                           {face=ylOrRd(norm);edge=null;}
+    ctx.fillStyle=rgb(face);ctx.fillRect(tc*cell,tr*cell,cell,cell);
+    if(edge){ctx.strokeStyle=edge;ctx.lineWidth=2.5;ctx.strokeRect(tc*cell+1.5,tr*cell+1.5,cell-3,cell-3);}
+    else{ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=.5;ctx.strokeRect(tc*cell+.5,tr*cell+.5,cell-1,cell-1);}
+    if(cell>=14){
+      ctx.fillStyle=txtClr(face);
+      ctx.font=`${Math.max(8,cell/4.5)|0}px monospace`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      const s=dw>8?`0x${val.toString(16).toUpperCase().padStart(Math.ceil(dw/4),'0')}`:`${val}`;
+      ctx.fillText(s+(isOob?'*':''),tc*cell+cell/2,tr*cell+cell/2);
+    }
+  }
+  // Centre tap highlight
+  ctx.strokeStyle='#3a8fff';ctx.lineWidth=3;
+  ctx.strokeRect(hc*cell+2,hr*cell+2,cell-4,cell-4);
+}
+
+// ── Pipeline panel ────────────────────────────────────────────────────────
+function renderPipeline(c,outEvt,trgPixel){
+  const vmax=(1<<Math.min(c.data_width,30))-1;
+  // TRIGGER row
+  if(trgPixel){
+    let pos,val_str;
+    if(trgPixel.isVirtual){
+      pos=`row ${trgPixel.row} (flush zero row, outside frame)`;
+      val_str='val = 0  (flush-injected zero)';
+    } else if(trgPixel.isDummy){
+      pos=`row ${trgPixel.row} · col_eff ${trgPixel.col}  (dummy column zero)`;
+      val_str='val = 0  (right-edge dummy column)';
+    } else {
+      pos=`Frame ${outEvt.fn} · row ${trgPixel.row} · col ${trgPixel.col}`;
+      val_str=`val = ${trgPixel.val}  (${Math.round(trgPixel.val/vmax*100)}%)`;
+    }
+    document.getElementById('ps-trg-pos').textContent=pos;
+    document.getElementById('ps-trg-val').textContent=val_str;
+    const sw=document.getElementById('ps-trg-sw');
+    sw.style.background=trgPixel.isReal?rgb(ylOrRd(trgPixel.val/vmax)):'#252535';
+    sw.style.borderColor='#3a3a5a';
+  } else {
+    document.getElementById('ps-trg-pos').textContent='—';
+    document.getElementById('ps-trg-val').textContent='';
+    document.getElementById('ps-trg-sw').style.background='#1a1a2e';
+    document.getElementById('ps-trg-sw').style.borderColor='transparent';
+  }
+  // OUTPUT row
+  if(outEvt){
+    const centreVal=outEvt.is_flush?0:(c.frames[outEvt.fn]||[])[outEvt.out_r*c.line_width+outEvt.out_c]||0;
+    const pos=outEvt.is_flush
+      ?`Frame ${outEvt.fn} · flush output · centre row ${outEvt.out_r} · col ${outEvt.out_c}`
+      :`Frame ${outEvt.fn} · row ${outEvt.out_r} · col ${outEvt.out_c}`;
+    document.getElementById('ps-out-pos').textContent=pos;
+    document.getElementById('ps-out-val').textContent=outEvt.is_flush
+      ?'centre val = 0 (flush row)'
+      :`centre val = ${centreVal}  (${Math.round(centreVal/vmax*100)}%)`;
+    const sw=document.getElementById('ps-out-sw');
+    sw.style.background=outEvt.is_flush?'#252535':rgb(ylOrRd(centreVal/vmax));
+    sw.style.borderColor='#3a3a5a';
+  } else {
+    document.getElementById('ps-out-pos').textContent='—';
+    document.getElementById('ps-out-val').textContent='';
+    document.getElementById('ps-out-sw').style.background='#1a1a2e';
+    document.getElementById('ps-out-sw').style.borderColor='transparent';
+  }
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────
+function renderLegend(c,simMode){
+  const e=[];
+  if(simMode){
+    e.push({sw:'background:none;border:2px solid #3abf7a',
+            txt:'&#9654; Green = pixel accepted this clock (TRIGGER)'});
+    e.push({sw:'background:rgba(58,143,255,.18);border:2px solid #3a8fff',
+            txt:'&#9646; Blue = centre pixel whose window is now output'});
+  } else {
+    e.push({sw:'background:none;border:2px solid #3a8fff;border-radius:50%',
+            txt:'Blue circle = selected centre pixel'});
+  }
+  e.push({sw:'background:rgba(58,111,220,0.18);border:1px solid rgba(58,143,255,0.5)',
+          txt:'Blue tint = kernel footprint'});
+  e.push({sw:'background:rgba(60,60,80,0.7);border:none',
+          txt:'Dark grey padding = OOB zero (ZERO mode)'});
+  if(c.edge_mode==='REPLICATE'||c.edge_mode==='all')
+    e.push({sw:'background:#fd8d3c;opacity:.55;border:none',
+            txt:'Amber (dim) padding = replicated edge value (REPLICATE)'});
+  if(c.edge_mode==='TOROIDAL'||c.edge_mode==='all')
+    e.push({sw:'background:#b07adf;opacity:.55;border:none',
+            txt:'Purple (dim) padding = toroidal wrap value (TOROIDAL)'});
+  if(c.flush&&c.half_r>0)
+    e.push({sw:'background:#141428;border:2px dashed #dfb050',
+            txt:'Hatched = flush-injected zero rows'});
+  e.push({sw:'background:none;border:2.5px solid #3a8fff',
+          txt:'Blue square in tap grid = centre tap (current pixel)'});
+  e.push({sw:'background:none;border:2px solid #4682b4',
+          txt:'* in tap grid = OOB &rarr; clamped (REPLICATE)'});
+  e.push({sw:'background:none;border:2px solid #9370db',
+          txt:'* in tap grid = OOB &rarr; wrapped (TOROIDAL)'});
+  document.getElementById('legend').innerHTML='<div id="legend-title">Legend</div>'+
+    e.map(x=>`<div class="lrow"><div class="lsw" style="${x.sw}"></div><span>${x.txt}</span></div>`).join('');
+}
+
+// ── Top bar ───────────────────────────────────────────────────────────────
+function renderTopBar(c,ci){
+  const bm=document.getElementById('b-mode');
+  bm.textContent=c.edge_mode;
+  bm.className='badge '+{ZERO:'bz',REPLICATE:'br',TOROIDAL:'bt'}[c.edge_mode];
+  document.getElementById('b-flush').style.display=c.flush?'':'none';
+  document.getElementById('toplbl').textContent=
+    `CFG${String(ci+1).padStart(2,'0')} · ${c.data_width}b · ${c.kern_rows}×${c.kern_cols} · ${c.line_width}×${c.frame_height}px`;
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────
-function applyFilters() {
-  const dw   = document.getElementById('f-dw').value;
-  const kern = document.getElementById('f-kern').value;
-  const mode_ = document.querySelector('input[name="fmode"]:checked').value;
-  const fl   = document.getElementById('f-flush').value;
-  const fr   = document.getElementById('f-frame').value;
-  let vis=0, firstVis=-1;
+function applyFilters(){
+  const dw=document.getElementById('f-dw').value;
+  const kern=document.getElementById('f-kern').value;
+  const m=document.querySelector('input[name="fmode"]:checked').value;
+  const fl=document.getElementById('f-flush').value;
+  const fr=document.getElementById('f-frame').value;
+  let vis=0,first=-1;
   document.querySelectorAll('.ci').forEach((el,i)=>{
     const c=CFG[i];
-    const ok=(dw==='all'||String(c.data_width)===dw) &&
-             (kern==='all'||`${c.kern_rows}x${c.kern_cols}`===kern) &&
-             (mode_==='all'||c.edge_mode===mode_) &&
-             (fl==='all'||(fl==='on')===c.flush) &&
+    const ok=(dw==='all'||String(c.data_width)===dw)&&
+             (kern==='all'||`${c.kern_rows}x${c.kern_cols}`===kern)&&
+             (m==='all'||c.edge_mode===m)&&
+             (fl==='all'||(fl==='on')===c.flush)&&
              (fr==='all'||`${c.line_width}x${c.frame_height}`===fr);
     el.classList.toggle('hidden',!ok);
-    if(ok){vis++;if(firstVis<0)firstVis=i;}
+    if(ok){vis++;if(first<0)first=i;}
   });
   document.getElementById('cfg-count').textContent=`${vis} / ${NTOT} configs`;
-  if(document.querySelector('.ci.active.hidden')&&firstVis>=0) selectCfg(firstVis);
+  if(document.querySelector('.ci.active.hidden')&&first>=0)selectCfg(first);
 }
 
-function buildList() {
+function buildList(){
   const list=document.getElementById('config-list');
   CFG.forEach((c,i)=>{
     const el=document.createElement('div');
-    el.className='ci'; el.dataset.i=i;
+    el.className='ci';el.dataset.i=i;
     el.innerHTML=`<span class="cn">CFG${String(i+1).padStart(2,'0')}</span> ${c.label}`;
     el.onclick=()=>selectCfg(i);
     list.appendChild(el);
   });
 }
 
-function selectCfg(i) {
-  ex.ci=i; ex.fn=0; ex.isFlush=false; ex.fr=0;
-  ex.fplaying=false; clearInterval(ex.ftimer);
+function selectCfg(i){
+  ex.ci=i;ex.fn=0;ex.isFlush=false;ex.fr=0;
+  ex.fplaying=false;clearInterval(ex.ftimer);
   const c=CFG[i];
-  ex.row=Math.min(ex.row, Math.max(0, c.frame_height - c.half_r - 1));
-  ex.col=Math.min(ex.col, c.line_width-1);
-  sm.step=0;
-  sm.seq=buildSeq(c);
-  sm.playing=false; clearInterval(sm.timer);
-
+  ex.row=Math.min(ex.row,Math.max(0,c.frame_height-c.half_r-1));
+  ex.col=Math.min(ex.col,c.line_width-1);
+  sm.step=0;sm.seq=buildSeq(c);sm.playing=false;clearInterval(sm.timer);
   const sc=document.getElementById('scrubber');
-  sc.max=Math.max(0,sm.seq.length-1); sc.value=0;
-
+  sc.max=Math.max(0,sm.seq.length-1);sc.value=0;
   document.querySelectorAll('.ci').forEach(el=>el.classList.remove('active'));
   const el=document.querySelector(`.ci[data-i="${i}"]`);
   if(el){el.classList.add('active');el.scrollIntoView({block:'nearest'});}
@@ -556,88 +790,70 @@ function selectCfg(i) {
 }
 
 // ── Mode switch ───────────────────────────────────────────────────────────
-function setMode(m) {
+function setMode(m){
   mode=m;
   document.getElementById('btn-explore') .classList.toggle('act',m==='explore');
   document.getElementById('btn-simulate').classList.toggle('act',m==='simulate');
   document.getElementById('explore-ctrl').classList.toggle('hidden',m!=='explore');
   document.getElementById('sim-ctrl')    .classList.toggle('hidden',m!=='simulate');
-  document.getElementById('pipeline-panel').classList.toggle('vis', m==='simulate');
-  if(m==='simulate'&&sm.seq.length===0) sm.seq=buildSeq(CFG[ex.ci]);
+  document.getElementById('pipeline-panel').classList.toggle('vis',m==='simulate');
+  if(m==='simulate'&&sm.seq.length===0)sm.seq=buildSeq(CFG[ex.ci]);
   render();
 }
 
-// ── Explore: frame nav ────────────────────────────────────────────────────
+// ── Frame nav ─────────────────────────────────────────────────────────────
 function prevFrame(){const nf=CFG[ex.ci].num_frames;ex.fn=(ex.fn-1+nf)%nf;ex.isFlush=false;render();}
 function nextFrame(){const nf=CFG[ex.ci].num_frames;ex.fn=(ex.fn+1)%nf;ex.isFlush=false;render();}
 
-// ── Explore: flush player ─────────────────────────────────────────────────
-function buildFlushTL() {
-  const c=CFG[ex.ci], tl=document.getElementById('ftl');
+// ── Flush player ──────────────────────────────────────────────────────────
+function buildFlushTL(){
+  const c=CFG[ex.ci],tl=document.getElementById('ftl');
   tl.innerHTML='';
-  const realCount=Math.max(0, c.frame_height-c.half_r);
-  const flushRows=c.flush_out_rows;
-  if(!c.flush||!flushRows.length) return;
-  for(let r=0;r<realCount;r++){
+  const rc=Math.max(0,c.frame_height-c.half_r);
+  if(!c.flush||!c.flush_out_rows.length)return;
+  for(let r=0;r<rc;r++){
     const el=document.createElement('div');
-    el.className='tr real'; el.textContent=r;
-    el.style.fontSize=realCount>9?'9px':'10px';
-    el.title=`Real output row ${r}`;
-    const _r=r; el.onclick=()=>{ex.isFlush=false;ex.row=_r;render();};
+    el.className='tr real';el.textContent=r;
+    el.title=`Real output: centre row ${r}`;
+    const _r=r;el.onclick=()=>{ex.isFlush=false;ex.row=_r;render();};
     tl.appendChild(el);
   }
-  const sep=document.createElement('span');
-  sep.className='tlsep'; sep.textContent='│'; tl.appendChild(sep);
-  for(let fi=0;fi<flushRows.length;fi++){
-    const out_r=flushRows[fi];
+  const sep=document.createElement('span');sep.className='tlsep';sep.textContent='│';tl.appendChild(sep);
+  c.flush_out_rows.forEach((out_r,fi)=>{
     const el=document.createElement('div');
-    el.className='tr flush-tl'; el.textContent=out_r;
-    el.title=`Flush output: centre row ${out_r} (bottom-edge outputs)`;
-    const _fi=fi, _out_r=out_r;
-    el.onclick=()=>{ex.isFlush=true;ex.fr=_fi;ex.row=_out_r;render();};
+    el.className='tr flush-tl';el.textContent=out_r;
+    el.title=`Flush output: centre row ${out_r} (bottom-edge, needs flush zeros)`;
+    const _fi=fi,_r=out_r;el.onclick=()=>{ex.isFlush=true;ex.fr=_fi;ex.row=_r;render();};
     tl.appendChild(el);
-  }
+  });
 }
 function updateFlushTL(){
   document.querySelectorAll('.tr.real'    ).forEach((el,i)=>el.classList.toggle('act',!ex.isFlush&&i===ex.row));
   document.querySelectorAll('.tr.flush-tl').forEach((el,i)=>el.classList.toggle('act', ex.isFlush&&i===ex.fr));
   const c=CFG[ex.ci];
   document.getElementById('fplbl').textContent=ex.isFlush
-    ?`Flush output: centre row ${ex.row}`:`Real output: row ${ex.row}`;
+    ?`Flush output · centre row ${ex.row}`:`Real output · row ${ex.row}`;
 }
 function updateFlushPlayer(){
-  const c=CFG[ex.ci], fp=document.getElementById('fplay');
-  if(c.flush&&c.flush_out_rows.length>0){fp.classList.add('vis');buildFlushTL();updateFlushTL();}
+  const c=CFG[ex.ci],fp=document.getElementById('fplay');
+  if(c.flush&&c.flush_out_rows.length){fp.classList.add('vis');buildFlushTL();updateFlushTL();}
   else{fp.classList.remove('vis');ex.isFlush=false;ex.fplaying=false;clearInterval(ex.ftimer);}
 }
-function totalExRows(){
-  const c=CFG[ex.ci];
-  return Math.max(0, c.frame_height-c.half_r) + (c.flush?c.flush_out_rows.length:0);
-}
-function exCurPos(){
-  const c=CFG[ex.ci];
-  const realCount=Math.max(0, c.frame_height-c.half_r);
-  return ex.isFlush ? realCount+ex.fr : ex.row;
-}
+function totalExRows(){const c=CFG[ex.ci];return Math.max(0,c.frame_height-c.half_r)+(c.flush?c.flush_out_rows.length:0);}
+function exCurPos(){const c=CFG[ex.ci];return ex.isFlush?Math.max(0,c.frame_height-c.half_r)+ex.fr:ex.row;}
 function exSetPos(pos){
-  const c=CFG[ex.ci];
-  const realCount=Math.max(0, c.frame_height-c.half_r);
-  if(pos<realCount){ex.isFlush=false;ex.row=pos;}
-  else{ex.isFlush=true;ex.fr=pos-realCount;ex.row=c.flush_out_rows[ex.fr];}
+  const c=CFG[ex.ci],rc=Math.max(0,c.frame_height-c.half_r);
+  if(pos<rc){ex.isFlush=false;ex.row=pos;}
+  else{ex.isFlush=true;ex.fr=pos-rc;ex.row=c.flush_out_rows[ex.fr];}
 }
 function fNext(){exSetPos((exCurPos()+1)%totalExRows());render();}
 function fPrev(){exSetPos((exCurPos()-1+totalExRows())%totalExRows());render();}
-function exitFlush(){
-  const c=CFG[ex.ci];
-  ex.isFlush=false;
-  ex.row=Math.min(ex.row, Math.max(0, c.frame_height-c.half_r-1));
-  render();
-}
+function exitFlush(){const c=CFG[ex.ci];ex.isFlush=false;ex.row=Math.min(ex.row,Math.max(0,c.frame_height-c.half_r-1));render();}
 function toggleFlushPlay(){
   ex.fplaying=!ex.fplaying;
   document.getElementById('btn-fplay').textContent=ex.fplaying?'⏸ Pause':'▶ Play';
   clearInterval(ex.ftimer);
-  if(ex.fplaying) ex.ftimer=setInterval(fNext,+document.getElementById('fspd').value);
+  if(ex.fplaying)ex.ftimer=setInterval(fNext,+document.getElementById('fspd').value);
 }
 document.getElementById('fspd').onchange=()=>{
   if(ex.fplaying){clearInterval(ex.ftimer);ex.ftimer=setInterval(fNext,+document.getElementById('fspd').value);}
@@ -667,390 +883,127 @@ document.getElementById('spd').onchange=()=>{
   },+document.getElementById('spd').value);}
 };
 
-// ── Cell sizing ───────────────────────────────────────────────────────────
-function csz(maxDim,avail){return Math.max(14,Math.min(64,Math.floor(avail/maxDim)));}
-
-// ── Hatch fill ────────────────────────────────────────────────────────────
-function hatch(ctx,x,y,w,h){
-  ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
-  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
-  for(let d=-h;d<w+h;d+=7){ctx.beginPath();ctx.moveTo(x+d,y);ctx.lineTo(x+d+h,y+h);ctx.stroke();}
-  ctx.restore();
-}
-
-// ── Frame canvas ──────────────────────────────────────────────────────────
-// highlights: array of {out_r, out_c, is_flush, flush_idx, style:'out'|'dly'|'in'|'ex'}
-// kernelAnchor: {out_r, out_c} or null — centre of kernel footprint
-// flushR: number of hatched virtual rows to show below real frame (= half_r when flush on)
-function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
-  const lw=c.line_width, fh=c.frame_height, kr=c.kern_rows, kc=c.kern_cols;
-  const hr=c.half_r, hc=c.half_c, dw=c.data_width;
-  const vmax=(1<<Math.min(dw,30))-1;
-  const totR=fh+flushR;
-
-  const wrap=document.getElementById('frame-wrap');
-  const avW=wrap.clientWidth||400;
-  const cell=csz(Math.max(lw,totR,kr+1),Math.min(avW,600));
-
-  const can=document.getElementById('fc');
-  can.width=lw*cell; can.height=totR*cell;
-  const ctx=can.getContext('2d');
-
-  const frame=c.frames[frameIdx]||[];
-
-  // Real cells
-  for(let r=0;r<fh;r++) for(let col=0;col<lw;col++){
-    const val=frame[r*lw+col]||0;
-    const clr=ylOrRd(val/vmax);
-    ctx.fillStyle=rgb(clr); ctx.fillRect(col*cell,r*cell,cell,cell);
-    ctx.strokeStyle='rgba(0,0,0,0.18)';ctx.lineWidth=.5;
-    ctx.strokeRect(col*cell+.5,r*cell+.5,cell-1,cell-1);
-    if(cell>=18){
-      ctx.fillStyle=txtClr(clr);
-      ctx.font=`${Math.max(8,cell/4.5)|0}px monospace`;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      const hex=dw>8?`0x${val.toString(16).toUpperCase().padStart(Math.ceil(dw/4),'0')}`:`${val}`;
-      ctx.fillText(hex,col*cell+cell/2,r*cell+cell/2);
-    }
-  }
-
-  // Flush virtual rows (zero-padding rows injected by FLUSH)
-  for(let f=0;f<flushR;f++){
-    const r=fh+f;
-    for(let col=0;col<lw;col++){
-      ctx.fillStyle='#1a1a2e'; ctx.fillRect(col*cell,r*cell,cell,cell);
-      hatch(ctx,col*cell,r*cell,cell,cell);
-      ctx.strokeStyle='rgba(100,100,150,0.3)';ctx.lineWidth=.5;
-      ctx.strokeRect(col*cell+.5,r*cell+.5,cell-1,cell-1);
-      if(cell>=16){
-        ctx.fillStyle='#4a4a6a';
-        ctx.font=`${Math.max(7,cell/5)|0}px monospace`;
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText(`F${f}`,col*cell+cell/2,r*cell+cell/2);
-      }
-    }
-  }
-  if(flushR>0){
-    ctx.setLineDash([5,3]);ctx.strokeStyle='#dfb050';ctx.lineWidth=1.5;
-    ctx.strokeRect(.5,.5,lw*cell-1,fh*cell-1);ctx.setLineDash([]);
-  }
-
-  // Centred kernel footprint: rows out_r-half_r..out_r+half_r
-  if(kernelAnchor){
-    const ka=kernelAnchor;
-    const topR =ka.out_r - hr, leftC=ka.out_c - hc;
-    ctx.fillStyle='rgba(58,111,220,0.18)';
-    for(let dr=0;dr<kr;dr++) for(let dc=0;dc<kc;dc++){
-      const pr=topR+dr, pc=leftC+dc;
-      if(pr>=0&&pr<totR&&pc>=0&&pc<lw) ctx.fillRect(pc*cell+1,pr*cell+1,cell-2,cell-2);
-    }
-    ctx.strokeStyle='rgba(58,111,220,0.4)';ctx.lineWidth=.8;
-    for(let dr=0;dr<kr;dr++) for(let dc=0;dc<kc;dc++){
-      const pr=topR+dr, pc=leftC+dc;
-      if(pr>=0&&pr<totR&&pc>=0&&pc<lw) ctx.strokeRect(pc*cell+1,pr*cell+1,cell-2,cell-2);
-    }
-  }
-
-  // Per-highlight markers — always at out_r in real frame
-  const styles={
-    ex: {stroke:'#3a8fff',fill:'rgba(58,143,255,0)',circle:true},
-    out:{stroke:'#3a8fff',fill:'rgba(58,143,255,0.15)',circle:false},
-    dly:{stroke:'#dfb050',fill:'rgba(223,176,80,0.15)',circle:false},
-    in: {stroke:'#3abf7a',fill:'rgba(58,191,122,0.2)',circle:false},
-  };
-  for(const h of highlights){
-    const canRow=h.out_r;
-    if(canRow<0||canRow>=fh||h.out_c<0||h.out_c>=lw) continue;
-    const st=styles[h.style]||styles.ex;
-    const x=h.out_c*cell, y=canRow*cell;
-    ctx.fillStyle=st.fill; ctx.fillRect(x+2,y+2,cell-4,cell-4);
-    ctx.strokeStyle=st.stroke; ctx.lineWidth=2.5;
-    if(st.circle){
-      ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*.32,0,2*Math.PI);ctx.stroke();
-    } else {
-      ctx.strokeRect(x+2,y+2,cell-4,cell-4);
-    }
-  }
-}
-
-// ── Tap canvas ────────────────────────────────────────────────────────────
-// Centred window: tap[tr][tc] = pixel at (out_r + tr - half_r, out_c + tc - half_c)
-// taps[tr*kc + tc] — no column reversal
-function renderTapCanvas(c, taps, out_r, out_c) {
-  const kr=c.kern_rows, kc=c.kern_cols, dw=c.data_width;
-  const fh=c.frame_height, lw=c.line_width;
-  const hr=c.half_r, hc=c.half_c, edgeMode=c.edge_mode;
-  const vmax=(1<<Math.min(dw,30))-1;
-  if(!taps) return;
-
-  const tpW=document.getElementById('tap-panel').clientWidth-24-28;
-  const cell=csz(Math.max(kr,kc),Math.min(tpW,300));
-
-  // Column labels: tc=0..kc-1, srcCol = out_c + tc - half_c
-  const colDiv=document.getElementById('tcol-labels');
-  colDiv.innerHTML='';
-  for(let tc=0;tc<kc;tc++){
-    const srcCol=out_c + tc - hc;
-    const oob=srcCol<0||srcCol>=lw;
-    const el=document.createElement('div');
-    el.className='tlbl'; el.style.width=cell+'px'; el.style.height='14px';
-    el.style.color=oob?'#df5050':'#5a7a8a'; el.textContent=srcCol;
-    colDiv.appendChild(el);
-  }
-  // Row labels: tr=0..kr-1, srcRow = out_r + tr - half_r
-  const rowDiv=document.getElementById('trow-labels');
-  rowDiv.innerHTML='';
-  for(let tr=0;tr<kr;tr++){
-    const srcRow=out_r + tr - hr;
-    const oob=srcRow<0||srcRow>=fh;
-    const el=document.createElement('div');
-    el.className='tlbl'; el.style.height=cell+'px'; el.style.width='24px';
-    el.style.color=oob?'#df5050':'#5a7a8a';
-    el.textContent=srcRow;
-    rowDiv.appendChild(el);
-  }
-
-  const can=document.getElementById('tc');
-  can.width=kc*cell; can.height=kr*cell;
-  const ctx=can.getContext('2d');
-
-  for(let tr=0;tr<kr;tr++) for(let tc=0;tc<kc;tc++){
-    const val=taps[tr*kc+tc];  // no reversal — tc=0 is leftmost
-    const norm=val/vmax;
-    const srcRow=out_r + tr - hr;
-    const srcCol=out_c + tc - hc;
-    const isOob=srcRow<0||srcRow>=fh||srcCol<0||srcCol>=lw;
-
-    let face,edge;
-    if(isOob&&edgeMode==='ZERO')       {face=[180,180,190];edge=null;}
-    else if(isOob&&edgeMode==='REPLICATE'){face=ylOrRd(norm);edge='#4682b4';}
-    else if(isOob&&edgeMode==='TOROIDAL') {face=ylOrRd(norm);edge='#9370db';}
-    else                                 {face=ylOrRd(norm);edge=null;}
-
-    ctx.fillStyle=rgb(face); ctx.fillRect(tc*cell,tr*cell,cell,cell);
-
-    if(edge){ctx.strokeStyle=edge;ctx.lineWidth=2.5;ctx.strokeRect(tc*cell+1.5,tr*cell+1.5,cell-3,cell-3);}
-    else{ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=.5;ctx.strokeRect(tc*cell+.5,tr*cell+.5,cell-1,cell-1);}
-
-    if(cell>=16){
-      ctx.fillStyle=txtClr(face);
-      ctx.font=`${Math.max(8,cell/4.5)|0}px monospace`;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      const hex=dw>8?`0x${val.toString(16).toUpperCase().padStart(Math.ceil(dw/4),'0')}`:`${val}`;
-      ctx.fillText(hex+(isOob?'*':''),tc*cell+cell/2,tr*cell+cell/2);
-    }
-  }
-  // Centre tap highlight (tap[half_r][half_c])
-  ctx.strokeStyle='#3a8fff';ctx.lineWidth=3;
-  ctx.strokeRect(hc*cell+2, hr*cell+2, cell-4, cell-4);
-}
-
-// ── Legend ────────────────────────────────────────────────────────────────
-function renderLegend(c, simMode) {
-  const entries=[];
-  if(simMode){
-    entries.push({sw:'background:none;border:2px solid #3abf7a',txt:'&#9654; ACCEPT: pixel currently entering pipeline (green)'});
-    entries.push({sw:'background:none;border:2px solid #dfb050',txt:'&#9670; DELAY: pixel in delay register (amber)'});
-    entries.push({sw:'background:rgba(58,143,255,.15);border:2px solid #3a8fff',txt:'&#9646; OUTPUT: pixel producing this tap window (blue)'});
-  }
-  entries.push({sw:'background:#b4b4c2;border:none',txt:'OOB tap &rarr; 0 (zero-extend)'});
-  if(c.edge_mode==='REPLICATE')
-    entries.push({sw:'background:#fd8d3c;border:2px solid #4682b4',txt:'* OOB &rarr; clamped edge pixel (REPLICATE)'});
-  if(c.edge_mode==='TOROIDAL')
-    entries.push({sw:'background:#fd8d3c;border:2px solid #9370db',txt:'* OOB &rarr; causal wrap (TOROIDAL)'});
-  if(c.flush&&c.half_r>0)
-    entries.push({sw:'background:#1a1a2e;border:2px dashed #dfb050',txt:'Hatched rows = injected zeros (FLUSH padding)'});
-  entries.push({sw:'background:none;border:2.5px solid #3a8fff',txt:'Blue square = centre tap (current pixel)'});
-
-  document.getElementById('legend').innerHTML='<div id="legend-title">Legend</div>'+
-    entries.map(e=>`<div class="lrow"><div class="lsw" style="${e.sw}"></div><span>${e.txt}</span></div>`).join('');
-}
-
-// ── Pipeline panel ────────────────────────────────────────────────────────
-function renderPipeline(c, seq, step) {
-  const vmax=(1<<Math.min(c.data_width,30))-1;
-  const outEvt = seq[step];
-  const dlyEvt = seq[step+1];
-  const inEvt  = seq[step+2];
-
-  function fill(id_pos, id_val, id_sw, evt, isSim) {
-    document.getElementById(id_pos).textContent = evtLabel(c, evt, isSim?1:-1);
-    const val = getVal(c, evt);
-    document.getElementById(id_val).textContent = evt
-      ? (evt.is_flush?`val = 0 (flush zero)`:`val = ${val}  (${Math.round(val/vmax*100)}%)`)
-      : '';
-    const sw = document.getElementById(id_sw);
-    if(evt && !evt.is_flush) {
-      const clr = ylOrRd(val/vmax);
-      sw.style.background = rgb(clr);
-    } else {
-      sw.style.background = evt ? '#252535' : '#1a1a2e';
-    }
-    sw.style.borderColor = evt ? '#3a3a5a' : 'transparent';
-  }
-
-  fill('ps-out-pos','ps-out-val','ps-out-sw', outEvt, false);
-  fill('ps-dly-pos','ps-dly-val','ps-dly-sw', dlyEvt, true);
-  fill('ps-in-pos', 'ps-in-val', 'ps-in-sw',  inEvt,  true);
-}
-
-// ── Top bar ───────────────────────────────────────────────────────────────
-function renderTopBar(c, ci) {
-  const bm=document.getElementById('b-mode');
-  bm.textContent=c.edge_mode;
-  bm.className='badge '+{ZERO:'bz',REPLICATE:'br',TOROIDAL:'bt'}[c.edge_mode];
-  document.getElementById('b-flush').style.display=c.flush?'':'none';
-  document.getElementById('toplbl').textContent=
-    `CFG${String(ci+1).padStart(2,'0')} · ${c.data_width}b · ${c.kern_rows}×${c.kern_cols} · ${c.line_width}×${c.frame_height}px`;
-}
-
 // ── Main render ───────────────────────────────────────────────────────────
-function render() {
-  const c = CFG[ex.ci];
-  const ci = ex.ci;
-  renderTopBar(c, ci);
+function render(){
+  const c=CFG[ex.ci],ci=ex.ci;
+  renderTopBar(c,ci);
 
-  if (mode === 'explore') {
+  if(mode==='explore'){
     document.getElementById('flbl').textContent=`Frame ${ex.fn} / ${c.num_frames-1}`;
     updateFlushPlayer();
 
-    // Number of hatched rows to show below real frame
-    const flushR = c.flush && c.half_r > 0 ? c.half_r : 0;
-    const highlights = [{out_r:ex.row, out_c:ex.col, is_flush:ex.isFlush, flush_idx:ex.fr, style:'ex'}];
-    renderFrameCanvas(c, ex.fn, flushR, highlights, {out_r:ex.row, out_c:ex.col});
-
-    // Taps lookup
     let taps;
-    if(ex.isFlush){
-      taps=c.flush_taps[ex.fn]&&c.flush_taps[ex.fn][ex.fr*c.line_width+ex.col];
-    } else {
-      taps=c.taps[ex.fn]&&c.taps[ex.fn][ex.row*c.line_width+ex.col];
-    }
-    renderTapCanvas(c, taps, ex.row, ex.col);
+    if(ex.isFlush){taps=c.flush_taps[ex.fn]&&c.flush_taps[ex.fn][ex.fr*c.line_width+ex.col];}
+    else{taps=c.taps[ex.fn]&&c.taps[ex.fn][ex.row*c.line_width+ex.col];}
+
+    renderFrameCanvas(c,ex.fn,
+      [{out_r:ex.row,out_c:ex.col,style:'ex'}],
+      {out_r:ex.row,out_c:ex.col});
+    renderTapCanvas(c,taps,ex.row,ex.col);
 
     document.getElementById('tp-title').textContent=
-      ex.isFlush?`Kernel @ flush output row ${ex.row}`
-                :`Kernel @ (row ${ex.row}, col ${ex.col})`;
+      ex.isFlush?`Kernel @ flush output row ${ex.row}`:`Kernel @ (row ${ex.row}, col ${ex.col})`;
     document.getElementById('tp-coords').textContent=
       `Frame ${ex.fn} · centre=(${ex.row},${ex.col}) · ${c.edge_mode}`;
     document.getElementById('pxinfo').textContent=
-      ex.isFlush?`&#9881; flush r=${ex.row}, c=${ex.col}`:`px (${ex.row},${ex.col})`;
-    renderLegend(c, false);
+      ex.isFlush?`flush r=${ex.row},c=${ex.col}`:`px(${ex.row},${ex.col})`;
+    renderLegend(c,false);
 
   } else {
-    // ── Simulate mode ──
-    const seq = sm.seq;
+    const seq=sm.seq;
     if(!seq.length){document.getElementById('sim-pos-lbl').textContent='No data';return;}
-    const step = sm.step;
-    const outEvt = seq[step];
-    const dlyEvt = seq[step+1];
-    const inEvt  = seq[step+2];
+    const step=sm.step;
+    const outEvt=seq[step];
+    const trgPixel=outEvt?getTriggerPixel(c,outEvt):null;
 
     document.getElementById('scrubber').value=step;
     document.getElementById('sim-step-lbl').textContent=`Step ${step+1} / ${seq.length}`;
 
-    function posStr(evt) {
-      if(!evt) return '—';
-      if(evt.is_flush) return `F${evt.fn} flush-r${evt.out_r} c${evt.out_c}`;
-      return `F${evt.fn} r${evt.out_r} c${evt.out_c}`;
-    }
+    // Position label — explains the timing clearly
+    const outStr=outEvt
+      ?(outEvt.is_flush?`F${outEvt.fn} flush r=${outEvt.out_r} c=${outEvt.out_c}`
+                       :`F${outEvt.fn} r=${outEvt.out_r} c=${outEvt.out_c}`):'—';
+    const trgStr=trgPixel
+      ?(trgPixel.isReal?`(${trgPixel.row},${trgPixel.col}) val=${trgPixel.val}`
+       :trgPixel.isDummy?`col_eff ${trgPixel.col} dummy=0`:'flush zero'):'—';
     document.getElementById('sim-pos-lbl').textContent=
-      `OUT: ${posStr(outEvt)}   DLY: ${posStr(dlyEvt)}   IN: ${posStr(inEvt)}`;
+      `OUTPUT: ${outStr}   |   ACCEPTED THIS CLOCK: ${trgStr}`;
     document.getElementById('pxinfo').textContent=`step ${step+1}/${seq.length}`;
 
-    const showFn = outEvt ? outEvt.fn : 0;
-    const flushR = c.flush && c.half_r > 0 ? c.half_r : 0;
+    // Highlights: blue=output centre, green=trigger (if real pixel in frame)
+    const hl=[{out_r:outEvt.out_r,out_c:outEvt.out_c,style:'out'}];
+    if(trgPixel&&trgPixel.isReal)hl.push({out_r:trgPixel.row,out_c:trgPixel.col,style:'trg'});
 
-    const highlights = [];
-    if(outEvt) highlights.push({out_r:outEvt.out_r, out_c:outEvt.out_c,
-      is_flush:outEvt.is_flush, flush_idx:outEvt.flush_idx, style:'out'});
-    if(dlyEvt&&dlyEvt.fn===showFn) highlights.push({out_r:dlyEvt.out_r, out_c:dlyEvt.out_c,
-      is_flush:dlyEvt.is_flush, flush_idx:dlyEvt.flush_idx, style:'dly'});
-    if(inEvt&&inEvt.fn===showFn) highlights.push({out_r:inEvt.out_r, out_c:inEvt.out_c,
-      is_flush:inEvt.is_flush, flush_idx:inEvt.flush_idx, style:'in'});
+    renderFrameCanvas(c,outEvt.fn,hl,{out_r:outEvt.out_r,out_c:outEvt.out_c});
+    renderPipeline(c,outEvt,trgPixel);
 
-    renderFrameCanvas(c, showFn, flushR, highlights,
-      outEvt ? {out_r:outEvt.out_r, out_c:outEvt.out_c} : null);
-
-    renderPipeline(c, seq, step);
-
-    const curRow = outEvt ? outEvt.out_r : 0;
-    const curCol = outEvt ? outEvt.out_c : 0;
-    const taps   = outEvt ? getTaps(c, outEvt) : null;
-    renderTapCanvas(c, taps, curRow, curCol);
+    const taps=getTaps(c,outEvt);
+    renderTapCanvas(c,taps,outEvt.out_r,outEvt.out_c);
 
     document.getElementById('tp-title').textContent=
-      outEvt&&outEvt.is_flush?`Output @ flush row ${outEvt.out_r} (col ${outEvt.out_c})`
-                              :`Output @ (row ${curRow}, col ${curCol})`;
+      outEvt.is_flush?`Output @ flush row ${outEvt.out_r} col ${outEvt.out_c}`
+                     :`Output @ (row ${outEvt.out_r}, col ${outEvt.out_c})`;
     document.getElementById('tp-coords').textContent=
-      `Frame ${showFn} · centre=(${curRow},${curCol}) · ${c.edge_mode}`;
-    renderLegend(c, true);
+      `Frame ${outEvt.fn} · centre=(${outEvt.out_r},${outEvt.out_c}) · ${c.edge_mode}`;
+    renderLegend(c,true);
   }
 }
 
 // ── Frame canvas click ────────────────────────────────────────────────────
-document.getElementById('fc').addEventListener('click', function(e) {
-  if(mode!=='explore') return;
-  const c=CFG[ex.ci], lw=c.line_width, fh=c.frame_height;
-  const flushR=c.flush&&c.half_r>0?c.half_r:0;
-  const rect=this.getBoundingClientRect();
-  const cell=this.width/lw;
-  const col=Math.floor((e.clientX-rect.left)/cell);
-  const row=Math.floor((e.clientY-rect.top)/cell);
-  if(col<0||col>=lw||row<0||row>=fh+flushR) return;
-  ex.col=col;
-  if(row<fh){
-    // Click in real frame: is this a real output or flush output?
-    const realCount=Math.max(0, fh-c.half_r);
-    if(row<realCount){
-      ex.isFlush=false; ex.row=row;
-    } else {
-      // This row only has a flush output
-      const fi=row-realCount;
-      if(fi<c.flush_out_rows.length){ex.isFlush=true;ex.fr=fi;ex.row=c.flush_out_rows[fi];}
-      else{ex.isFlush=false;ex.row=row;} // no data for this row
-    }
+// Canvas coords: canR = real_row + half_r, canC = real_col + half_c
+document.getElementById('fc').addEventListener('click',function(e){
+  if(mode!=='explore')return;
+  const c=CFG[ex.ci],lw=c.line_width,fh=c.frame_height,hr=c.half_r,hc=c.half_c;
+  const totC=lw+2*hc;
+  const cell=this.width/totC;
+  const canR=Math.floor((e.clientY-this.getBoundingClientRect().top)/cell);
+  const canC=Math.floor((e.clientX-this.getBoundingClientRect().left)/cell);
+  const pr=canR-hr,pc=canC-hc;  // real frame coords
+  if(pr<0||pr>=fh||pc<0||pc>=lw)return;  // clicked in padding — ignore
+  ex.col=pc;
+  const rc=Math.max(0,fh-hr);
+  if(pr<rc){ex.isFlush=false;ex.row=pr;}
+  else{
+    const fi=pr-rc;
+    if(fi<c.flush_out_rows.length){ex.isFlush=true;ex.fr=fi;ex.row=c.flush_out_rows[fi];}
+    else{ex.isFlush=false;ex.row=pr;}
   }
-  // (clicks in hatched flush rows area ignored — centre always in real frame)
   render();
 });
 
 // ── Keyboard ──────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT') return;
-  const c=CFG[ex.ci]; let handled=true;
-
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;
+  const c=CFG[ex.ci];let handled=true;
   if(mode==='explore'){
-    const lw=c.line_width;
-    const realCount=Math.max(0, c.frame_height-c.half_r);
+    const lw=c.line_width,rc=Math.max(0,c.frame_height-c.half_r);
     if(e.altKey&&e.key==='ArrowLeft')  prevFrame();
     else if(e.altKey&&e.key==='ArrowRight') nextFrame();
-    else if(e.key==='ArrowLeft')  {ex.col=Math.max(0,ex.col-1);render();}
-    else if(e.key==='ArrowRight') {ex.col=Math.min(lw-1,ex.col+1);render();}
-    else if(e.key==='ArrowUp')    {if(!ex.isFlush&&ex.row>0){ex.row--;render();}}
-    else if(e.key==='ArrowDown')  {if(!ex.isFlush&&ex.row<realCount-1){ex.row++;render();}}
-    else if(e.key===',')          selectCfg(Math.max(0,ex.ci-1));
-    else if(e.key==='.')          selectCfg(Math.min(NTOT-1,ex.ci+1));
-    else if((e.key==='f'||e.key==='F')&&c.flush&&c.flush_out_rows.length>0) fNext();
-    else if(e.key==='r'||e.key==='R') exitFlush();
-    else if(e.key===' '&&c.flush&&c.flush_out_rows.length>0) toggleFlushPlay();
+    else if(e.key==='ArrowLeft') {ex.col=Math.max(0,ex.col-1);render();}
+    else if(e.key==='ArrowRight'){ex.col=Math.min(lw-1,ex.col+1);render();}
+    else if(e.key==='ArrowUp')  {if(!ex.isFlush&&ex.row>0){ex.row--;render();}}
+    else if(e.key==='ArrowDown'){if(!ex.isFlush&&ex.row<rc-1){ex.row++;render();}}
+    else if(e.key===',')selectCfg(Math.max(0,ex.ci-1));
+    else if(e.key==='.')selectCfg(Math.min(NTOT-1,ex.ci+1));
+    else if((e.key==='f'||e.key==='F')&&c.flush&&c.flush_out_rows.length)fNext();
+    else if(e.key==='r'||e.key==='R')exitFlush();
+    else if(e.key===' '&&c.flush&&c.flush_out_rows.length)toggleFlushPlay();
     else handled=false;
   } else {
-    if(e.key==='ArrowRight'||e.key==='ArrowDown') simStepFwd();
-    else if(e.key==='ArrowLeft'||e.key==='ArrowUp') simStepBck();
-    else if(e.key==='Home') simGoFirst();
-    else if(e.key==='End')  simGoLast();
-    else if(e.key===' ')   toggleSimPlay();
-    else if(e.key===',')   selectCfg(Math.max(0,ex.ci-1));
-    else if(e.key==='.')   selectCfg(Math.min(NTOT-1,ex.ci+1));
+    if(e.key==='ArrowRight'||e.key==='ArrowDown')simStepFwd();
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp')simStepBck();
+    else if(e.key==='Home')simGoFirst();
+    else if(e.key==='End') simGoLast();
+    else if(e.key===' ')  toggleSimPlay();
+    else if(e.key===',')  selectCfg(Math.max(0,ex.ci-1));
+    else if(e.key==='.')  selectCfg(Math.min(NTOT-1,ex.ci+1));
     else handled=false;
   }
-  if(handled) e.preventDefault();
+  if(handled)e.preventDefault();
 });
 
-window.addEventListener('resize', render);
+window.addEventListener('resize',render);
 
-// ── Init ──────────────────────────────────────────────────────────────────
 buildList();
 applyFilters();
 selectCfg(3); // CFG04 = 8b 3×3 REPLICATE FLUSH=on
@@ -1066,20 +1019,15 @@ def generate_html(data_json):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--out', default=os.path.join('tb', 'visualize.html'),
-                    help='Output file (default: tb/visualize.html)')
-    ap.add_argument('--vec-dir', default=os.path.join('tb', 'vectors'),
-                    help='Vector directory (default: tb/vectors)')
+    ap.add_argument('--out', default=os.path.join('tb', 'visualize.html'))
+    ap.add_argument('--vec-dir', default=os.path.join('tb', 'vectors'))
     args = ap.parse_args()
-
     print(f"Loading {N} configs from {args.vec_dir} ...")
     vd = load_vectors(args.vec_dir)
     loaded = sum(1 for x in vd if x is not None)
     print(f"Loaded {loaded}/{N} configs")
-
     data_json = build_json(vd)
     html = generate_html(data_json)
-
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, 'w') as f:
         f.write(html)
