@@ -319,7 +319,6 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
           <div id="ftl"></div>
           <div id="fctrl">
             <button onclick="fPrev()">&#9664;</button>
-            <button id="btn-fplay" onclick="toggleFlushPlay()">&#9654; Play</button>
             <button onclick="fNext()">&#9654;</button>
             <button onclick="exitFlush()">&times; Real</button>
             <span id="fplbl"></span>
@@ -781,8 +780,9 @@ function renderSim(){
   // Amber = input pixel (t0, if real)
   if(e.t0&&!e.t0.is_flush_row&&!e.t0.is_dummy&&e.t0.row<c.frame_height)
     hl.push({out_r:e.t0.row,out_c:e.t0.col_eff,style:'inp'});
-  const fn=(e.t0||e.t1||e.t2||e.output)?
-    (e.t0?e.t0.fn:e.t1?e.t1.fn:e.t2?e.t2.fn:e.output.fn):0;
+  // Show the frame the OUTPUT belongs to so the highlighted output pixel is visible.
+  // Fall back to trigger → delay → input → 0.
+  const fn=e.output?e.output.fn:e.t2?e.t2.fn:e.t1?e.t1.fn:e.t0?e.t0.fn:0;
   const ka=e.output?{out_r:e.output.out_r,out_c:e.output.out_c}:null;
   renderFrameCanvas(c,fn,hl,ka);
   document.getElementById('sim-frame-info').textContent=
@@ -1010,7 +1010,6 @@ function fPrev(){exSetPos((exCurPos()-1+totalExRows())%totalExRows());render();}
 function exitFlush(){const c=CFG[ex.ci];ex.isFlush=false;ex.row=Math.min(ex.row,Math.max(0,c.frame_height-c.half_r-1));render();}
 function toggleFlushPlay(){
   ex.fplaying=!ex.fplaying;
-  document.getElementById('btn-fplay').textContent=ex.fplaying?'⏸ Pause':'▶ Play';
   clearInterval(ex.ftimer);
   if(ex.fplaying)ex.ftimer=setInterval(fNext,400);
 }
