@@ -7,8 +7,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;display:flex;height:100vh;overflow:hidden;
      background:#12121f;color:#e0e0e0;font-size:13px}
-#sidebar{width:224px;min-width:224px;background:#1a1a2e;display:flex;
-  flex-direction:column;padding:10px 8px;gap:7px;overflow-y:auto;
+#sidebar{width:200px;min-width:160px;background:#1a1a2e;display:flex;
+  flex-direction:column;padding:8px 6px;gap:5px;overflow-y:auto;
   border-right:1px solid #252540}
 #sidebar h2{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;
   color:#4a5a6a;padding-bottom:4px;border-bottom:1px solid #252540}
@@ -32,8 +32,8 @@ body{font-family:system-ui,sans-serif;display:flex;height:100vh;overflow:hidden;
 .cn{font-weight:700;color:#5a9fff;font-size:10px}
 .ci.active .cn{color:#90c0ff}
 hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:8px;gap:6px;min-width:0}
-#modebar{display:flex;align-items:center;gap:8px;flex-shrink:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:6px;gap:4px;min-width:0}
+#modebar{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
 #modebar h1{font-size:13px;font-weight:700;color:#5a9fff;margin-right:4px}
 .mbtn{padding:4px 14px;border-radius:20px;border:1px solid #2a3a5a;
   background:transparent;color:#8090a0;cursor:pointer;font-size:12px}
@@ -46,11 +46,11 @@ hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
 .bf{background:#3a2a00;color:#dfb050}
 #toplbl{font-size:11px;color:#6a7a8a;margin-left:2px}
 #pxinfo{margin-left:auto;font-size:11px;color:#c0a050;white-space:nowrap}
-#content{flex:1;display:flex;gap:8px;overflow:hidden;min-height:0}
-.panel{background:#1a1a2e;border-radius:8px;padding:8px;
-  display:flex;flex-direction:column;gap:6px;overflow:hidden}
+#content{flex:1;display:flex;gap:6px;overflow:hidden;min-height:0}
+.panel{background:#1a1a2e;border-radius:8px;padding:6px;
+  display:flex;flex-direction:column;gap:4px;overflow:hidden}
 #frame-panel{flex:1;min-width:0}
-#right-panel{width:340px;min-width:280px;display:flex;flex-direction:column;gap:8px}
+#right-panel{width:300px;min-width:220px;display:flex;flex-direction:column;gap:6px}
 #explore-ctrl,#sim-ctrl{display:flex;flex-direction:column;gap:4px}
 #explore-ctrl.hidden,#sim-ctrl.hidden{display:none}
 #fnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -85,8 +85,8 @@ hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
 .cwrap{overflow:auto;flex:1;min-height:0}
 canvas{display:block;image-rendering:pixelated;cursor:crosshair}
 /* Pipeline panel */
-#pipeline-panel{display:none;flex-direction:column;gap:4px;
-  background:#141428;border-radius:6px;padding:8px;flex-shrink:0}
+#pipeline-panel{display:none;flex-direction:column;gap:3px;
+  background:#141428;border-radius:6px;padding:6px;flex-shrink:0}
 #pipeline-panel.vis{display:flex}
 #pipe-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4a5a6a}
 .pstage{display:flex;align-items:center;gap:6px;padding:5px 8px;
@@ -104,8 +104,8 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
 .parrow{text-align:center;font-size:11px;color:#3a8a5a;line-height:1.6;
   font-style:italic;padding:1px 0}
 /* Tap panel */
-#tap-panel{flex:1;display:flex;flex-direction:column;gap:5px;
-  background:#141428;border-radius:6px;padding:8px;min-height:0;overflow:hidden}
+#tap-panel{flex:1;display:flex;flex-direction:column;gap:3px;
+  background:#141428;border-radius:6px;padding:6px;min-height:0;overflow:hidden}
 #tp-title{font-size:12px;font-weight:700;color:#c0d0e0}
 #tp-coords{font-size:10px;color:#6a7a8a;min-height:14px}
 .tapwrap{overflow:auto;display:flex;flex-direction:column;flex:1;min-height:0}
@@ -403,7 +403,10 @@ function renderFrameCanvas(c,frameIdx,highlights,kernelAnchor){
 
   const wrap=document.getElementById('frame-wrap');
   const avW=wrap.clientWidth||400;
-  const cell=Math.max(10,Math.min(56,Math.floor(Math.min(avW,580)/Math.max(totC,totR,kr+2))));
+  const avH=wrap.clientHeight||300;
+  const cellW=Math.floor(Math.min(avW-4,560)/Math.max(totC,1));
+  const cellH=Math.floor(Math.min(avH-4,560)/Math.max(totR,1));
+  const cell=Math.max(8,Math.min(52,cellW,cellH));
 
   const can=document.getElementById('fc');
   can.width=totC*cell; can.height=totR*cell;
@@ -511,8 +514,12 @@ function renderTapCanvas(c,taps,out_r,out_c){
   const hr=c.half_r,hc=c.half_c,em=c.edge_mode;
   const vmax=(1<<Math.min(dw,30))-1;
   if(!taps)return;
-  const tpW=document.getElementById('tap-panel').clientWidth-24-28;
-  const cell=Math.max(14,Math.min(56,Math.floor(Math.min(tpW,280)/Math.max(kr,kc))));
+  const tp=document.getElementById('tap-panel');
+  const tpW=tp.clientWidth-24-28;
+  const tpH=tp.clientHeight-60;
+  const cellW2=Math.floor(Math.min(tpW,260)/Math.max(kc,1));
+  const cellH2=Math.floor(Math.min(tpH,260)/Math.max(kr,1));
+  const cell=Math.max(12,Math.min(48,cellW2,cellH2));
 
   const colDiv=document.getElementById('tcol-labels');colDiv.innerHTML='';
   for(let tc=0;tc<kc;tc++){
