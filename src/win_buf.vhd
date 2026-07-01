@@ -110,12 +110,15 @@ begin
         end if;
     end process p_shift;
 
-    -- Flatten window to tap_out
+    -- Flatten window to tap_out.
+    -- Column index is reversed so that tap[r][0] = oldest column (left of window)
+    -- and tap[r][KERN_COLS-1] = newest column (right of window / current column).
+    -- This gives a centred-window coordinate convention where tap[0][0] is top-left.
     gen_taps : for r in 0 to KERN_ROWS - 1 generate
         gen_cols : for c in 0 to KERN_COLS - 1 generate
             tap_out((r * KERN_COLS + c + 1) * DATA_WIDTH - 1
                      downto (r * KERN_COLS + c) * DATA_WIDTH)
-                <= win(r)(c);
+                <= win(r)(KERN_COLS - 1 - c);
         end generate gen_cols;
     end generate gen_taps;
 

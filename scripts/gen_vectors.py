@@ -79,21 +79,28 @@ def get_pixel(frame, r, c, frame_height, line_width, edge_mode):
     return 0
 
 
-def compute_taps(frame, row, col, kern_rows, kern_cols, frame_height, line_width, edge_mode):
-    """Return the expected tap values for the output produced when input pixel (row, col)
-    is accepted.  The output fires one cycle after acceptance; win_buf holds the window
-    that was shifted in at that pixel.
-
-    Tap ordering:
-        tap[r][c]: src_row = row - (KERN_ROWS-1-r),  src_col = col - c
-    """
+def compute_taps(frame, out_r, out_c, kern_rows, kern_cols, frame_height, line_width, edge_mode):
+    """Centred window: tap[tr][tc] = pixel at (out_r+tr-half_r, out_c+tc-half_c)."""
+    half_r = (kern_rows - 1) // 2
+    half_c = (kern_cols - 1) // 2
     taps = []
-    for r in range(kern_rows):
-        for c in range(kern_cols):
-            src_row = row - (kern_rows - 1 - r)
-            src_col = col - c
-            taps.append(get_pixel(frame, src_row, src_col,
-                                  frame_height, line_width, edge_mode))
+    for tr in range(kern_rows):
+        for tc in range(kern_cols):
+            src_row = out_r + tr - half_r
+            src_col = out_c + tc - half_c
+            taps.append(get_pixel(frame, src_row, src_col, frame_height, line_width, edge_mode))
+    return taps
+
+
+def compute_taps_toroidal(push_history, kr, kc, eff_width):
+    """Causal TOROIDAL: offset = (kr-1-tr)*eff_width + (kc-1-tc); returns 0 if OOB."""
+    taps = []
+    n = len(push_history)
+    for tr in range(kr):
+        for tc in range(kc):
+            offset = (kr - 1 - tr) * eff_width + (kc - 1 - tc)
+            idx = n - 1 - offset
+            taps.append(push_history[idx] if idx >= 0 else 0)
     return taps
 
 
@@ -111,41 +118,42 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
     PFX = args.prefix
 
-    all_pixels = []
-    all_taps   = []
+    HALF_R    = (KR - 1) // 2
+    HALF_C    = (KC - 1) // 2
+    EFF_WIDTH = LW + HALF_C
+
+    all_pixels   = []
+    all_taps     = []
+    push_history = []   # every push including dummy-col zeros (for TOROIDAL causal model)
 
     for fn in range(NF):
         frame = make_frame(fn, FH, LW)
         all_pixels.extend(frame)
-        for row in range(FH):
-            for col in range(LW):
-                all_taps.append(compute_taps(frame, row, col, KR, KC, FH, LW, MODE))
 
-        # When FLUSH=true, KERN_ROWS-1 dummy zero-rows are injected after each
-        # frame.  Each dummy row produces an output window; the Python model
-        # computes those windows by treating the dummy pixels as row (FH) onwards.
-        if args.flush and KR > 1:
-            dummy_frame = frame  # real pixel data still in BRAM for older rows
-            for flush_row in range(1, KR):   # rows FH..FH+KR-2 (zero-filled)
-                for col in range(LW):
-                    # During flush, push_data=0 feeds row (FH + flush_row - 1)
-                    # The RTL's row_cnt advances past FRAME_HEIGHT into flush rows,
-                    # so src_row for the flush output is (FH - 1 + flush_row) - (KR-1-r)
-                    virtual_row = FH - 1 + flush_row
-                    taps = []
-                    for r in range(KR):
-                        for c in range(KC):
-                            src_row = virtual_row - (KR - 1 - r)
-                            src_col = col - c
-                            if src_row >= FH:
-                                # Dummy zero row
-                                taps.append(0)
-                            else:
-                                taps.append(get_pixel(dummy_frame, src_row, src_col,
-                                                      FH, LW, MODE))
-                    all_taps.append(taps)
-                # Dummy zero pixels for this flush row (not written to input file —
-                # the RTL generates them internally, not from the AXI stream)
+        for row in range(FH):
+            for col_eff in range(EFF_WIDTH):
+                pix = frame[row * LW + col_eff] if col_eff < LW else 0
+                push_history.append(pix)
+                if col_eff >= HALF_C and row >= HALF_R:
+                    out_r = row - HALF_R
+                    out_c = col_eff - HALF_C
+                    if MODE == 'TOROIDAL':
+                        all_taps.append(compute_taps_toroidal(push_history, KR, KC, EFF_WIDTH))
+                    else:
+                        all_taps.append(compute_taps(frame, out_r, out_c, KR, KC, FH, LW, MODE))
+
+        if args.flush and HALF_R > 0:
+            for flush_row in range(HALF_R):
+                virtual_r = FH + flush_row
+                for col_eff in range(EFF_WIDTH):
+                    push_history.append(0)
+                    if col_eff >= HALF_C:
+                        out_r = virtual_r - HALF_R
+                        out_c = col_eff - HALF_C
+                        if MODE == 'TOROIDAL':
+                            all_taps.append(compute_taps_toroidal(push_history, KR, KC, EFF_WIDTH))
+                        else:
+                            all_taps.append(compute_taps(frame, out_r, out_c, KR, KC, FH, LW, MODE))
 
     # input pixels: one decimal integer per line (real frame pixels only)
     input_file = os.path.join(args.out_dir, f'{PFX}input.txt')

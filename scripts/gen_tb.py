@@ -76,25 +76,30 @@ def get_pixel(frame, r, c, fh, lw, mode):
     return 0   # ZERO
 
 
-def compute_taps(frame, row, col, kr, kc, fh, lw, mode):
+def compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode):
+    """Centred window: tap[tr][tc] = pixel at (out_r+tr-half_r, out_c+tc-half_c)."""
+    half_r = (kr - 1) // 2
+    half_c = (kc - 1) // 2
     taps = []
-    for r in range(kr):
-        for c in range(kc):
-            taps.append(get_pixel(frame, row-(kr-1-r), col-c, fh, lw, mode))
+    for tr in range(kr):
+        for tc in range(kc):
+            src_row = out_r + tr - half_r
+            src_col = out_c + tc - half_c
+            taps.append(get_pixel(frame, src_row, src_col, fh, lw, mode))
     return taps
 
 
-def compute_taps_toroidal(push_history, kr, kc, lw):
-    """Causal TOROIDAL taps from push history.
+def compute_taps_toroidal(push_history, kr, kc, eff_width):
+    """Causal TOROIDAL taps from push history (centred window, eff_width = lw + half_c).
 
-    Tap (r,c) = pixel pushed (kr-1-r)*lw + c steps before current push.
-    Returns 0 if history is too short (start of stream).
+    Tap (tr,tc) = pixel pushed (kr-1-tr)*eff_width + (kc-1-tc) steps before current push.
+    Returns 0 if history is too short (causal — future/wrap pixels fall back to 0).
     """
     taps = []
     n = len(push_history)
-    for r in range(kr):
-        for c in range(kc):
-            offset = (kr - 1 - r) * lw + c
+    for tr in range(kr):
+        for tc in range(kc):
+            offset = (kr - 1 - tr) * eff_width + (kc - 1 - tc)
             idx = n - 1 - offset
             taps.append(push_history[idx] if idx >= 0 else 0)
     return taps
@@ -107,40 +112,43 @@ def gen_vectors(cfg, prefix, out_dir):
     mode        = cfg['edge_mode']
     flush       = cfg['flush']
 
+    half_r    = (kr - 1) // 2
+    half_c    = (kc - 1) // 2
+    eff_width = lw + half_c   # real pixels + dummy col-pad pixels per row
+
     all_pixels   = []
     all_taps     = []
-    push_history = []
+    push_history = []   # every push including dummy-col zeros (for TOROIDAL causal model)
 
     for fn in range(nf):
         frame = make_frame(fn, fh, lw, dw)
         all_pixels.extend(frame)
 
         for row in range(fh):
-            for col in range(lw):
-                if mode == "TOROIDAL":
-                    push_history.append(frame[row * lw + col])
-                    all_taps.append(compute_taps_toroidal(push_history, kr, kc, lw))
-                else:
-                    all_taps.append(compute_taps(frame, row, col, kr, kc, fh, lw, mode))
-
-        if flush and kr > 1:
-            for flush_idx in range(1, kr):
-                vrow = fh - 1 + flush_idx
-                for col in range(lw):
+            for col_eff in range(eff_width):
+                pix = frame[row * lw + col_eff] if col_eff < lw else 0
+                push_history.append(pix)
+                # Output fires when the pipeline has enough rows and columns buffered.
+                if col_eff >= half_c and row >= half_r:
+                    out_r = row - half_r
+                    out_c = col_eff - half_c
                     if mode == "TOROIDAL":
-                        push_history.append(0)
-                        all_taps.append(compute_taps_toroidal(push_history, kr, kc, lw))
+                        all_taps.append(compute_taps_toroidal(push_history, kr, kc, eff_width))
                     else:
-                        taps = []
-                        for r in range(kr):
-                            for c in range(kc):
-                                src_row = vrow - (kr - 1 - r)
-                                src_col = col - c
-                                if src_row >= fh:
-                                    taps.append(0)
-                                else:
-                                    taps.append(get_pixel(frame, src_row, src_col, fh, lw, mode))
-                        all_taps.append(taps)
+                        all_taps.append(compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode))
+
+        if flush and half_r > 0:
+            for flush_row in range(half_r):
+                virtual_r = fh + flush_row
+                for col_eff in range(eff_width):
+                    push_history.append(0)
+                    if col_eff >= half_c:
+                        out_r = virtual_r - half_r
+                        out_c = col_eff - half_c
+                        if mode == "TOROIDAL":
+                            all_taps.append(compute_taps_toroidal(push_history, kr, kc, eff_width))
+                        else:
+                            all_taps.append(compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode))
 
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, f'{prefix}input.txt'), 'w') as f:
