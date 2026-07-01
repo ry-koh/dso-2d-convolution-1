@@ -42,6 +42,164 @@ preventing one-column-ahead prefetch errors when the pipeline resumes.
 
 ---
 
+## Design Decisions
+
+### 1. Why KERN_ROWS−1 BRAMs, not KERN_ROWS?
+
+The intuitive starting point is: to assemble a 3×3 window you need 3 rows of history.
+So you might expect 3 BRAMs.
+
+The key insight is that the **current row does not need to be stored in BRAM at all**.
+The current row's pixels are buffered inside `win_buf` — the FF shift register. As each
+pixel arrives it is pushed directly into `win_buf`'s newest row and simultaneously
+written to BRAM (for future rows to read it). The oldest row already in BRAM gets read
+back and pushed into `win_buf`'s oldest row slot at the same time.
+
+So for a 3×3 kernel:
+- Row 2 (current) — live from the input stream, held in `win_buf` FFs, no BRAM needed
+- Row 1 (previous) — stored in BRAM slot 0
+- Row 0 (two rows ago) — stored in BRAM slot 1
+
+That is **KERN_ROWS−1 = 2 BRAMs**, not 3. This is the minimum possible storage for a
+causal sliding-window design with a streaming input.
+
+---
+
+### 2. Circular / rotating BRAM pointer (`buf_wr_row`)
+
+Your intuition about alternating read/write pointers is exactly right. Here is how it works.
+
+`buf_wr_row` is a counter cycling `0 → 1 → 0 → 1 → …` (for a 3×3 kernel) that increments
+at the end of every row. It always points to the **oldest row** currently in BRAM — the one
+about to be overwritten with the new incoming row.
+
+At any moment:
+- **Write:** the incoming row is written to `BRAM[buf_wr_row]`, overwriting the oldest data.
+- **Read:** all BRAM slots are read simultaneously at the next column position, but the
+  output is **rotated** so that slot 0 of `lb_rd_data` is always the oldest row.
+
+The rotation is handled by `p_permute` in `line_buf`:
+
+```
+physical slot (row_base + slot) mod NUM_ROWS  →  logical output slot
+```
+
+where `row_base` is `buf_wr_row` from `conv2d`. So even though the physical BRAM being
+written alternates, the logical view seen by `win_buf` is always age-ordered: slot 0 =
+two rows ago, slot 1 = one row ago (for a 3×3 kernel).
+
+**Why pass `buf_wr_row` as both the write pointer and the read base?**
+Because the BRAM slot currently being written is the one that *was* the oldest — its old
+content has already been consumed by `win_buf` in the previous row cycle, and now it is
+being filled with the new data. So at any given moment, `buf_wr_row` points to the
+physically oldest slot, which is exactly the rotation base needed to produce age-ordered
+output.
+
+**Why not reset `buf_wr_row` at frame boundaries?**
+If `FRAME_HEIGHT mod (KERN_ROWS−1) ≠ 0`, resetting the pointer at SOF would break
+the age ordering on the next frame. The pointer is left to free-run modulo `KERN_ROWS−1`
+across frames; `row_valid` handles the correctness concern (zeroing unwritten slots at
+the start of a new frame) independently.
+
+---
+
+### 3. Why separate `line_buf` (BRAM) and `win_buf` (FFs)?
+
+| Concern | BRAM | FFs |
+|---|---|---|
+| Storing a full 1920-pixel row | 1× RAMB18 (18 kb) | ~15,360 FFs — not viable |
+| Holding a 3×3 window (9 bytes) | Wasteful; BRAM minimum depth is 512 words | 9 FFs — ideal |
+| Read latency | 1 clock (synchronous read) | Combinational (zero latency) |
+| Synthesis inference | `ram_style="block"` forces BRAM | Plain registers |
+
+The split avoids both problems: long rows go to BRAM (area-efficient), the small local
+window goes to FFs (zero-latency, no inference ambiguity).
+
+The synchronous read latency of BRAM is the reason for the 3-stage pipeline: accept →
+delay (BRAM data settles) → capture window + output. If BRAM had zero read latency the
+design could be 2 stages.
+
+---
+
+### 4. Why FF shift registers inside `win_buf` rather than a second BRAM?
+
+The column window is at most `KERN_COLS` pixels wide per row, and there are `KERN_ROWS`
+rows — so for a 3×3 kernel that is 9 bytes total. A BRAM has a minimum capacity of
+512 × 18 bits on Xilinx 7-series; using one for 9 bytes would consume an entire RAMB18
+while only using ~0.1% of its capacity.
+
+FFs have no minimum size. Nine 8-bit FFs are synthesised as 72 slice registers; the
+shift-in / shift-right behaviour maps directly to flip-flop enable/mux logic with no
+inference ambiguity.
+
+**Trade-off:** for very wide kernels (e.g. 7×7) the column window grows to 49 pixels per
+row, still only 49 FFs per row. This remains fine on any device. The BRAM count grows with
+`KERN_ROWS−1`, not `KERN_COLS`, so wide kernels are free.
+
+---
+
+### 5. Back-pressure: AND-gating `m_tready` and gating the BRAM read enable
+
+All `KERN_ROWS × KERN_COLS` downstream `m_tready` signals are ANDed into one `all_ready`
+signal. The pipeline stalls completely when `all_ready = '0'`: no new pixel is accepted,
+`win_buf` does not shift, and — critically — the BRAM read is also gated.
+
+**Why gate the BRAM read?** Without this gate, `lb_rd_col` is `col_cnt + 1` (read
+one column ahead). During a stall, `col_cnt` freezes but the BRAM would continue
+overwriting `lb_rd_data` with `mem[col_cnt+1]` on every clock. When the stall ends,
+`win_buf` would shift in the wrong column value. The fix is passing `all_ready` as `rd_en`
+to `line_buf`, so the BRAM output register is frozen during stalls.
+
+**Trade-off of AND-gating all taps:** the design stalls if *any* downstream consumer is
+slow. For a MAC array where all multipliers tick in lockstep this is fine and simplest.
+A design where different downstream consumers run at different rates would need per-tap
+FIFOs — not needed here.
+
+---
+
+### 6. Edge modes: why coordinate-based remapping at the output stage?
+
+Three edge modes are supported. They could be implemented in many places in the pipeline
+(input gating, BRAM write masking, win_buf logic). Doing it at the **output stage** in
+`p_edge_out` is cleanest because:
+
+- `win_buf` only ever sees zero-or-data; it needs no awareness of edge mode.
+- All three modes share the same shift-register hardware; only the final mux differs.
+- ZERO mode is essentially free: `win_buf`'s `new_row` / `row_valid` mechanism already
+  inserts zeros at the right positions.
+- REPLICATE and TOROIDAL are applied combinationally on the registered tap data in
+  `p_edge_out` using delayed coordinates (`m_col_r`, `m_row_r`) that were pipelined
+  alongside the pixel data.
+
+**REPLICATE limitation:** only the top and left edges can ever be out-of-bounds in a
+causal streaming pipeline. Right-edge and bottom-edge pixels always arrive *after* the
+current pixel, so they are never available to clamp to. This is fundamental to single-pass
+streaming — full-frame buffering would be needed for true symmetric padding.
+
+**TOROIDAL limitation:** same causal constraint. Column wrap (current pixel → right edge of
+previous row) falls out naturally because `win_buf` is not cleared between rows. Row wrap
+(current row → last rows of previous frame) falls out because BRAM is not zeroed between
+frames. Far-right and far-bottom wrap cannot be done without a full frame buffer.
+
+---
+
+### 7. FLUSH mode: why inject dummy rows rather than stall?
+
+Without FLUSH, the last `KERN_ROWS−1` real rows of a frame never produce a valid output
+window — there is no older-row data above them from within the same frame. They do
+eventually produce output in the *next* frame (as their data sits in BRAM while the next
+frame's rows arrive), but that mixes frames.
+
+FLUSH solves this by injecting `KERN_ROWS−1` zero-filled dummy rows after the last real
+pixel, stalling the real input (`s_tready` deasserted) until the flush completes. This
+pushes the final real rows through the pipeline before the next frame's SOF arrives.
+
+The cost is `(KERN_ROWS−1) × LINE_WIDTH` extra clock cycles per frame — 2 × 1920 = 3840
+cycles for a 3×3 kernel on a 1080p stream — which is negligible against the 2,073,600
+cycles per frame at 1080p.
+
+---
+
 ## Generics
 
 All configuration is compile-time. There is no runtime register interface.
@@ -55,6 +213,34 @@ All configuration is compile-time. There is no runtime register interface.
 | `FRAME_HEIGHT` | positive | 1080 | Lines per frame |
 | `EDGE_MODE` | string | `"ZERO"` | Edge handling: `"ZERO"`, `"REPLICATE"`, `"TOROIDAL"` |
 | `FLUSH` | boolean | `false` | Inject KERN_ROWS−1 dummy rows after each frame end |
+
+---
+
+## Port Map
+
+```vhdl
+entity conv2d is
+    generic (DATA_WIDTH, KERN_ROWS, KERN_COLS, LINE_WIDTH, FRAME_HEIGHT, EDGE_MODE, FLUSH);
+    port (
+        clk      : in  std_logic;
+        rst      : in  std_logic;                              -- synchronous, active-high
+
+        s_tdata  : in  std_logic_vector(DATA_WIDTH-1 downto 0);
+        s_tvalid : in  std_logic;
+        s_tready : out std_logic;
+        s_tlast  : in  std_logic;                             -- end of line
+        s_tuser  : in  std_logic;                             -- SOF (start of frame)
+
+        m_tdata  : out std_logic_vector(DATA_WIDTH*KERN_ROWS*KERN_COLS-1 downto 0);
+        m_tvalid : out std_logic;
+        m_tready : in  std_logic_vector(KERN_ROWS*KERN_COLS-1 downto 0);
+        m_tlast  : out std_logic;
+        m_tuser  : out std_logic
+    );
+end entity conv2d;
+```
+
+`m_tdata` packs all taps: tap[r][c] occupies bits `((r*KERN_COLS+c+1)*DW−1 downto (r*KERN_COLS+c)*DW)`.
 
 ---
 
@@ -94,34 +280,6 @@ dummy zero-rows. This ensures the final `KERN_ROWS−1` real rows each produce a
 output window (without FLUSH they would not, as their older-row taps never fill). Real
 input is stalled (`s_tready` deasserted) during the flush. The next SOF pixel re-arms
 the design correctly.
-
----
-
-## Port Map
-
-```vhdl
-entity conv2d is
-    generic (DATA_WIDTH, KERN_ROWS, KERN_COLS, LINE_WIDTH, FRAME_HEIGHT, EDGE_MODE, FLUSH);
-    port (
-        clk      : in  std_logic;
-        rst      : in  std_logic;                              -- synchronous, active-high
-
-        s_tdata  : in  std_logic_vector(DATA_WIDTH-1 downto 0);
-        s_tvalid : in  std_logic;
-        s_tready : out std_logic;
-        s_tlast  : in  std_logic;                             -- end of line
-        s_tuser  : in  std_logic;                             -- SOF (start of frame)
-
-        m_tdata  : out std_logic_vector(DATA_WIDTH*KERN_ROWS*KERN_COLS-1 downto 0);
-        m_tvalid : out std_logic;
-        m_tready : in  std_logic_vector(KERN_ROWS*KERN_COLS-1 downto 0);
-        m_tlast  : out std_logic;
-        m_tuser  : out std_logic
-    );
-end entity conv2d;
-```
-
-`m_tdata` packs all taps: tap[r][c] occupies bits `((r*KERN_COLS+c+1)*DW−1 downto (r*KERN_COLS+c)*DW)`.
 
 ---
 
@@ -230,13 +388,6 @@ scripts/
                       Run: python scripts/gen_vectors.py --help
   visualize.py        Generates tb/visualize.html — the interactive visualiser.
                       Run: python scripts/visualize.py  (from repo root)
-
-synth/
-  phase1_lut_vs_bram/
-    PHASE1_REPORT.md      Phase 1 research report: HDL survey, LUT-vs-BRAM comparison,
-                          synthesis utilisation numbers, architecture proposal
-    row_buf_bram_style.vhd  Reference: BRAM-inferring coding style (2× RAMB18 on ZedBoard)
-    row_buf_lut_style.vhd   Reference: LUT-RAM style (for comparison — do not use)
 
 CLAUDE.md             Full project log: decisions, bug log, phase status, constraints
 README.md             This file
