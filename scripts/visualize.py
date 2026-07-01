@@ -39,6 +39,22 @@ def load_vectors(vec_dir):
         pre = f"c{idx+1:02d}_"
         lw, fh, nf = cfg['line_width'], cfg['frame_height'], cfg['num_frames']
         kr, kc, fl = cfg['kern_rows'], cfg['kern_cols'], cfg['flush']
+        half_r = (kr - 1) // 2
+        half_c = (kc - 1) // 2
+
+        # Flush outputs: virtual rows fh+0..fh+half_r-1 → out_r = fh+i-half_r
+        # Only generate output when out_r >= 0.
+        flush_out_rows = []
+        if fl and half_r > 0:
+            for flush_row in range(half_r):
+                out_r = fh + flush_row - half_r
+                if out_r >= 0:
+                    flush_out_rows.append(out_r)
+
+        real_out_per_frame  = max(0, fh - half_r) * lw
+        flush_out_per_frame = len(flush_out_rows) * lw
+        tppf = real_out_per_frame + flush_out_per_frame
+
         ip = os.path.join(vec_dir, pre + "input.txt")
         ep = os.path.join(vec_dir, pre + "expected.txt")
         if not os.path.exists(ip) or not os.path.exists(ep):
@@ -49,15 +65,17 @@ def load_vectors(vec_dir):
         frames = [pxs[n * fh * lw:(n + 1) * fh * lw] for n in range(nf)]
         with open(ep) as f:
             trows = [list(map(int, x.split())) for x in f if x.strip()]
-        rppf = fh * lw
-        fppf = (kr - 1) * lw if (fl and kr > 1) else 0
-        tppf = rppf + fppf
         taps, flsh = [], []
         for n in range(nf):
             b = n * tppf
-            taps.append(trows[b:b + rppf])
-            flsh.append(trows[b + rppf:b + tppf] if fppf else [])
-        out.append({'frames': frames, 'taps': taps, 'flush_taps': flsh})
+            taps.append(trows[b:b + real_out_per_frame])
+            flsh.append(trows[b + real_out_per_frame:b + tppf] if flush_out_per_frame else [])
+        out.append({
+            'frames': frames,
+            'taps': taps,
+            'flush_taps': flsh,
+            'flush_out_rows': flush_out_rows,
+        })
     return out
 
 
@@ -65,12 +83,16 @@ def build_json(vd):
     cs = []
     for idx, cfg in enumerate(CONFIGS):
         e = {k: bool(v) if k == 'flush' else v for k, v in cfg.items()}
-        e['idx'] = idx
+        e['idx']   = idx
         e['label'] = cfg_label(cfg)
+        kr, kc     = cfg['kern_rows'], cfg['kern_cols']
+        e['half_r'] = (kr - 1) // 2
+        e['half_c'] = (kc - 1) // 2
         d = vd[idx]
-        e['frames']     = d['frames']     if d else []
-        e['taps']       = d['taps']       if d else []
-        e['flush_taps'] = d['flush_taps'] if d else []
+        e['frames']         = d['frames']         if d else []
+        e['taps']           = d['taps']           if d else []
+        e['flush_taps']     = d['flush_taps']     if d else []
+        e['flush_out_rows'] = d['flush_out_rows'] if d else []
         cs.append(e)
     return json.dumps({'configs': cs}, separators=(',', ':'))
 
@@ -160,8 +182,8 @@ hr.sp{border:none;border-top:1px solid #252540;margin:2px 0}
   border:2px solid transparent;user-select:none}
 .tr.real{background:#1a3a2a;color:#7adf9a}
 .tr.real:hover{background:#1a5a3a}
-.tr.flush-tl{background:#1e1e2e;color:#5a6a7a;border-style:dashed;border-color:#3a3a5a}
-.tr.flush-tl:hover{background:#252535}
+.tr.flush-tl{background:#1e1e2e;color:#dfb050;border-style:dashed;border-color:#5a4a20}
+.tr.flush-tl:hover{background:#252520}
 .tr.act{border-color:#dfb050!important;box-shadow:0 0 0 1px #dfb050}
 .tlsep{color:#3a4a5a;font-size:16px;margin:0 2px;line-height:24px}
 #fctrl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -307,7 +329,7 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
           </span>
         </div>
         <div id="fplay">
-          <div id="fplay-title">&#9881; Flush player</div>
+          <div id="fplay-title">&#9881; Flush outputs</div>
           <div id="ftl"></div>
           <div id="fctrl">
             <button onclick="fPrev()">&#9664;</button>
@@ -416,11 +438,6 @@ const DATA = __DATA_JSON__;
 const CFG  = DATA.configs;
 const NTOT = CFG.length;
 
-// Pipeline depth (accept → delay → output_reg = 3 clock cycles, but
-// for display we show 3 stages: what's at the output NOW, what's in
-// stage-2, and what's being accepted at the input).
-const PIPE = 3;
-
 // ── Color utilities ───────────────────────────────────────────────────────
 function ylOrRd(t) {
   t = Math.max(0,Math.min(1,t));
@@ -433,8 +450,12 @@ function lum(c){return(0.299*c[0]+0.587*c[1]+0.114*c[2])/255}
 function txtClr(c){return lum(c)>.5?'#111':'#eee'}
 
 // ── Explore state ─────────────────────────────────────────────────────────
+// ex.row   = centre image row (out_r), 0..fh-1
+// ex.col   = centre image col (out_c), 0..lw-1
+// ex.isFlush = true when current row is a flush output
+// ex.fr    = flush_idx into flush_out_rows (when isFlush)
 const ex = {ci:0, fn:0, row:3, col:3, isFlush:false, fr:0,
-             fplaying:false, ftimer:null};
+            fplaying:false, ftimer:null};
 
 // ── Sim state ─────────────────────────────────────────────────────────────
 const sm = {step:0, seq:[], playing:false, timer:null};
@@ -442,43 +463,44 @@ const sm = {step:0, seq:[], playing:false, timer:null};
 let mode = 'explore'; // 'explore' | 'simulate'
 
 // ── Build simulation sequence ─────────────────────────────────────────────
-// Each element: {fn, isFlush, row, col, fr}
-// Output event k = element k (matches golden vector order exactly).
-// The pixel being ACCEPTED at the same physical clock is element k+2
-// (pipeline depth=3: accepted at T, output at T+2 after two register stages).
+// Centred window: output fires for out_r = 0..fh-half_r-1 (real),
+// then for each flush_out_rows entry.
+// Each element: {fn, out_r, out_c, is_flush, flush_idx}
 function buildSeq(c) {
   const seq = [];
+  const lw = c.line_width, fh = c.frame_height, hr = c.half_r;
   for (let fn=0; fn<c.num_frames; fn++) {
-    for (let r=0; r<c.frame_height; r++)
-      for (let col=0; col<c.line_width; col++)
-        seq.push({fn, isFlush:false, row:r, col, fr:-1});
-    if (c.flush && c.kern_rows>1)
-      for (let fr=0; fr<c.kern_rows-1; fr++)
-        for (let col=0; col<c.line_width; col++)
-          seq.push({fn, isFlush:true, row:-1, col, fr});
+    for (let r=0; r<Math.max(0, fh-hr); r++)
+      for (let col=0; col<lw; col++)
+        seq.push({fn, out_r:r, out_c:col, is_flush:false, flush_idx:-1});
+    c.flush_out_rows.forEach((out_r, fi) => {
+      for (let col=0; col<lw; col++)
+        seq.push({fn, out_r, out_c:col, is_flush:true, flush_idx:fi});
+    });
   }
   return seq;
 }
 
 function getTaps(c, evt) {
   if (!evt) return null;
-  if (evt.isFlush) {
-    const fi = evt.fr*c.line_width + evt.col;
+  if (evt.is_flush) {
+    const fi = evt.flush_idx * c.line_width + evt.out_c;
     return c.flush_taps[evt.fn] && c.flush_taps[evt.fn][fi];
   }
-  const pi = evt.row*c.line_width + evt.col;
+  const pi = evt.out_r * c.line_width + evt.out_c;
   return c.taps[evt.fn] && c.taps[evt.fn][pi];
 }
 
+// Centre pixel value: tap[half_r][half_c] = frames[fn][out_r*lw + out_c]
 function getVal(c, evt) {
-  if (!evt || evt.isFlush) return 0;
-  return c.frames[evt.fn][evt.row*c.line_width + evt.col];
+  if (!evt || evt.is_flush) return 0;
+  return c.frames[evt.fn][evt.out_r * c.line_width + evt.out_c];
 }
 
 function evtLabel(c, evt, slot) {
   if (!evt) return slot < 0 ? '— (output not yet valid)' : '— (stream ended)';
-  if (evt.isFlush) return `F${evt.fn} · flush row ${evt.fr} · col ${evt.col} · val=0`;
-  return `F${evt.fn} · row ${evt.row} · col ${evt.col} · val=${getVal(c,evt)}`;
+  if (evt.is_flush) return `F${evt.fn} · flush out_r=${evt.out_r} · col ${evt.out_c} · val=0`;
+  return `F${evt.fn} · out_r=${evt.out_r} · col ${evt.out_c} · val=${getVal(c,evt)}`;
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────
@@ -518,8 +540,8 @@ function selectCfg(i) {
   ex.ci=i; ex.fn=0; ex.isFlush=false; ex.fr=0;
   ex.fplaying=false; clearInterval(ex.ftimer);
   const c=CFG[i];
-  ex.row=Math.min(ex.row,c.frame_height-1);
-  ex.col=Math.min(ex.col,c.line_width-1);
+  ex.row=Math.min(ex.row, Math.max(0, c.frame_height - c.half_r - 1));
+  ex.col=Math.min(ex.col, c.line_width-1);
   sm.step=0;
   sm.seq=buildSeq(c);
   sm.playing=false; clearInterval(sm.timer);
@@ -553,43 +575,64 @@ function nextFrame(){const nf=CFG[ex.ci].num_frames;ex.fn=(ex.fn+1)%nf;ex.isFlus
 function buildFlushTL() {
   const c=CFG[ex.ci], tl=document.getElementById('ftl');
   tl.innerHTML='';
-  if(!c.flush||c.kern_rows<=1) return;
-  for(let r=0;r<c.frame_height;r++){
+  const realCount=Math.max(0, c.frame_height-c.half_r);
+  const flushRows=c.flush_out_rows;
+  if(!c.flush||!flushRows.length) return;
+  for(let r=0;r<realCount;r++){
     const el=document.createElement('div');
     el.className='tr real'; el.textContent=r;
-    el.style.fontSize=c.frame_height>9?'9px':'10px';
-    el.title=`Real row ${r}`;
+    el.style.fontSize=realCount>9?'9px':'10px';
+    el.title=`Real output row ${r}`;
     const _r=r; el.onclick=()=>{ex.isFlush=false;ex.row=_r;render();};
     tl.appendChild(el);
   }
   const sep=document.createElement('span');
   sep.className='tlsep'; sep.textContent='│'; tl.appendChild(sep);
-  for(let f=0;f<c.kern_rows-1;f++){
+  for(let fi=0;fi<flushRows.length;fi++){
+    const out_r=flushRows[fi];
     const el=document.createElement('div');
-    el.className='tr flush-tl'; el.textContent=`F${f}`;
-    el.title=`Flush row ${f} (virtual row ${c.frame_height+f})`;
-    const _f=f; el.onclick=()=>{ex.isFlush=true;ex.fr=_f;render();};
+    el.className='tr flush-tl'; el.textContent=out_r;
+    el.title=`Flush output: centre row ${out_r} (bottom-edge outputs)`;
+    const _fi=fi, _out_r=out_r;
+    el.onclick=()=>{ex.isFlush=true;ex.fr=_fi;ex.row=_out_r;render();};
     tl.appendChild(el);
   }
 }
 function updateFlushTL(){
-  document.querySelectorAll('.tr.real'   ).forEach((el,i)=>el.classList.toggle('act',!ex.isFlush&&i===ex.row));
+  document.querySelectorAll('.tr.real'    ).forEach((el,i)=>el.classList.toggle('act',!ex.isFlush&&i===ex.row));
   document.querySelectorAll('.tr.flush-tl').forEach((el,i)=>el.classList.toggle('act', ex.isFlush&&i===ex.fr));
   const c=CFG[ex.ci];
   document.getElementById('fplbl').textContent=ex.isFlush
-    ?`Flush row ${ex.fr} · virtual row ${c.frame_height+ex.fr}`:`Real row ${ex.row}`;
+    ?`Flush output: centre row ${ex.row}`:`Real output: row ${ex.row}`;
 }
 function updateFlushPlayer(){
   const c=CFG[ex.ci], fp=document.getElementById('fplay');
-  if(c.flush&&c.kern_rows>1){fp.classList.add('vis');buildFlushTL();updateFlushTL();}
+  if(c.flush&&c.flush_out_rows.length>0){fp.classList.add('vis');buildFlushTL();updateFlushTL();}
   else{fp.classList.remove('vis');ex.isFlush=false;ex.fplaying=false;clearInterval(ex.ftimer);}
 }
-function totalExRows(){const c=CFG[ex.ci];return c.frame_height+(c.flush&&c.kern_rows>1?c.kern_rows-1:0);}
-function exCurPos(){const c=CFG[ex.ci];return ex.isFlush?c.frame_height+ex.fr:ex.row;}
-function exSetPos(pos){const c=CFG[ex.ci];if(pos<c.frame_height){ex.isFlush=false;ex.row=pos;}else{ex.isFlush=true;ex.fr=pos-c.frame_height;}}
+function totalExRows(){
+  const c=CFG[ex.ci];
+  return Math.max(0, c.frame_height-c.half_r) + (c.flush?c.flush_out_rows.length:0);
+}
+function exCurPos(){
+  const c=CFG[ex.ci];
+  const realCount=Math.max(0, c.frame_height-c.half_r);
+  return ex.isFlush ? realCount+ex.fr : ex.row;
+}
+function exSetPos(pos){
+  const c=CFG[ex.ci];
+  const realCount=Math.max(0, c.frame_height-c.half_r);
+  if(pos<realCount){ex.isFlush=false;ex.row=pos;}
+  else{ex.isFlush=true;ex.fr=pos-realCount;ex.row=c.flush_out_rows[ex.fr];}
+}
 function fNext(){exSetPos((exCurPos()+1)%totalExRows());render();}
 function fPrev(){exSetPos((exCurPos()-1+totalExRows())%totalExRows());render();}
-function exitFlush(){ex.isFlush=false;render();}
+function exitFlush(){
+  const c=CFG[ex.ci];
+  ex.isFlush=false;
+  ex.row=Math.min(ex.row, Math.max(0, c.frame_height-c.half_r-1));
+  render();
+}
 function toggleFlushPlay(){
   ex.fplaying=!ex.fplaying;
   document.getElementById('btn-fplay').textContent=ex.fplaying?'⏸ Pause':'▶ Play';
@@ -636,10 +679,12 @@ function hatch(ctx,x,y,w,h){
 }
 
 // ── Frame canvas ──────────────────────────────────────────────────────────
-// highlights: array of {row, col, isFlush, fr, style:'out'|'dly'|'in'|'ex'}
-// kernelAnchor: {row,col,isFlush,fr} or null
+// highlights: array of {out_r, out_c, is_flush, flush_idx, style:'out'|'dly'|'in'|'ex'}
+// kernelAnchor: {out_r, out_c} or null — centre of kernel footprint
+// flushR: number of hatched virtual rows to show below real frame (= half_r when flush on)
 function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
-  const lw=c.line_width, fh=c.frame_height, kr=c.kern_rows, kc=c.kern_cols, dw=c.data_width;
+  const lw=c.line_width, fh=c.frame_height, kr=c.kern_rows, kc=c.kern_cols;
+  const hr=c.half_r, hc=c.half_c, dw=c.data_width;
   const vmax=(1<<Math.min(dw,30))-1;
   const totR=fh+flushR;
 
@@ -669,7 +714,7 @@ function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
     }
   }
 
-  // Flush virtual rows
+  // Flush virtual rows (zero-padding rows injected by FLUSH)
   for(let f=0;f<flushR;f++){
     const r=fh+f;
     for(let col=0;col<lw;col++){
@@ -690,11 +735,10 @@ function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
     ctx.strokeRect(.5,.5,lw*cell-1,fh*cell-1);ctx.setLineDash([]);
   }
 
-  // Kernel footprint
+  // Centred kernel footprint: rows out_r-half_r..out_r+half_r
   if(kernelAnchor){
     const ka=kernelAnchor;
-    const curR=ka.isFlush?fh+ka.fr:ka.row;
-    const topR=curR-(kr-1), leftC=ka.col-(kc-1);
+    const topR =ka.out_r - hr, leftC=ka.out_c - hc;
     ctx.fillStyle='rgba(58,111,220,0.18)';
     for(let dr=0;dr<kr;dr++) for(let dc=0;dc<kc;dc++){
       const pr=topR+dr, pc=leftC+dc;
@@ -707,7 +751,7 @@ function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
     }
   }
 
-  // Per-highlight markers
+  // Per-highlight markers — always at out_r in real frame
   const styles={
     ex: {stroke:'#3a8fff',fill:'rgba(58,143,255,0)',circle:true},
     out:{stroke:'#3a8fff',fill:'rgba(58,143,255,0.15)',circle:false},
@@ -715,10 +759,10 @@ function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
     in: {stroke:'#3abf7a',fill:'rgba(58,191,122,0.2)',circle:false},
   };
   for(const h of highlights){
-    const canRow=h.isFlush?fh+h.fr:h.row;
-    if(canRow<0||canRow>=totR||h.col<0||h.col>=lw) continue;
+    const canRow=h.out_r;
+    if(canRow<0||canRow>=fh||h.out_c<0||h.out_c>=lw) continue;
     const st=styles[h.style]||styles.ex;
-    const x=h.col*cell, y=canRow*cell;
+    const x=h.out_c*cell, y=canRow*cell;
     ctx.fillStyle=st.fill; ctx.fillRect(x+2,y+2,cell-4,cell-4);
     ctx.strokeStyle=st.stroke; ctx.lineWidth=2.5;
     if(st.circle){
@@ -730,36 +774,39 @@ function renderFrameCanvas(c, frameIdx, flushR, highlights, kernelAnchor) {
 }
 
 // ── Tap canvas ────────────────────────────────────────────────────────────
-function renderTapCanvas(c, taps, curRow, curCol) {
-  const kr=c.kern_rows, kc=c.kern_cols, dw=c.data_width, mode=c.edge_mode;
+// Centred window: tap[tr][tc] = pixel at (out_r + tr - half_r, out_c + tc - half_c)
+// taps[tr*kc + tc] — no column reversal
+function renderTapCanvas(c, taps, out_r, out_c) {
+  const kr=c.kern_rows, kc=c.kern_cols, dw=c.data_width;
   const fh=c.frame_height, lw=c.line_width;
+  const hr=c.half_r, hc=c.half_c, edgeMode=c.edge_mode;
   const vmax=(1<<Math.min(dw,30))-1;
   if(!taps) return;
 
   const tpW=document.getElementById('tap-panel').clientWidth-24-28;
   const cell=csz(Math.max(kr,kc),Math.min(tpW,300));
 
-  // Column labels
+  // Column labels: tc=0..kc-1, srcCol = out_c + tc - half_c
   const colDiv=document.getElementById('tcol-labels');
   colDiv.innerHTML='';
-  for(let dc=0;dc<kc;dc++){
-    const srcCol=curCol-(kc-1-dc);
+  for(let tc=0;tc<kc;tc++){
+    const srcCol=out_c + tc - hc;
     const oob=srcCol<0||srcCol>=lw;
     const el=document.createElement('div');
     el.className='tlbl'; el.style.width=cell+'px'; el.style.height='14px';
     el.style.color=oob?'#df5050':'#5a7a8a'; el.textContent=srcCol;
     colDiv.appendChild(el);
   }
-  // Row labels
+  // Row labels: tr=0..kr-1, srcRow = out_r + tr - half_r
   const rowDiv=document.getElementById('trow-labels');
   rowDiv.innerHTML='';
-  for(let r=0;r<kr;r++){
-    const srcRow=curRow-(kr-1-r);
+  for(let tr=0;tr<kr;tr++){
+    const srcRow=out_r + tr - hr;
     const oob=srcRow<0||srcRow>=fh;
     const el=document.createElement('div');
     el.className='tlbl'; el.style.height=cell+'px'; el.style.width='24px';
     el.style.color=oob?'#df5050':'#5a7a8a';
-    el.textContent=srcRow<0?srcRow:srcRow>=fh?`F${srcRow-fh}`:srcRow;
+    el.textContent=srcRow;
     rowDiv.appendChild(el);
   }
 
@@ -767,37 +814,35 @@ function renderTapCanvas(c, taps, curRow, curCol) {
   can.width=kc*cell; can.height=kr*cell;
   const ctx=can.getContext('2d');
 
-  for(let r=0;r<kr;r++) for(let dc=0;dc<kc;dc++){
-    const col=kc-1-dc;
-    const val=taps[r*kc+col];
+  for(let tr=0;tr<kr;tr++) for(let tc=0;tc<kc;tc++){
+    const val=taps[tr*kc+tc];  // no reversal — tc=0 is leftmost
     const norm=val/vmax;
-    const srcRow=curRow-(kr-1-r), srcCol=curCol-col;
+    const srcRow=out_r + tr - hr;
+    const srcCol=out_c + tc - hc;
     const isOob=srcRow<0||srcRow>=fh||srcCol<0||srcCol>=lw;
-    const isFlushedSrc=srcRow>=fh;
 
     let face,edge;
-    if(isOob&&mode==='ZERO')     {face=[180,180,190];edge=null;}
-    else if(isOob&&mode==='REPLICATE'){face=ylOrRd(norm);edge='#4682b4';}
-    else if(isOob&&mode==='TOROIDAL') {face=ylOrRd(norm);edge='#9370db';}
-    else                          {face=ylOrRd(norm);edge=null;}
+    if(isOob&&edgeMode==='ZERO')       {face=[180,180,190];edge=null;}
+    else if(isOob&&edgeMode==='REPLICATE'){face=ylOrRd(norm);edge='#4682b4';}
+    else if(isOob&&edgeMode==='TOROIDAL') {face=ylOrRd(norm);edge='#9370db';}
+    else                                 {face=ylOrRd(norm);edge=null;}
 
-    ctx.fillStyle=rgb(face); ctx.fillRect(dc*cell,r*cell,cell,cell);
-    if(isFlushedSrc) hatch(ctx,dc*cell,r*cell,cell,cell);
+    ctx.fillStyle=rgb(face); ctx.fillRect(tc*cell,tr*cell,cell,cell);
 
-    if(edge){ctx.strokeStyle=edge;ctx.lineWidth=2.5;ctx.strokeRect(dc*cell+1.5,r*cell+1.5,cell-3,cell-3);}
-    else{ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=.5;ctx.strokeRect(dc*cell+.5,r*cell+.5,cell-1,cell-1);}
+    if(edge){ctx.strokeStyle=edge;ctx.lineWidth=2.5;ctx.strokeRect(tc*cell+1.5,tr*cell+1.5,cell-3,cell-3);}
+    else{ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=.5;ctx.strokeRect(tc*cell+.5,tr*cell+.5,cell-1,cell-1);}
 
     if(cell>=16){
       ctx.fillStyle=txtClr(face);
       ctx.font=`${Math.max(8,cell/4.5)|0}px monospace`;
       ctx.textAlign='center';ctx.textBaseline='middle';
       const hex=dw>8?`0x${val.toString(16).toUpperCase().padStart(Math.ceil(dw/4),'0')}`:`${val}`;
-      ctx.fillText(hex+(isOob?'*':''),dc*cell+cell/2,r*cell+cell/2);
+      ctx.fillText(hex+(isOob?'*':''),tc*cell+cell/2,tr*cell+cell/2);
     }
   }
-  // Current pixel (bottom-right in display)
+  // Centre tap highlight (tap[half_r][half_c])
   ctx.strokeStyle='#3a8fff';ctx.lineWidth=3;
-  ctx.strokeRect((kc-1)*cell+2,(kr-1)*cell+2,cell-4,cell-4);
+  ctx.strokeRect(hc*cell+2, hr*cell+2, cell-4, cell-4);
 }
 
 // ── Legend ────────────────────────────────────────────────────────────────
@@ -813,9 +858,9 @@ function renderLegend(c, simMode) {
     entries.push({sw:'background:#fd8d3c;border:2px solid #4682b4',txt:'* OOB &rarr; clamped edge pixel (REPLICATE)'});
   if(c.edge_mode==='TOROIDAL')
     entries.push({sw:'background:#fd8d3c;border:2px solid #9370db',txt:'* OOB &rarr; causal wrap (TOROIDAL)'});
-  if(c.flush&&c.kern_rows>1)
-    entries.push({sw:'background:#1a1a2e;border:2px dashed #dfb050',txt:'Hatched = injected zero row (FLUSH)'});
-  entries.push({sw:'background:none;border:2.5px solid #3a8fff',txt:'Blue square = current pixel (bottom-right tap)'});
+  if(c.flush&&c.half_r>0)
+    entries.push({sw:'background:#1a1a2e;border:2px dashed #dfb050',txt:'Hatched rows = injected zeros (FLUSH padding)'});
+  entries.push({sw:'background:none;border:2.5px solid #3a8fff',txt:'Blue square = centre tap (current pixel)'});
 
   document.getElementById('legend').innerHTML='<div id="legend-title">Legend</div>'+
     entries.map(e=>`<div class="lrow"><div class="lsw" style="${e.sw}"></div><span>${e.txt}</span></div>`).join('');
@@ -824,22 +869,18 @@ function renderLegend(c, simMode) {
 // ── Pipeline panel ────────────────────────────────────────────────────────
 function renderPipeline(c, seq, step) {
   const vmax=(1<<Math.min(c.data_width,30))-1;
-  // stage indices relative to current output step:
-  //   output  = step   (what's valid at stage-3 output reg)
-  //   delay   = step+1 (what was accepted 1 cycle after the output pixel — now in delay reg)
-  //   accept  = step+2 (what was accepted 2 cycles after the output pixel — now at input stage)
-  const outEvt  = seq[step];
-  const dlyEvt  = seq[step+1];
-  const inEvt   = seq[step+2];
+  const outEvt = seq[step];
+  const dlyEvt = seq[step+1];
+  const inEvt  = seq[step+2];
 
   function fill(id_pos, id_val, id_sw, evt, isSim) {
     document.getElementById(id_pos).textContent = evtLabel(c, evt, isSim?1:-1);
     const val = getVal(c, evt);
     document.getElementById(id_val).textContent = evt
-      ? (evt.isFlush?`val = 0 (flush zero)`:`val = ${val}  (${Math.round(val/vmax*100)}%)`)
+      ? (evt.is_flush?`val = 0 (flush zero)`:`val = ${val}  (${Math.round(val/vmax*100)}%)`)
       : '';
     const sw = document.getElementById(id_sw);
-    if(evt && !evt.isFlush) {
+    if(evt && !evt.is_flush) {
       const clr = ylOrRd(val/vmax);
       sw.style.background = rgb(clr);
     } else {
@@ -870,33 +911,30 @@ function render() {
   renderTopBar(c, ci);
 
   if (mode === 'explore') {
-    // Frame nav label
     document.getElementById('flbl').textContent=`Frame ${ex.fn} / ${c.num_frames-1}`;
     updateFlushPlayer();
 
-    // Frame canvas
-    const flushR = c.flush&&c.kern_rows>1 ? c.kern_rows-1 : 0;
-    const highlights = [{
-      row:ex.isFlush?-1:ex.row, col:ex.col,
-      isFlush:ex.isFlush, fr:ex.fr, style:'ex'
-    }];
-    renderFrameCanvas(c, ex.fn, flushR, highlights,
-      {row:ex.row, col:ex.col, isFlush:ex.isFlush, fr:ex.fr});
+    // Number of hatched rows to show below real frame
+    const flushR = c.flush && c.half_r > 0 ? c.half_r : 0;
+    const highlights = [{out_r:ex.row, out_c:ex.col, is_flush:ex.isFlush, flush_idx:ex.fr, style:'ex'}];
+    renderFrameCanvas(c, ex.fn, flushR, highlights, {out_r:ex.row, out_c:ex.col});
 
-    // Tap
-    const curRow = ex.isFlush ? c.frame_height+ex.fr : ex.row;
+    // Taps lookup
     let taps;
-    if(ex.isFlush){taps=c.flush_taps[ex.fn]&&c.flush_taps[ex.fn][ex.fr*c.line_width+ex.col];}
-    else{taps=c.taps[ex.fn]&&c.taps[ex.fn][ex.row*c.line_width+ex.col];}
-    renderTapCanvas(c, taps, curRow, ex.col);
+    if(ex.isFlush){
+      taps=c.flush_taps[ex.fn]&&c.flush_taps[ex.fn][ex.fr*c.line_width+ex.col];
+    } else {
+      taps=c.taps[ex.fn]&&c.taps[ex.fn][ex.row*c.line_width+ex.col];
+    }
+    renderTapCanvas(c, taps, ex.row, ex.col);
 
     document.getElementById('tp-title').textContent=
-      ex.isFlush?`Kernel @ flush row ${ex.fr} (virtual ${c.frame_height+ex.fr})`
+      ex.isFlush?`Kernel @ flush output row ${ex.row}`
                 :`Kernel @ (row ${ex.row}, col ${ex.col})`;
     document.getElementById('tp-coords').textContent=
-      `Frame ${ex.fn} · ${c.edge_mode}`;
+      `Frame ${ex.fn} · centre=(${ex.row},${ex.col}) · ${c.edge_mode}`;
     document.getElementById('pxinfo').textContent=
-      ex.isFlush?`▶ flush F${ex.fr}, col ${ex.col}`:`px (${ex.row},${ex.col})`;
+      ex.isFlush?`&#9881; flush r=${ex.row}, c=${ex.col}`:`px (${ex.row},${ex.col})`;
     renderLegend(c, false);
 
   } else {
@@ -908,53 +946,44 @@ function render() {
     const dlyEvt = seq[step+1];
     const inEvt  = seq[step+2];
 
-    // Scrubber
     document.getElementById('scrubber').value=step;
     document.getElementById('sim-step-lbl').textContent=`Step ${step+1} / ${seq.length}`;
 
-    // Position label
     function posStr(evt) {
       if(!evt) return '—';
-      if(evt.isFlush) return `F${evt.fn} flush-row ${evt.fr} col ${evt.col}`;
-      return `F${evt.fn} row ${evt.row} col ${evt.col}`;
+      if(evt.is_flush) return `F${evt.fn} flush-r${evt.out_r} c${evt.out_c}`;
+      return `F${evt.fn} r${evt.out_r} c${evt.out_c}`;
     }
     document.getElementById('sim-pos-lbl').textContent=
       `OUT: ${posStr(outEvt)}   DLY: ${posStr(dlyEvt)}   IN: ${posStr(inEvt)}`;
     document.getElementById('pxinfo').textContent=`step ${step+1}/${seq.length}`;
 
-    // Frame: show the frame for the OUTPUT event (what's currently at output)
     const showFn = outEvt ? outEvt.fn : 0;
-    const flushR = c.flush&&c.kern_rows>1 ? c.kern_rows-1 : 0;
+    const flushR = c.flush && c.half_r > 0 ? c.half_r : 0;
 
-    // Build highlights for all 3 pipeline stages (only those in same frame)
     const highlights = [];
-    // output stage (blue filled square)
-    if(outEvt) highlights.push({row:outEvt.isFlush?-1:outEvt.row, col:outEvt.col,
-      isFlush:outEvt.isFlush, fr:outEvt.fr, style:'out'});
-    // delay stage (amber square) — only if same frame
-    if(dlyEvt&&dlyEvt.fn===showFn) highlights.push({row:dlyEvt.isFlush?-1:dlyEvt.row, col:dlyEvt.col,
-      isFlush:dlyEvt.isFlush, fr:dlyEvt.fr, style:'dly'});
-    // accept stage (green square) — only if same frame
-    if(inEvt&&inEvt.fn===showFn) highlights.push({row:inEvt.isFlush?-1:inEvt.row, col:inEvt.col,
-      isFlush:inEvt.isFlush, fr:inEvt.fr, style:'in'});
+    if(outEvt) highlights.push({out_r:outEvt.out_r, out_c:outEvt.out_c,
+      is_flush:outEvt.is_flush, flush_idx:outEvt.flush_idx, style:'out'});
+    if(dlyEvt&&dlyEvt.fn===showFn) highlights.push({out_r:dlyEvt.out_r, out_c:dlyEvt.out_c,
+      is_flush:dlyEvt.is_flush, flush_idx:dlyEvt.flush_idx, style:'dly'});
+    if(inEvt&&inEvt.fn===showFn) highlights.push({out_r:inEvt.out_r, out_c:inEvt.out_c,
+      is_flush:inEvt.is_flush, flush_idx:inEvt.flush_idx, style:'in'});
 
     renderFrameCanvas(c, showFn, flushR, highlights,
-      outEvt ? {row:outEvt.row, col:outEvt.col, isFlush:outEvt.isFlush, fr:outEvt.fr} : null);
+      outEvt ? {out_r:outEvt.out_r, out_c:outEvt.out_c} : null);
 
-    // Pipeline diagram
     renderPipeline(c, seq, step);
 
-    // Tap for output event
-    const curRow = outEvt ? (outEvt.isFlush?c.frame_height+outEvt.fr:outEvt.row) : 0;
-    const curCol = outEvt ? outEvt.col : 0;
+    const curRow = outEvt ? outEvt.out_r : 0;
+    const curCol = outEvt ? outEvt.out_c : 0;
     const taps   = outEvt ? getTaps(c, outEvt) : null;
     renderTapCanvas(c, taps, curRow, curCol);
 
     document.getElementById('tp-title').textContent=
-      outEvt&&outEvt.isFlush?`Output @ flush-row ${outEvt.fr} (virtual ${c.frame_height+outEvt.fr})`
-                             :`Output @ (row ${curRow}, col ${curCol})`;
+      outEvt&&outEvt.is_flush?`Output @ flush row ${outEvt.out_r} (col ${outEvt.out_c})`
+                              :`Output @ (row ${curRow}, col ${curCol})`;
     document.getElementById('tp-coords').textContent=
-      `Frame ${showFn} · ${c.edge_mode}`;
+      `Frame ${showFn} · centre=(${curRow},${curCol}) · ${c.edge_mode}`;
     renderLegend(c, true);
   }
 }
@@ -963,14 +992,26 @@ function render() {
 document.getElementById('fc').addEventListener('click', function(e) {
   if(mode!=='explore') return;
   const c=CFG[ex.ci], lw=c.line_width, fh=c.frame_height;
-  const flushR=c.flush&&c.kern_rows>1?c.kern_rows-1:0;
+  const flushR=c.flush&&c.half_r>0?c.half_r:0;
   const rect=this.getBoundingClientRect();
   const cell=this.width/lw;
   const col=Math.floor((e.clientX-rect.left)/cell);
   const row=Math.floor((e.clientY-rect.top)/cell);
   if(col<0||col>=lw||row<0||row>=fh+flushR) return;
   ex.col=col;
-  if(row<fh){ex.isFlush=false;ex.row=row;}else{ex.isFlush=true;ex.fr=row-fh;}
+  if(row<fh){
+    // Click in real frame: is this a real output or flush output?
+    const realCount=Math.max(0, fh-c.half_r);
+    if(row<realCount){
+      ex.isFlush=false; ex.row=row;
+    } else {
+      // This row only has a flush output
+      const fi=row-realCount;
+      if(fi<c.flush_out_rows.length){ex.isFlush=true;ex.fr=fi;ex.row=c.flush_out_rows[fi];}
+      else{ex.isFlush=false;ex.row=row;} // no data for this row
+    }
+  }
+  // (clicks in hatched flush rows area ignored — centre always in real frame)
   render();
 });
 
@@ -980,18 +1021,19 @@ document.addEventListener('keydown', e => {
   const c=CFG[ex.ci]; let handled=true;
 
   if(mode==='explore'){
-    const fh=c.frame_height, lw=c.line_width;
+    const lw=c.line_width;
+    const realCount=Math.max(0, c.frame_height-c.half_r);
     if(e.altKey&&e.key==='ArrowLeft')  prevFrame();
     else if(e.altKey&&e.key==='ArrowRight') nextFrame();
     else if(e.key==='ArrowLeft')  {ex.col=Math.max(0,ex.col-1);render();}
     else if(e.key==='ArrowRight') {ex.col=Math.min(lw-1,ex.col+1);render();}
-    else if(e.key==='ArrowUp')    {if(!ex.isFlush)ex.row=Math.max(0,ex.row-1);render();}
-    else if(e.key==='ArrowDown')  {if(!ex.isFlush)ex.row=Math.min(fh-1,ex.row+1);render();}
+    else if(e.key==='ArrowUp')    {if(!ex.isFlush&&ex.row>0){ex.row--;render();}}
+    else if(e.key==='ArrowDown')  {if(!ex.isFlush&&ex.row<realCount-1){ex.row++;render();}}
     else if(e.key===',')          selectCfg(Math.max(0,ex.ci-1));
     else if(e.key==='.')          selectCfg(Math.min(NTOT-1,ex.ci+1));
-    else if((e.key==='f'||e.key==='F')&&c.flush&&c.kern_rows>1) fNext();
+    else if((e.key==='f'||e.key==='F')&&c.flush&&c.flush_out_rows.length>0) fNext();
     else if(e.key==='r'||e.key==='R') exitFlush();
-    else if(e.key===' '&&c.flush&&c.kern_rows>1) toggleFlushPlay();
+    else if(e.key===' '&&c.flush&&c.flush_out_rows.length>0) toggleFlushPlay();
     else handled=false;
   } else {
     if(e.key==='ArrowRight'||e.key==='ArrowDown') simStepFwd();
