@@ -140,10 +140,12 @@ def gen_vectors(cfg, prefix, out_dir):
         if flush and half_r > 0:
             for flush_row in range(half_r):
                 virtual_r = fh + flush_row
+                out_r = virtual_r - half_r
                 for col_eff in range(eff_width):
                     push_history.append(0)
-                    if col_eff >= half_c:
-                        out_r = virtual_r - half_r
+                    # out_r < 0 when FH < HALF_R: RTL suppresses valid_out_d1,
+                    # no output fires. Skip expected line; still append push_history.
+                    if col_eff >= half_c and out_r >= 0:
                         out_c = col_eff - half_c
                         if mode == "TOROIDAL":
                             all_taps.append(compute_taps_toroidal(push_history, kr, kc, eff_width))

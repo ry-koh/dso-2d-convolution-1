@@ -145,10 +145,11 @@ def main():
         if args.flush and HALF_R > 0:
             for flush_row in range(HALF_R):
                 virtual_r = FH + flush_row
+                out_r = virtual_r - HALF_R
                 for col_eff in range(EFF_WIDTH):
                     push_history.append(0)
-                    if col_eff >= HALF_C:
-                        out_r = virtual_r - HALF_R
+                    # out_r < 0 when FH < HALF_R: RTL suppresses valid_out_d1.
+                    if col_eff >= HALF_C and out_r >= 0:
                         out_c = col_eff - HALF_C
                         if MODE == 'TOROIDAL':
                             all_taps.append(compute_taps_toroidal(push_history, KR, KC, EFF_WIDTH))
