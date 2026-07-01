@@ -248,13 +248,13 @@ canvas{display:block;image-rendering:pixelated;cursor:crosshair}
         <div class="pstage s-trg" id="ps-trg">
           <div class="pstage-dot dot-trg"></div>
           <div class="pstage-info">
-            <div class="pstage-label">&#9654; ACCEPT — pixel accepted this clock (green)</div>
+            <div class="pstage-label">&#9654; ACCEPT — trigger pixel accepted 2 clocks ago (green)</div>
             <div class="pstage-pos" id="ps-trg-pos">—</div>
             <div class="pstage-val" id="ps-trg-val"></div>
           </div>
           <div class="pstage-swatch" id="ps-trg-sw"></div>
         </div>
-        <div class="parrow">&#8595; 1 register stage later &rarr; output valid</div>
+        <div class="parrow">&#8595; 2 register stages later &rarr; output valid</div>
         <div class="pstage s-out" id="ps-out">
           <div class="pstage-dot dot-out"></div>
           <div class="pstage-info">
@@ -332,9 +332,10 @@ function getTaps(c,evt){
   return c.taps[evt.fn]&&c.taps[evt.fn][pi];
 }
 
-// TRIGGER pixel: the pixel accepted 1 clock BEFORE this output fires.
-// When output (out_r, out_c) is valid, the RTL just accepted
-// the pixel at effective stream position (row = out_r+hr, col_eff = out_c+hc).
+// TRIGGER pixel: the pixel accepted 2 clocks BEFORE this output fires.
+// Pipeline: T=accept → T+1=p_delay (valid_out_d1) → T+2=p_out_reg (m_tvalid).
+// When output (out_r, out_c) is valid at T+2, the RTL accepted
+// the pixel at effective stream position (row = out_r+hr, col_eff = out_c+hc) at T.
 // col_eff >= lw means it is a dummy-column zero, not a real pixel.
 // For flush outputs, row >= fh so it is a flush virtual zero.
 function getTriggerPixel(c,evt){
@@ -347,6 +348,19 @@ function getTriggerPixel(c,evt){
   const isReal=!isVirtual&&!isDummy;
   const val=isReal?(c.frames[evt.fn]||[])[tRow*lw+tCol]||0:0;
   return{row:tRow,col:tCol,val,isReal,isDummy,isVirtual};
+}
+
+// ── On-the-fly tap computation (for explore mode / non-output rows) ──────────
+// Used when a clicked pixel has no stored golden vector (e.g. bottom HALF_R rows
+// in FLUSH=off mode).  Uses getPaddingPixel so edge mode is respected.
+function computeExploreTaps(c,fn,out_r,out_c){
+  const frame=c.frames[fn]||[];
+  const hr=c.half_r,hc=c.half_c,kr=c.kern_rows,kc=c.kern_cols;
+  const taps=[];
+  for(let tr=0;tr<kr;tr++)
+    for(let tc=0;tc<kc;tc++)
+      taps.push(getPaddingPixel(c,frame,out_r+tr-hr,out_c+tc-hc));
+  return taps;
 }
 
 // ── Padding pixel value (for border display) ──────────────────────────────
@@ -620,7 +634,7 @@ function renderLegend(c,simMode){
   const e=[];
   if(simMode){
     e.push({sw:'background:none;border:2px solid #3abf7a',
-            txt:'&#9654; Green = pixel accepted this clock (TRIGGER)'});
+            txt:'&#9654; Green = trigger pixel accepted 2 clocks ago'});
     e.push({sw:'background:rgba(58,143,255,.18);border:2px solid #3a8fff',
             txt:'&#9646; Blue = centre pixel whose window is now output'});
   } else {
@@ -697,7 +711,7 @@ function selectCfg(i){
   ex.ci=i;ex.fn=0;ex.isFlush=false;ex.fr=0;
   ex.fplaying=false;clearInterval(ex.ftimer);
   const c=CFG[i];
-  ex.row=Math.min(ex.row,Math.max(0,c.frame_height-c.half_r-1));
+  ex.row=Math.min(ex.row,c.frame_height-1);
   ex.col=Math.min(ex.col,c.line_width-1);
   sm.step=0;sm.seq=buildSeq(c);sm.playing=false;clearInterval(sm.timer);
   const sc=document.getElementById('scrubber');
@@ -814,16 +828,23 @@ function render(){
     let taps;
     if(ex.isFlush){taps=c.flush_taps[ex.fn]&&c.flush_taps[ex.fn][ex.fr*c.line_width+ex.col];}
     else{taps=c.taps[ex.fn]&&c.taps[ex.fn][ex.row*c.line_width+ex.col];}
+    // Fall back to on-the-fly computation when this row has no stored output
+    // (e.g. bottom HALF_R rows in FLUSH=off mode).
+    if(!taps)taps=computeExploreTaps(c,ex.fn,ex.row,ex.col);
 
     renderFrameCanvas(c,ex.fn,
       [{out_r:ex.row,out_c:ex.col,style:'ex'}],
       {out_r:ex.row,out_c:ex.col});
     renderTapCanvas(c,taps,ex.row,ex.col);
 
+    const rc2=Math.max(0,c.frame_height-c.half_r);
+    const noOutput=!ex.isFlush&&ex.row>=rc2;
     document.getElementById('tp-title').textContent=
-      ex.isFlush?`Kernel @ flush output row ${ex.row}`:`Kernel @ (row ${ex.row}, col ${ex.col})`;
+      ex.isFlush?`Kernel @ flush output row ${ex.row}`
+      :noOutput?`Kernel @ (row ${ex.row}, col ${ex.col})  [no RTL output — computed]`
+      :`Kernel @ (row ${ex.row}, col ${ex.col})`;
     document.getElementById('tp-coords').textContent=
-      `Frame ${ex.fn} · centre=(${ex.row},${ex.col}) · ${c.edge_mode}`;
+      `Frame ${ex.fn} · centre=(${ex.row},${ex.col}) · ${c.edge_mode}`+(noOutput?' · FLUSH=off: no output here':'');
     document.getElementById('pxinfo').textContent=
       ex.isFlush?`flush r=${ex.row},c=${ex.col}`:`px(${ex.row},${ex.col})`;
     renderLegend(c,false);
@@ -846,7 +867,7 @@ function render(){
       ?(trgPixel.isReal?`(${trgPixel.row},${trgPixel.col}) val=${trgPixel.val}`
        :trgPixel.isDummy?`col_eff ${trgPixel.col} dummy=0`:'flush zero'):'—';
     document.getElementById('sim-pos-lbl').textContent=
-      `OUTPUT: ${outStr}   |   ACCEPTED THIS CLOCK: ${trgStr}`;
+      `OUTPUT: ${outStr}   |   ACCEPTED 2 CLOCKS AGO: ${trgStr}`;
     document.getElementById('pxinfo').textContent=`step ${step+1}/${seq.length}`;
 
     // Highlights: blue=output centre, green=trigger (if real pixel in frame)
@@ -901,7 +922,7 @@ document.addEventListener('keydown',e=>{
     else if(e.key==='ArrowLeft') {ex.col=Math.max(0,ex.col-1);render();}
     else if(e.key==='ArrowRight'){ex.col=Math.min(lw-1,ex.col+1);render();}
     else if(e.key==='ArrowUp')  {if(!ex.isFlush&&ex.row>0){ex.row--;render();}}
-    else if(e.key==='ArrowDown'){if(!ex.isFlush&&ex.row<rc-1){ex.row++;render();}}
+    else if(e.key==='ArrowDown'){if(!ex.isFlush&&ex.row<c.frame_height-1){ex.row++;render();}}
     else if(e.key===',')selectCfg(Math.max(0,ex.ci-1));
     else if(e.key==='.')selectCfg(Math.min(NTOT-1,ex.ci+1));
     else if((e.key==='f'||e.key==='F')&&c.flush&&c.flush_out_rows.length)fNext();
