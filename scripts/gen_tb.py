@@ -385,7 +385,7 @@ def gen_check(i, cfg, label):
         wait until {sp}_rst = '0';
         file_open(f, {cp}_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and {sp}_mvalid = '1' and (and {sp}_mready) = '1';
+            wait until rising_edge(clk) and {sp}_mvalid = '1' and {sp}_mready = (({sp}_mready'range) => '1');
             readline(f, ln);
             for tap in 0 to {nt}-1 loop
                 read(ln, tv);
