@@ -55,8 +55,7 @@ preventing one-column-ahead prefetch errors when the pipeline resumes.
 
 ### 1. Why KERN_ROWS−1 BRAMs, not KERN_ROWS?
 
-The intuitive starting point is: to assemble a 3×3 window you need 3 rows of history.
-So you might expect 3 BRAMs.
+The naive approach requires 3 rows of history for a 3×3 window, suggesting 3 BRAMs.
 
 The key insight is that the **current row does not need to be stored in BRAM at all**.
 The current row's pixels are buffered inside `win_buf` — the FF shift register. As each
@@ -75,8 +74,6 @@ causal sliding-window design with a streaming input.
 ---
 
 ### 2. Circular / rotating BRAM pointer (`buf_wr_row`)
-
-Your intuition about alternating read/write pointers is exactly right. Here is how it works.
 
 `buf_wr_row` is a counter cycling `0 → 1 → 0 → 1 → …` (for a 3×3 kernel) that increments
 at the end of every row. It always points to the **oldest row** currently in BRAM — the one
