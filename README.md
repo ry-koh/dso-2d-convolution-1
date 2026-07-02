@@ -397,9 +397,16 @@ matrix, run `python scripts/gen_tb.py` from the repo root, then repeat from step
 
 ## Interactive Visualiser (`tb/visualize.html`)
 
-`tb/visualize.html` is a self-contained HTML file with all 324 configurations' golden
-vector data embedded. No server, install, or network connection is required — just open
-it in any modern browser.
+`tb/visualize.html` is a self-contained HTML file. Open it directly in any modern
+browser — no server, install, or network connection required.
+
+### Relationship to the simulation
+
+The visualiser reads its data from the same `c???_input.txt` and `c???_expected.txt`
+files that the VHDL testbench loads via textio. The tap values displayed in the
+visualiser are the exact bytes the simulation checks. If all 324 configurations print
+PASS in xsim and the visualiser shows the expected tap window for a given pixel, they
+are provably showing the same data.
 
 ### Generating / Updating
 
@@ -409,64 +416,55 @@ python scripts/gen_tb.py --html
 
 Run from the repo root. Regenerates `tb/conv2d_tb.vhd`, all 648 vector files, and
 `tb/visualize.html` in one pass. To regenerate only the HTML from existing vector
-files, run `python scripts/visualize.py` instead.
+files without touching the testbench or vectors, run `python scripts/visualize.py`.
 
 ### Selecting a Configuration
 
 Use the **Config** dropdown (top-left) to pick any of the 324 test configurations.
-Each entry shows data width, kernel size, edge mode, flush state, and frame dimensions.
+Each entry shows kernel size, edge mode, flush state, and frame dimensions.
 
 ### Explore Mode
 
-Click the **Explore** button (or press `E`) to enter Explore mode.
+Press `E` or click **Explore** to browse the input frames.
 
-- **Click any pixel** in the frame heatmap to select it.
-- The **tap window panel** (right side) shows the M×N neighbourhood for that pixel,
-  colour-coded by age: newest pixel is brightest.
+- Click any pixel in the frame heatmap to select it.
+- The tap window panel (right) shows the M×N neighbourhood for that pixel, taken
+  directly from the golden vector file — identical to what the testbench checks.
 - The selected pixel and its window footprint are highlighted on the heatmap.
-- Use the **frame selector** to switch between the multiple frames in the dataset.
+- Use the frame selector to switch between frames.
 
 ### Simulate Mode
 
-Click the **Simulate** button (or press `S`) to enter Simulate mode.
+Press `S` or click **Simulate** to step through the cycle-accurate pipeline trace.
 
-Simulate mode steps through every clock cycle at which the DUT produces a valid output,
-showing the 2-stage pipeline in real time.
+Each step corresponds to one clock cycle at which the DUT produces a valid output.
+Two pipeline stage cards are shown:
 
-#### Pipeline diagram
+| Stage | What it shows |
+|---|---|
+| **ACCEPT** (green) | The trigger pixel accepted 2 cycles before this output — pixel (out_r + HALF_R, out_c + HALF_C), the bottom-right corner of the window. |
+| **OUTPUT** (blue) | The window now valid at `m_tdata` / `m_tvalid`, centred on pixel (out_r, out_c). Tap values are read from the golden vector file. |
 
-Two stage cards are shown left-to-right:
-
-| Stage | Colour | What it shows |
-|---|---|---|
-| **ACCEPT** | Green | The trigger pixel accepted from the input stream 2 cycles before this output. This is pixel (out_r + HALF_R, out_c + HALF_C) — the bottom-right corner of the window. |
-| **OUTPUT** | Blue | The window output now valid at `m_tdata` / `m_tvalid`. The centre of this window is pixel (out_r, out_c). |
-
-Each card shows the pixel's frame number, row, column, and raw value. Flush-injected
-pixels (dummy zero rows when FLUSH=on) are labelled *flush* and appear in the padding
-border of the frame canvas.
-
-The frame canvas highlights both pipeline positions simultaneously: the trigger pixel
-(ACCEPT, green border) and the output window footprint (OUTPUT, blue border).
+Flush-injected pixels (FLUSH=on dummy zero rows) are labelled *flush* and appear in
+the padding border of the frame canvas. Both pipeline positions are highlighted on
+the canvas simultaneously.
 
 #### Playback controls
 
 | Control | Action |
 |---|---|
-| ⏮ | Jump to first output |
-| ⏪ | Step back one cycle |
-| ▶ / ⏸ | Play / pause automatic playback |
-| ⏩ | Step forward one cycle |
-| ⏭ | Jump to last output |
-| Scrubber bar | Drag to any position in the sequence |
-| Speed selector | 0.5× / 1× / 2× / 4× / 10× / 25× playback speed |
+| ⏮ / ⏭ | Jump to first / last output |
+| ⏪ / ⏩ | Step back / forward one cycle |
+| ▶ / ⏸ | Play / pause |
+| Scrubber | Drag to any position |
+| Speed | 0.5× / 1× / 2× / 4× / 10× / 25× |
 
-#### Keyboard shortcuts (Simulate mode)
+#### Keyboard shortcuts
 
 | Key | Action |
 |---|---|
-| `←` / `→` | Step back / forward one cycle |
-| `Home` / `End` | Jump to first / last output |
+| `←` / `→` | Step back / forward |
+| `Home` / `End` | First / last output |
 | `Space` | Play / pause |
 | `,` / `.` | Previous / next configuration |
 
