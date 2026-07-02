@@ -402,11 +402,10 @@ browser — no server, install, or network connection required.
 
 ### Relationship to the simulation
 
-The visualiser reads its data from the same `c???_input.txt` and `c???_expected.txt`
-files that the VHDL testbench loads via textio. The tap values displayed in the
-visualiser are the exact bytes the simulation checks. If all 324 configurations print
-PASS in xsim and the visualiser shows the expected tap window for a given pixel, they
-are provably showing the same data.
+The visualiser embeds the data from the same `c???_input.txt` and `c???_expected.txt`
+files that the VHDL testbench checks via textio. The tap values shown in the visualiser
+are the exact bytes the simulation compares against. If all 324 configurations print
+PASS in xsim, the visualiser and the testbench are provably showing the same data.
 
 ### Generating / Updating
 
@@ -416,57 +415,65 @@ python scripts/gen_tb.py --html
 
 Run from the repo root. Regenerates `tb/conv2d_tb.vhd`, all 648 vector files, and
 `tb/visualize.html` in one pass. To regenerate only the HTML from existing vector
-files without touching the testbench or vectors, run `python scripts/visualize.py`.
+files, run `python scripts/visualize.py`.
 
 ### Selecting a Configuration
 
-Use the **Config** dropdown (top-left) to pick any of the 324 test configurations.
-Each entry shows kernel size, edge mode, flush state, and frame dimensions.
+Use the sidebar dropdowns to filter by **Window size**, **Edge mode**, **Flush**, and
+**Frame size**. The status plates at the top of the main panel show the active Config
+number, kernel dimensions, frame dimensions, edge mode, and flush/streaming mode.
 
-### Explore Mode
+### Cycle scrubber and transport
 
-Press `E` or click **Explore** to browse the input frames.
+The **Cycle** slider steps through every clock cycle in the simulation trace for the
+selected configuration. Transport buttons jump to the first or last cycle, or step one
+cycle at a time. The cycle counter shows the current position out of the total.
 
-- Click any pixel in the frame heatmap to select it.
-- The tap window panel (right) shows the M×N neighbourhood for that pixel, taken
-  directly from the golden vector file — identical to what the testbench checks.
-- The selected pixel and its window footprint are highlighted on the heatmap.
-- Use the frame selector to switch between frames.
+**Quick-jump buttons** skip directly to the next event of interest:
 
-### Simulate Mode
-
-Press `S` or click **Simulate** to step through the cycle-accurate pipeline trace.
-
-Each step corresponds to one clock cycle at which the DUT produces a valid output.
-Two pipeline stage cards are shown:
-
-| Stage | What it shows |
+| Button | Jumps to |
 |---|---|
-| **ACCEPT** (green) | The trigger pixel accepted 2 cycles before this output — pixel (out_r + HALF_R, out_c + HALF_C), the bottom-right corner of the window. |
-| **OUTPUT** (blue) | The window now valid at `m_tdata` / `m_tvalid`, centred on pixel (out_r, out_c). Tap values are read from the golden vector file. |
+| First output | First cycle with a valid output |
+| Next output | Next cycle with a valid output |
+| Next stall | Next back-pressure stall cycle |
+| Next flush | Next flush-injected zero cycle |
 
-Flush-injected pixels (FLUSH=on dummy zero rows) are labelled *flush* and appear in
-the padding border of the frame canvas. Both pipeline positions are highlighted on
-the canvas simultaneously.
+### Cycle phases
 
-#### Playback controls
+Each cycle is colour-coded by pipeline phase:
 
-| Control | Action |
-|---|---|
-| ⏮ / ⏭ | Jump to first / last output |
-| ⏪ / ⏩ | Step back / forward one cycle |
-| ▶ / ⏸ | Play / pause |
-| Scrubber | Drag to any position |
-| Speed | 0.5× / 1× / 2× / 4× / 10× / 25× |
+| Phase | Colour | Meaning |
+|---|---|---|
+| INPUT | Green | A real input pixel was accepted this cycle |
+| FLUSH | Teal | A flush-injected zero row was pushed this cycle |
+| STALL | Amber | Back-pressure — downstream held `m_tready` low |
+| DUMMY_COL | Blue | Column-padding push (right of the last real pixel in a row) |
+| DRAIN | Purple | Drain cycles after the last push |
+| RESET | Dark | Reset or pre-simulation idle |
 
-#### Keyboard shortcuts
+### Information panels
 
-| Key | Action |
-|---|---|
-| `←` / `→` | Step back / forward |
-| `Home` / `End` | First / last output |
-| `Space` | Play / pause |
-| `,` / `.` | Previous / next configuration |
+**Cycle story** — a plain-text narrative describing exactly what happened this cycle:
+what pixel was accepted, what BRAM slot was written, whether an output fired.
+
+**What is happening / Input / Output** — three readout cards showing:
+- the phase badge and any pipeline notes
+- the input pixel value, its frame/row/column, and which BRAM row was written
+- the output tap vector index and the M×N tap values from the golden vector file
+
+**Output tap grid** — the M×N window of tap values for the current output cycle,
+laid out in kernel order. Values are read directly from the golden vector file.
+
+**BRAM physical rows / BRAM logical age order** — shows the BRAM contents at the
+current cycle, either in physical slot order or rotated to age order (oldest row
+first). Toggle between views with the **Essential / All data** buttons.
+
+### Three-frame overview and timeline
+
+The right panel shows all three input frames as pixel heatmaps, with the current
+input pixel and output window footprint highlighted. Below the frames, a **Timeline**
+strip shows every cycle in the trace colour-coded by phase, with the current cycle
+marked — click any cell to jump directly to that cycle.
 
 ---
 
