@@ -22,6 +22,13 @@ If this rule is ever violated, treat it as a signal to re-read this file immedia
 - Architecture proposal approved by owner: 3-subblock split (line_buf / win_buf / conv2d)
 - BRAM inference confirmed: 2× RAMB18 in synthesis, 0 LUT-as-memory
 
+### Synthesis Result (3×3 8-bit, XC7Z020, project-mode, 2026-07-02)
+- conv2d total: 254 Slice LUTs, 315 Slice Registers, 1 Block RAM Tile (= 1 RAMB36 = 2 RAMB18)
+  - u_line_buf: 46 LUTs, 0 regs, 1 BRAM Tile (BRAM inference confirmed, 0 LUT-as-RAM)
+  - u_win_buf:  8 LUTs, 72 regs (9-pixel × 8-bit FF shift register), 0 BRAM
+  - conv2d logic: 200 LUTs, 243 regs, 0 BRAM
+- Timing: WNS=inf, TNS=0.000ns, 0 failing endpoints / 1083 (no user constraints applied)
+
 ### Phase 2 — COMPLETE ✓
 - RTL: `src/line_buf.vhd`, `src/win_buf.vhd`, `src/conv2d.vhd`
 - Simulation smoke-test passed (manually driven)

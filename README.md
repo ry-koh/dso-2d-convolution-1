@@ -472,18 +472,37 @@ the canvas simultaneously.
 
 ## Synthesis Resource Reference (XC7Z020, 3×3, 8-bit)
 
-From out-of-context synthesis only — not a timing-closed implementation:
+Project-mode synthesis (no implementation, no timing constraints). Device: XC7Z020-CLG484-1.
 
-| Resource | Used | Available |
-|---|---|---|
-| RAMB18 | 2 | 280 |
-| Slice LUTs (logic) | ~50 | 53,200 |
-| Slice Registers | ~80 | 106,400 |
-| DSP48E1 | 0 | 220 |
+### Utilisation by block
 
-BRAM inference is confirmed: 0 LUT-as-RAM. Larger kernels add one RAMB18 per additional
-row buffer slot. The design scales with device resources; there is no hard upper bound on
-kernel size beyond what the device can accommodate.
+| Block | Slice LUTs (/ 53,200) | Slice Registers (/ 106,400) | Block RAM Tiles (/ 140) |
+|---|---|---|---|
+| **conv2d** (total) | **254** | **315** | **1** |
+| u_line_buf | 46 | 0 | 1 |
+| u_win_buf | 8 | 72 | 0 |
+| conv2d logic | 200 | 243 | 0 |
+
+1 Block RAM Tile = 1 RAMB36 = 2 RAMB18. BRAM inference confirmed: `u_line_buf` uses the
+RAMB36 and 0 LUT-as-RAM. `u_win_buf`'s 72 registers are the 9-pixel × 8-bit FF shift
+register. No DSP48E1 used (0 / 220).
+
+### Timing
+
+| Metric | Value |
+|---|---|
+| Worst Negative Slack (WNS) | inf (no constraints) |
+| Total Negative Slack (TNS) | 0.000 ns |
+| Failing endpoints | 0 / 1083 |
+
+No user timing constraints were applied. To obtain a meaningful Fmax estimate, add a
+clock constraint (e.g. `create_clock -period 10.0 [get_ports clk]`) before synthesis.
+
+### Scaling
+
+Larger kernels add one RAMB18 per additional row buffer slot (`KERN_ROWS − 1` total).
+Slice LUT and register counts grow with `KERN_ROWS × KERN_COLS` (the tap output
+pipeline registers) and `KERN_COLS` (the `win_buf` shift register width).
 
 ---
 
