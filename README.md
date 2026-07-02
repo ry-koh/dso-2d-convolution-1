@@ -470,9 +470,11 @@ the canvas simultaneously.
 
 ---
 
-## Synthesis Resource Reference (XC7Z020, 3×3, 8-bit)
+## Synthesis Resource Reference
 
-Project-mode synthesis (no implementation, no timing constraints). Device: XC7Z020-CLG484-1.
+Device: XC7Z020-CLG484-1. Project-mode synthesis, no implementation, no timing constraints.
+Numbers below are for the default generic values (KERN_ROWS=3, KERN_COLS=3, DATA_WIDTH=8).
+Resource counts scale with kernel size and data width — see the Scaling section below.
 
 ### Utilisation by block
 
