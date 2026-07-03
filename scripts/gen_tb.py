@@ -290,12 +290,12 @@ _BP_LARGE_KERNEL = _find(3, 5, "REPLICATE", True,  8, 8)   # 3x5 REPLICATE FLUSH
 
 BP_INFO = {}
 for idx, info in [
-    (_BP_POST_RESET,   {'type': 'post_reset', 'stall_cycles': 10, 'tap': 0,
-                        'note': 'Back-pressure: m_tready(0)=0 for 10 cycles post-reset'}),
-    (_BP_MID_FLUSH,    {'type': 'mid_sim', 'start_cycle': 210, 'stall_cycles': 15, 'tap': 0,
-                        'note': 'Back-pressure: m_tready(0)=0 for 15 cycles mid-sim'}),
-    (_BP_LARGE_KERNEL, {'type': 'post_reset', 'stall_cycles': 10, 'tap': 'last',
-                        'note': 'Back-pressure: m_tready(NUM_TAPS-1)=0 for 10 cycles post-reset'}),
+    (_BP_POST_RESET,   {'type': 'post_reset', 'stall_cycles': 10,
+                        'note': 'Back-pressure: m_tready=0 for 10 cycles post-reset'}),
+    (_BP_MID_FLUSH,    {'type': 'mid_sim', 'start_cycle': 210, 'stall_cycles': 15,
+                        'note': 'Back-pressure: m_tready=0 for 15 cycles mid-sim'}),
+    (_BP_LARGE_KERNEL, {'type': 'post_reset', 'stall_cycles': 10,
+                        'note': 'Back-pressure: m_tready=0 for 10 cycles post-reset'}),
 ]:
     if idx is not None:
         BP_INFO[idx] = info
@@ -347,7 +347,7 @@ def gen_signals(i, cfg):
     signal {p}_suser  : std_logic := '0';
     signal {p}_mdata  : std_logic_vector({dw}*{nt}-1 downto 0);
     signal {p}_mvalid : std_logic;
-    signal {p}_mready : std_logic_vector({nt}-1 downto 0) := (others => '1');
+    signal {p}_mready : std_logic := '1';
     signal {p}_mlast  : std_logic;
     signal {p}_muser  : std_logic;"""
 
@@ -431,7 +431,7 @@ def gen_check(i, cfg, label):
         wait until {sp}_rst = '0';
         file_open(f, {cp}_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and {sp}_mvalid = '1' and (and {sp}_mready) = '1';
+            wait until rising_edge(clk) and {sp}_mvalid = '1' and {sp}_mready = '1';
             readline(f, ln);
             for tap in 0 to {nt}-1 loop
                 read(ln, tv);
@@ -1726,30 +1726,24 @@ architecture tb of conv2d_tb is
         check_blocks .append(gen_check(i, cfg, label))
 
     # Back-pressure scenarios.
-    for idx_0, desc, port_expr, port_rest_expr in [
-        (_BP_POST_RESET,   "post_reset — m_tready(0) stalled 10 cycles post-reset",
-         "(0) <= '0'", f"(C{(_BP_POST_RESET+1):03d}_NUM_TAPS-1 downto 1) <= (others => '1')"),
-        (_BP_LARGE_KERNEL, "post_reset_last — m_tready(NUM_TAPS-1) stalled 10 cycles post-reset",
-         f"(C{(_BP_LARGE_KERNEL+1):03d}_NUM_TAPS-1) <= '0'",
-         f"(C{(_BP_LARGE_KERNEL+1):03d}_NUM_TAPS-2 downto 0) <= (others => '1')"),
-        (_BP_MID_FLUSH,    "mid_sim — m_tready(0) stalled 15 cycles mid-sim",
-         None, None),
+    for idx_0, desc, delay_cycles, stall_cycles in [
+        (_BP_POST_RESET,   "post_reset — m_tready stalled 10 cycles post-reset",   None, 10),
+        (_BP_LARGE_KERNEL, "post_reset_last — m_tready stalled 10 cycles post-reset", None, 10),
+        (_BP_MID_FLUSH,    "mid_sim — m_tready stalled 15 cycles mid-sim",          210,  15),
     ]:
         if idx_0 is None:
             continue
         n = idx_0 + 1
         sp = f"c{n:03d}"
-        cp = f"C{n:03d}"
-        if desc.startswith("mid_sim"):
+        if delay_cycles is None:
             bp_blocks.append(f"""\
     -- BP: cfg{n:03d} ({desc})
     p_bp_{n:03d} : process
     begin
+        {sp}_mready <= '0';
         wait until {sp}_rst = '0';
-        wait for CLK_PERIOD * 210;
-        {sp}_mready(0) <= '0';
-        wait for CLK_PERIOD * 15;
-        {sp}_mready(0) <= '1';
+        wait for CLK_PERIOD * {stall_cycles};
+        {sp}_mready <= '1';
         wait;
     end process p_bp_{n:03d};""")
         else:
@@ -1757,11 +1751,11 @@ architecture tb of conv2d_tb is
     -- BP: cfg{n:03d} ({desc})
     p_bp_{n:03d} : process
     begin
-        {sp}_mready{port_expr};
-        {sp}_mready{port_rest_expr};
         wait until {sp}_rst = '0';
-        wait for CLK_PERIOD * 10;
-        {sp}_mready <= (others => '1');
+        wait for CLK_PERIOD * {delay_cycles};
+        {sp}_mready <= '0';
+        wait for CLK_PERIOD * {stall_cycles};
+        {sp}_mready <= '1';
         wait;
     end process p_bp_{n:03d};""")
 

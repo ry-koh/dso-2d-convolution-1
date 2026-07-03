@@ -27,7 +27,7 @@
 --
 -- BRAM count: KERN_ROWS-1 (same as bottom-right design).
 -- Pipeline depth: 3 stages (accept -> delay -> output).
--- Back-pressure: all m_tready AND-gated; BRAM read gated by all_ready.
+-- Back-pressure: single m_tready stalls the pipeline; BRAM read gated by all_ready.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -55,7 +55,7 @@ entity conv2d is
 
         m_tdata  : out std_logic_vector(DATA_WIDTH * KERN_ROWS * KERN_COLS - 1 downto 0);
         m_tvalid : out std_logic;
-        m_tready : in  std_logic_vector(KERN_ROWS * KERN_COLS - 1 downto 0);
+        m_tready : in  std_logic;
         m_tlast  : out std_logic;
         m_tuser  : out std_logic
     );
@@ -155,18 +155,7 @@ architecture rtl of conv2d is
 
 begin
 
-    -- -----------------------------------------------------------------------
-    -- Back-pressure
-    -- -----------------------------------------------------------------------
-    p_all_ready : process (m_tready)
-        variable v : std_logic;
-    begin
-        v := '1';
-        for i in 0 to NUM_TAPS - 1 loop
-            v := v and m_tready(i);
-        end loop;
-        all_ready <= v;
-    end process;
+    all_ready <= m_tready;
 
     -- Accept real pixels only when in real-column range and not flushing.
     pixel_accepted <= s_tvalid and all_ready and not flush_push and not tor_flush_push

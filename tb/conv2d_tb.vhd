@@ -3598,7 +3598,7 @@ architecture tb of conv2d_tb is
     signal c001_suser  : std_logic := '0';
     signal c001_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c001_mvalid : std_logic;
-    signal c001_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c001_mready : std_logic := '1';
     signal c001_mlast  : std_logic;
     signal c001_muser  : std_logic;
 
@@ -3610,7 +3610,7 @@ architecture tb of conv2d_tb is
     signal c002_suser  : std_logic := '0';
     signal c002_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c002_mvalid : std_logic;
-    signal c002_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c002_mready : std_logic := '1';
     signal c002_mlast  : std_logic;
     signal c002_muser  : std_logic;
 
@@ -3622,7 +3622,7 @@ architecture tb of conv2d_tb is
     signal c003_suser  : std_logic := '0';
     signal c003_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c003_mvalid : std_logic;
-    signal c003_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c003_mready : std_logic := '1';
     signal c003_mlast  : std_logic;
     signal c003_muser  : std_logic;
 
@@ -3634,7 +3634,7 @@ architecture tb of conv2d_tb is
     signal c004_suser  : std_logic := '0';
     signal c004_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c004_mvalid : std_logic;
-    signal c004_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c004_mready : std_logic := '1';
     signal c004_mlast  : std_logic;
     signal c004_muser  : std_logic;
 
@@ -3646,7 +3646,7 @@ architecture tb of conv2d_tb is
     signal c005_suser  : std_logic := '0';
     signal c005_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c005_mvalid : std_logic;
-    signal c005_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c005_mready : std_logic := '1';
     signal c005_mlast  : std_logic;
     signal c005_muser  : std_logic;
 
@@ -3658,7 +3658,7 @@ architecture tb of conv2d_tb is
     signal c006_suser  : std_logic := '0';
     signal c006_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c006_mvalid : std_logic;
-    signal c006_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c006_mready : std_logic := '1';
     signal c006_mlast  : std_logic;
     signal c006_muser  : std_logic;
 
@@ -3670,7 +3670,7 @@ architecture tb of conv2d_tb is
     signal c007_suser  : std_logic := '0';
     signal c007_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c007_mvalid : std_logic;
-    signal c007_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c007_mready : std_logic := '1';
     signal c007_mlast  : std_logic;
     signal c007_muser  : std_logic;
 
@@ -3682,7 +3682,7 @@ architecture tb of conv2d_tb is
     signal c008_suser  : std_logic := '0';
     signal c008_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c008_mvalid : std_logic;
-    signal c008_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c008_mready : std_logic := '1';
     signal c008_mlast  : std_logic;
     signal c008_muser  : std_logic;
 
@@ -3694,7 +3694,7 @@ architecture tb of conv2d_tb is
     signal c009_suser  : std_logic := '0';
     signal c009_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c009_mvalid : std_logic;
-    signal c009_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c009_mready : std_logic := '1';
     signal c009_mlast  : std_logic;
     signal c009_muser  : std_logic;
 
@@ -3706,7 +3706,7 @@ architecture tb of conv2d_tb is
     signal c010_suser  : std_logic := '0';
     signal c010_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c010_mvalid : std_logic;
-    signal c010_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c010_mready : std_logic := '1';
     signal c010_mlast  : std_logic;
     signal c010_muser  : std_logic;
 
@@ -3718,7 +3718,7 @@ architecture tb of conv2d_tb is
     signal c011_suser  : std_logic := '0';
     signal c011_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c011_mvalid : std_logic;
-    signal c011_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c011_mready : std_logic := '1';
     signal c011_mlast  : std_logic;
     signal c011_muser  : std_logic;
 
@@ -3730,7 +3730,7 @@ architecture tb of conv2d_tb is
     signal c012_suser  : std_logic := '0';
     signal c012_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c012_mvalid : std_logic;
-    signal c012_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c012_mready : std_logic := '1';
     signal c012_mlast  : std_logic;
     signal c012_muser  : std_logic;
 
@@ -3742,7 +3742,7 @@ architecture tb of conv2d_tb is
     signal c013_suser  : std_logic := '0';
     signal c013_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c013_mvalid : std_logic;
-    signal c013_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c013_mready : std_logic := '1';
     signal c013_mlast  : std_logic;
     signal c013_muser  : std_logic;
 
@@ -3754,7 +3754,7 @@ architecture tb of conv2d_tb is
     signal c014_suser  : std_logic := '0';
     signal c014_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c014_mvalid : std_logic;
-    signal c014_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c014_mready : std_logic := '1';
     signal c014_mlast  : std_logic;
     signal c014_muser  : std_logic;
 
@@ -3766,7 +3766,7 @@ architecture tb of conv2d_tb is
     signal c015_suser  : std_logic := '0';
     signal c015_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c015_mvalid : std_logic;
-    signal c015_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c015_mready : std_logic := '1';
     signal c015_mlast  : std_logic;
     signal c015_muser  : std_logic;
 
@@ -3778,7 +3778,7 @@ architecture tb of conv2d_tb is
     signal c016_suser  : std_logic := '0';
     signal c016_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c016_mvalid : std_logic;
-    signal c016_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c016_mready : std_logic := '1';
     signal c016_mlast  : std_logic;
     signal c016_muser  : std_logic;
 
@@ -3790,7 +3790,7 @@ architecture tb of conv2d_tb is
     signal c017_suser  : std_logic := '0';
     signal c017_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c017_mvalid : std_logic;
-    signal c017_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c017_mready : std_logic := '1';
     signal c017_mlast  : std_logic;
     signal c017_muser  : std_logic;
 
@@ -3802,7 +3802,7 @@ architecture tb of conv2d_tb is
     signal c018_suser  : std_logic := '0';
     signal c018_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c018_mvalid : std_logic;
-    signal c018_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c018_mready : std_logic := '1';
     signal c018_mlast  : std_logic;
     signal c018_muser  : std_logic;
 
@@ -3814,7 +3814,7 @@ architecture tb of conv2d_tb is
     signal c019_suser  : std_logic := '0';
     signal c019_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c019_mvalid : std_logic;
-    signal c019_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c019_mready : std_logic := '1';
     signal c019_mlast  : std_logic;
     signal c019_muser  : std_logic;
 
@@ -3826,7 +3826,7 @@ architecture tb of conv2d_tb is
     signal c020_suser  : std_logic := '0';
     signal c020_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c020_mvalid : std_logic;
-    signal c020_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c020_mready : std_logic := '1';
     signal c020_mlast  : std_logic;
     signal c020_muser  : std_logic;
 
@@ -3838,7 +3838,7 @@ architecture tb of conv2d_tb is
     signal c021_suser  : std_logic := '0';
     signal c021_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c021_mvalid : std_logic;
-    signal c021_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c021_mready : std_logic := '1';
     signal c021_mlast  : std_logic;
     signal c021_muser  : std_logic;
 
@@ -3850,7 +3850,7 @@ architecture tb of conv2d_tb is
     signal c022_suser  : std_logic := '0';
     signal c022_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c022_mvalid : std_logic;
-    signal c022_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c022_mready : std_logic := '1';
     signal c022_mlast  : std_logic;
     signal c022_muser  : std_logic;
 
@@ -3862,7 +3862,7 @@ architecture tb of conv2d_tb is
     signal c023_suser  : std_logic := '0';
     signal c023_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c023_mvalid : std_logic;
-    signal c023_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c023_mready : std_logic := '1';
     signal c023_mlast  : std_logic;
     signal c023_muser  : std_logic;
 
@@ -3874,7 +3874,7 @@ architecture tb of conv2d_tb is
     signal c024_suser  : std_logic := '0';
     signal c024_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c024_mvalid : std_logic;
-    signal c024_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c024_mready : std_logic := '1';
     signal c024_mlast  : std_logic;
     signal c024_muser  : std_logic;
 
@@ -3886,7 +3886,7 @@ architecture tb of conv2d_tb is
     signal c025_suser  : std_logic := '0';
     signal c025_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c025_mvalid : std_logic;
-    signal c025_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c025_mready : std_logic := '1';
     signal c025_mlast  : std_logic;
     signal c025_muser  : std_logic;
 
@@ -3898,7 +3898,7 @@ architecture tb of conv2d_tb is
     signal c026_suser  : std_logic := '0';
     signal c026_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c026_mvalid : std_logic;
-    signal c026_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c026_mready : std_logic := '1';
     signal c026_mlast  : std_logic;
     signal c026_muser  : std_logic;
 
@@ -3910,7 +3910,7 @@ architecture tb of conv2d_tb is
     signal c027_suser  : std_logic := '0';
     signal c027_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c027_mvalid : std_logic;
-    signal c027_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c027_mready : std_logic := '1';
     signal c027_mlast  : std_logic;
     signal c027_muser  : std_logic;
 
@@ -3922,7 +3922,7 @@ architecture tb of conv2d_tb is
     signal c028_suser  : std_logic := '0';
     signal c028_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c028_mvalid : std_logic;
-    signal c028_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c028_mready : std_logic := '1';
     signal c028_mlast  : std_logic;
     signal c028_muser  : std_logic;
 
@@ -3934,7 +3934,7 @@ architecture tb of conv2d_tb is
     signal c029_suser  : std_logic := '0';
     signal c029_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c029_mvalid : std_logic;
-    signal c029_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c029_mready : std_logic := '1';
     signal c029_mlast  : std_logic;
     signal c029_muser  : std_logic;
 
@@ -3946,7 +3946,7 @@ architecture tb of conv2d_tb is
     signal c030_suser  : std_logic := '0';
     signal c030_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c030_mvalid : std_logic;
-    signal c030_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c030_mready : std_logic := '1';
     signal c030_mlast  : std_logic;
     signal c030_muser  : std_logic;
 
@@ -3958,7 +3958,7 @@ architecture tb of conv2d_tb is
     signal c031_suser  : std_logic := '0';
     signal c031_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c031_mvalid : std_logic;
-    signal c031_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c031_mready : std_logic := '1';
     signal c031_mlast  : std_logic;
     signal c031_muser  : std_logic;
 
@@ -3970,7 +3970,7 @@ architecture tb of conv2d_tb is
     signal c032_suser  : std_logic := '0';
     signal c032_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c032_mvalid : std_logic;
-    signal c032_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c032_mready : std_logic := '1';
     signal c032_mlast  : std_logic;
     signal c032_muser  : std_logic;
 
@@ -3982,7 +3982,7 @@ architecture tb of conv2d_tb is
     signal c033_suser  : std_logic := '0';
     signal c033_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c033_mvalid : std_logic;
-    signal c033_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c033_mready : std_logic := '1';
     signal c033_mlast  : std_logic;
     signal c033_muser  : std_logic;
 
@@ -3994,7 +3994,7 @@ architecture tb of conv2d_tb is
     signal c034_suser  : std_logic := '0';
     signal c034_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c034_mvalid : std_logic;
-    signal c034_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c034_mready : std_logic := '1';
     signal c034_mlast  : std_logic;
     signal c034_muser  : std_logic;
 
@@ -4006,7 +4006,7 @@ architecture tb of conv2d_tb is
     signal c035_suser  : std_logic := '0';
     signal c035_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c035_mvalid : std_logic;
-    signal c035_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c035_mready : std_logic := '1';
     signal c035_mlast  : std_logic;
     signal c035_muser  : std_logic;
 
@@ -4018,7 +4018,7 @@ architecture tb of conv2d_tb is
     signal c036_suser  : std_logic := '0';
     signal c036_mdata  : std_logic_vector(8*9-1 downto 0);
     signal c036_mvalid : std_logic;
-    signal c036_mready : std_logic_vector(9-1 downto 0) := (others => '1');
+    signal c036_mready : std_logic := '1';
     signal c036_mlast  : std_logic;
     signal c036_muser  : std_logic;
 
@@ -4030,7 +4030,7 @@ architecture tb of conv2d_tb is
     signal c037_suser  : std_logic := '0';
     signal c037_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c037_mvalid : std_logic;
-    signal c037_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c037_mready : std_logic := '1';
     signal c037_mlast  : std_logic;
     signal c037_muser  : std_logic;
 
@@ -4042,7 +4042,7 @@ architecture tb of conv2d_tb is
     signal c038_suser  : std_logic := '0';
     signal c038_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c038_mvalid : std_logic;
-    signal c038_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c038_mready : std_logic := '1';
     signal c038_mlast  : std_logic;
     signal c038_muser  : std_logic;
 
@@ -4054,7 +4054,7 @@ architecture tb of conv2d_tb is
     signal c039_suser  : std_logic := '0';
     signal c039_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c039_mvalid : std_logic;
-    signal c039_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c039_mready : std_logic := '1';
     signal c039_mlast  : std_logic;
     signal c039_muser  : std_logic;
 
@@ -4066,7 +4066,7 @@ architecture tb of conv2d_tb is
     signal c040_suser  : std_logic := '0';
     signal c040_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c040_mvalid : std_logic;
-    signal c040_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c040_mready : std_logic := '1';
     signal c040_mlast  : std_logic;
     signal c040_muser  : std_logic;
 
@@ -4078,7 +4078,7 @@ architecture tb of conv2d_tb is
     signal c041_suser  : std_logic := '0';
     signal c041_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c041_mvalid : std_logic;
-    signal c041_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c041_mready : std_logic := '1';
     signal c041_mlast  : std_logic;
     signal c041_muser  : std_logic;
 
@@ -4090,7 +4090,7 @@ architecture tb of conv2d_tb is
     signal c042_suser  : std_logic := '0';
     signal c042_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c042_mvalid : std_logic;
-    signal c042_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c042_mready : std_logic := '1';
     signal c042_mlast  : std_logic;
     signal c042_muser  : std_logic;
 
@@ -4102,7 +4102,7 @@ architecture tb of conv2d_tb is
     signal c043_suser  : std_logic := '0';
     signal c043_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c043_mvalid : std_logic;
-    signal c043_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c043_mready : std_logic := '1';
     signal c043_mlast  : std_logic;
     signal c043_muser  : std_logic;
 
@@ -4114,7 +4114,7 @@ architecture tb of conv2d_tb is
     signal c044_suser  : std_logic := '0';
     signal c044_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c044_mvalid : std_logic;
-    signal c044_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c044_mready : std_logic := '1';
     signal c044_mlast  : std_logic;
     signal c044_muser  : std_logic;
 
@@ -4126,7 +4126,7 @@ architecture tb of conv2d_tb is
     signal c045_suser  : std_logic := '0';
     signal c045_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c045_mvalid : std_logic;
-    signal c045_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c045_mready : std_logic := '1';
     signal c045_mlast  : std_logic;
     signal c045_muser  : std_logic;
 
@@ -4138,7 +4138,7 @@ architecture tb of conv2d_tb is
     signal c046_suser  : std_logic := '0';
     signal c046_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c046_mvalid : std_logic;
-    signal c046_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c046_mready : std_logic := '1';
     signal c046_mlast  : std_logic;
     signal c046_muser  : std_logic;
 
@@ -4150,7 +4150,7 @@ architecture tb of conv2d_tb is
     signal c047_suser  : std_logic := '0';
     signal c047_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c047_mvalid : std_logic;
-    signal c047_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c047_mready : std_logic := '1';
     signal c047_mlast  : std_logic;
     signal c047_muser  : std_logic;
 
@@ -4162,7 +4162,7 @@ architecture tb of conv2d_tb is
     signal c048_suser  : std_logic := '0';
     signal c048_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c048_mvalid : std_logic;
-    signal c048_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c048_mready : std_logic := '1';
     signal c048_mlast  : std_logic;
     signal c048_muser  : std_logic;
 
@@ -4174,7 +4174,7 @@ architecture tb of conv2d_tb is
     signal c049_suser  : std_logic := '0';
     signal c049_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c049_mvalid : std_logic;
-    signal c049_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c049_mready : std_logic := '1';
     signal c049_mlast  : std_logic;
     signal c049_muser  : std_logic;
 
@@ -4186,7 +4186,7 @@ architecture tb of conv2d_tb is
     signal c050_suser  : std_logic := '0';
     signal c050_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c050_mvalid : std_logic;
-    signal c050_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c050_mready : std_logic := '1';
     signal c050_mlast  : std_logic;
     signal c050_muser  : std_logic;
 
@@ -4198,7 +4198,7 @@ architecture tb of conv2d_tb is
     signal c051_suser  : std_logic := '0';
     signal c051_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c051_mvalid : std_logic;
-    signal c051_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c051_mready : std_logic := '1';
     signal c051_mlast  : std_logic;
     signal c051_muser  : std_logic;
 
@@ -4210,7 +4210,7 @@ architecture tb of conv2d_tb is
     signal c052_suser  : std_logic := '0';
     signal c052_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c052_mvalid : std_logic;
-    signal c052_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c052_mready : std_logic := '1';
     signal c052_mlast  : std_logic;
     signal c052_muser  : std_logic;
 
@@ -4222,7 +4222,7 @@ architecture tb of conv2d_tb is
     signal c053_suser  : std_logic := '0';
     signal c053_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c053_mvalid : std_logic;
-    signal c053_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c053_mready : std_logic := '1';
     signal c053_mlast  : std_logic;
     signal c053_muser  : std_logic;
 
@@ -4234,7 +4234,7 @@ architecture tb of conv2d_tb is
     signal c054_suser  : std_logic := '0';
     signal c054_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c054_mvalid : std_logic;
-    signal c054_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c054_mready : std_logic := '1';
     signal c054_mlast  : std_logic;
     signal c054_muser  : std_logic;
 
@@ -4246,7 +4246,7 @@ architecture tb of conv2d_tb is
     signal c055_suser  : std_logic := '0';
     signal c055_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c055_mvalid : std_logic;
-    signal c055_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c055_mready : std_logic := '1';
     signal c055_mlast  : std_logic;
     signal c055_muser  : std_logic;
 
@@ -4258,7 +4258,7 @@ architecture tb of conv2d_tb is
     signal c056_suser  : std_logic := '0';
     signal c056_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c056_mvalid : std_logic;
-    signal c056_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c056_mready : std_logic := '1';
     signal c056_mlast  : std_logic;
     signal c056_muser  : std_logic;
 
@@ -4270,7 +4270,7 @@ architecture tb of conv2d_tb is
     signal c057_suser  : std_logic := '0';
     signal c057_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c057_mvalid : std_logic;
-    signal c057_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c057_mready : std_logic := '1';
     signal c057_mlast  : std_logic;
     signal c057_muser  : std_logic;
 
@@ -4282,7 +4282,7 @@ architecture tb of conv2d_tb is
     signal c058_suser  : std_logic := '0';
     signal c058_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c058_mvalid : std_logic;
-    signal c058_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c058_mready : std_logic := '1';
     signal c058_mlast  : std_logic;
     signal c058_muser  : std_logic;
 
@@ -4294,7 +4294,7 @@ architecture tb of conv2d_tb is
     signal c059_suser  : std_logic := '0';
     signal c059_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c059_mvalid : std_logic;
-    signal c059_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c059_mready : std_logic := '1';
     signal c059_mlast  : std_logic;
     signal c059_muser  : std_logic;
 
@@ -4306,7 +4306,7 @@ architecture tb of conv2d_tb is
     signal c060_suser  : std_logic := '0';
     signal c060_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c060_mvalid : std_logic;
-    signal c060_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c060_mready : std_logic := '1';
     signal c060_mlast  : std_logic;
     signal c060_muser  : std_logic;
 
@@ -4318,7 +4318,7 @@ architecture tb of conv2d_tb is
     signal c061_suser  : std_logic := '0';
     signal c061_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c061_mvalid : std_logic;
-    signal c061_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c061_mready : std_logic := '1';
     signal c061_mlast  : std_logic;
     signal c061_muser  : std_logic;
 
@@ -4330,7 +4330,7 @@ architecture tb of conv2d_tb is
     signal c062_suser  : std_logic := '0';
     signal c062_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c062_mvalid : std_logic;
-    signal c062_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c062_mready : std_logic := '1';
     signal c062_mlast  : std_logic;
     signal c062_muser  : std_logic;
 
@@ -4342,7 +4342,7 @@ architecture tb of conv2d_tb is
     signal c063_suser  : std_logic := '0';
     signal c063_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c063_mvalid : std_logic;
-    signal c063_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c063_mready : std_logic := '1';
     signal c063_mlast  : std_logic;
     signal c063_muser  : std_logic;
 
@@ -4354,7 +4354,7 @@ architecture tb of conv2d_tb is
     signal c064_suser  : std_logic := '0';
     signal c064_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c064_mvalid : std_logic;
-    signal c064_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c064_mready : std_logic := '1';
     signal c064_mlast  : std_logic;
     signal c064_muser  : std_logic;
 
@@ -4366,7 +4366,7 @@ architecture tb of conv2d_tb is
     signal c065_suser  : std_logic := '0';
     signal c065_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c065_mvalid : std_logic;
-    signal c065_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c065_mready : std_logic := '1';
     signal c065_mlast  : std_logic;
     signal c065_muser  : std_logic;
 
@@ -4378,7 +4378,7 @@ architecture tb of conv2d_tb is
     signal c066_suser  : std_logic := '0';
     signal c066_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c066_mvalid : std_logic;
-    signal c066_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c066_mready : std_logic := '1';
     signal c066_mlast  : std_logic;
     signal c066_muser  : std_logic;
 
@@ -4390,7 +4390,7 @@ architecture tb of conv2d_tb is
     signal c067_suser  : std_logic := '0';
     signal c067_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c067_mvalid : std_logic;
-    signal c067_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c067_mready : std_logic := '1';
     signal c067_mlast  : std_logic;
     signal c067_muser  : std_logic;
 
@@ -4402,7 +4402,7 @@ architecture tb of conv2d_tb is
     signal c068_suser  : std_logic := '0';
     signal c068_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c068_mvalid : std_logic;
-    signal c068_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c068_mready : std_logic := '1';
     signal c068_mlast  : std_logic;
     signal c068_muser  : std_logic;
 
@@ -4414,7 +4414,7 @@ architecture tb of conv2d_tb is
     signal c069_suser  : std_logic := '0';
     signal c069_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c069_mvalid : std_logic;
-    signal c069_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c069_mready : std_logic := '1';
     signal c069_mlast  : std_logic;
     signal c069_muser  : std_logic;
 
@@ -4426,7 +4426,7 @@ architecture tb of conv2d_tb is
     signal c070_suser  : std_logic := '0';
     signal c070_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c070_mvalid : std_logic;
-    signal c070_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c070_mready : std_logic := '1';
     signal c070_mlast  : std_logic;
     signal c070_muser  : std_logic;
 
@@ -4438,7 +4438,7 @@ architecture tb of conv2d_tb is
     signal c071_suser  : std_logic := '0';
     signal c071_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c071_mvalid : std_logic;
-    signal c071_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c071_mready : std_logic := '1';
     signal c071_mlast  : std_logic;
     signal c071_muser  : std_logic;
 
@@ -4450,7 +4450,7 @@ architecture tb of conv2d_tb is
     signal c072_suser  : std_logic := '0';
     signal c072_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c072_mvalid : std_logic;
-    signal c072_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c072_mready : std_logic := '1';
     signal c072_mlast  : std_logic;
     signal c072_muser  : std_logic;
 
@@ -4462,7 +4462,7 @@ architecture tb of conv2d_tb is
     signal c073_suser  : std_logic := '0';
     signal c073_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c073_mvalid : std_logic;
-    signal c073_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c073_mready : std_logic := '1';
     signal c073_mlast  : std_logic;
     signal c073_muser  : std_logic;
 
@@ -4474,7 +4474,7 @@ architecture tb of conv2d_tb is
     signal c074_suser  : std_logic := '0';
     signal c074_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c074_mvalid : std_logic;
-    signal c074_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c074_mready : std_logic := '1';
     signal c074_mlast  : std_logic;
     signal c074_muser  : std_logic;
 
@@ -4486,7 +4486,7 @@ architecture tb of conv2d_tb is
     signal c075_suser  : std_logic := '0';
     signal c075_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c075_mvalid : std_logic;
-    signal c075_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c075_mready : std_logic := '1';
     signal c075_mlast  : std_logic;
     signal c075_muser  : std_logic;
 
@@ -4498,7 +4498,7 @@ architecture tb of conv2d_tb is
     signal c076_suser  : std_logic := '0';
     signal c076_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c076_mvalid : std_logic;
-    signal c076_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c076_mready : std_logic := '1';
     signal c076_mlast  : std_logic;
     signal c076_muser  : std_logic;
 
@@ -4510,7 +4510,7 @@ architecture tb of conv2d_tb is
     signal c077_suser  : std_logic := '0';
     signal c077_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c077_mvalid : std_logic;
-    signal c077_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c077_mready : std_logic := '1';
     signal c077_mlast  : std_logic;
     signal c077_muser  : std_logic;
 
@@ -4522,7 +4522,7 @@ architecture tb of conv2d_tb is
     signal c078_suser  : std_logic := '0';
     signal c078_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c078_mvalid : std_logic;
-    signal c078_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c078_mready : std_logic := '1';
     signal c078_mlast  : std_logic;
     signal c078_muser  : std_logic;
 
@@ -4534,7 +4534,7 @@ architecture tb of conv2d_tb is
     signal c079_suser  : std_logic := '0';
     signal c079_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c079_mvalid : std_logic;
-    signal c079_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c079_mready : std_logic := '1';
     signal c079_mlast  : std_logic;
     signal c079_muser  : std_logic;
 
@@ -4546,7 +4546,7 @@ architecture tb of conv2d_tb is
     signal c080_suser  : std_logic := '0';
     signal c080_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c080_mvalid : std_logic;
-    signal c080_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c080_mready : std_logic := '1';
     signal c080_mlast  : std_logic;
     signal c080_muser  : std_logic;
 
@@ -4558,7 +4558,7 @@ architecture tb of conv2d_tb is
     signal c081_suser  : std_logic := '0';
     signal c081_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c081_mvalid : std_logic;
-    signal c081_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c081_mready : std_logic := '1';
     signal c081_mlast  : std_logic;
     signal c081_muser  : std_logic;
 
@@ -4570,7 +4570,7 @@ architecture tb of conv2d_tb is
     signal c082_suser  : std_logic := '0';
     signal c082_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c082_mvalid : std_logic;
-    signal c082_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c082_mready : std_logic := '1';
     signal c082_mlast  : std_logic;
     signal c082_muser  : std_logic;
 
@@ -4582,7 +4582,7 @@ architecture tb of conv2d_tb is
     signal c083_suser  : std_logic := '0';
     signal c083_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c083_mvalid : std_logic;
-    signal c083_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c083_mready : std_logic := '1';
     signal c083_mlast  : std_logic;
     signal c083_muser  : std_logic;
 
@@ -4594,7 +4594,7 @@ architecture tb of conv2d_tb is
     signal c084_suser  : std_logic := '0';
     signal c084_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c084_mvalid : std_logic;
-    signal c084_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c084_mready : std_logic := '1';
     signal c084_mlast  : std_logic;
     signal c084_muser  : std_logic;
 
@@ -4606,7 +4606,7 @@ architecture tb of conv2d_tb is
     signal c085_suser  : std_logic := '0';
     signal c085_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c085_mvalid : std_logic;
-    signal c085_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c085_mready : std_logic := '1';
     signal c085_mlast  : std_logic;
     signal c085_muser  : std_logic;
 
@@ -4618,7 +4618,7 @@ architecture tb of conv2d_tb is
     signal c086_suser  : std_logic := '0';
     signal c086_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c086_mvalid : std_logic;
-    signal c086_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c086_mready : std_logic := '1';
     signal c086_mlast  : std_logic;
     signal c086_muser  : std_logic;
 
@@ -4630,7 +4630,7 @@ architecture tb of conv2d_tb is
     signal c087_suser  : std_logic := '0';
     signal c087_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c087_mvalid : std_logic;
-    signal c087_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c087_mready : std_logic := '1';
     signal c087_mlast  : std_logic;
     signal c087_muser  : std_logic;
 
@@ -4642,7 +4642,7 @@ architecture tb of conv2d_tb is
     signal c088_suser  : std_logic := '0';
     signal c088_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c088_mvalid : std_logic;
-    signal c088_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c088_mready : std_logic := '1';
     signal c088_mlast  : std_logic;
     signal c088_muser  : std_logic;
 
@@ -4654,7 +4654,7 @@ architecture tb of conv2d_tb is
     signal c089_suser  : std_logic := '0';
     signal c089_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c089_mvalid : std_logic;
-    signal c089_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c089_mready : std_logic := '1';
     signal c089_mlast  : std_logic;
     signal c089_muser  : std_logic;
 
@@ -4666,7 +4666,7 @@ architecture tb of conv2d_tb is
     signal c090_suser  : std_logic := '0';
     signal c090_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c090_mvalid : std_logic;
-    signal c090_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c090_mready : std_logic := '1';
     signal c090_mlast  : std_logic;
     signal c090_muser  : std_logic;
 
@@ -4678,7 +4678,7 @@ architecture tb of conv2d_tb is
     signal c091_suser  : std_logic := '0';
     signal c091_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c091_mvalid : std_logic;
-    signal c091_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c091_mready : std_logic := '1';
     signal c091_mlast  : std_logic;
     signal c091_muser  : std_logic;
 
@@ -4690,7 +4690,7 @@ architecture tb of conv2d_tb is
     signal c092_suser  : std_logic := '0';
     signal c092_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c092_mvalid : std_logic;
-    signal c092_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c092_mready : std_logic := '1';
     signal c092_mlast  : std_logic;
     signal c092_muser  : std_logic;
 
@@ -4702,7 +4702,7 @@ architecture tb of conv2d_tb is
     signal c093_suser  : std_logic := '0';
     signal c093_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c093_mvalid : std_logic;
-    signal c093_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c093_mready : std_logic := '1';
     signal c093_mlast  : std_logic;
     signal c093_muser  : std_logic;
 
@@ -4714,7 +4714,7 @@ architecture tb of conv2d_tb is
     signal c094_suser  : std_logic := '0';
     signal c094_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c094_mvalid : std_logic;
-    signal c094_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c094_mready : std_logic := '1';
     signal c094_mlast  : std_logic;
     signal c094_muser  : std_logic;
 
@@ -4726,7 +4726,7 @@ architecture tb of conv2d_tb is
     signal c095_suser  : std_logic := '0';
     signal c095_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c095_mvalid : std_logic;
-    signal c095_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c095_mready : std_logic := '1';
     signal c095_mlast  : std_logic;
     signal c095_muser  : std_logic;
 
@@ -4738,7 +4738,7 @@ architecture tb of conv2d_tb is
     signal c096_suser  : std_logic := '0';
     signal c096_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c096_mvalid : std_logic;
-    signal c096_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c096_mready : std_logic := '1';
     signal c096_mlast  : std_logic;
     signal c096_muser  : std_logic;
 
@@ -4750,7 +4750,7 @@ architecture tb of conv2d_tb is
     signal c097_suser  : std_logic := '0';
     signal c097_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c097_mvalid : std_logic;
-    signal c097_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c097_mready : std_logic := '1';
     signal c097_mlast  : std_logic;
     signal c097_muser  : std_logic;
 
@@ -4762,7 +4762,7 @@ architecture tb of conv2d_tb is
     signal c098_suser  : std_logic := '0';
     signal c098_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c098_mvalid : std_logic;
-    signal c098_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c098_mready : std_logic := '1';
     signal c098_mlast  : std_logic;
     signal c098_muser  : std_logic;
 
@@ -4774,7 +4774,7 @@ architecture tb of conv2d_tb is
     signal c099_suser  : std_logic := '0';
     signal c099_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c099_mvalid : std_logic;
-    signal c099_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c099_mready : std_logic := '1';
     signal c099_mlast  : std_logic;
     signal c099_muser  : std_logic;
 
@@ -4786,7 +4786,7 @@ architecture tb of conv2d_tb is
     signal c100_suser  : std_logic := '0';
     signal c100_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c100_mvalid : std_logic;
-    signal c100_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c100_mready : std_logic := '1';
     signal c100_mlast  : std_logic;
     signal c100_muser  : std_logic;
 
@@ -4798,7 +4798,7 @@ architecture tb of conv2d_tb is
     signal c101_suser  : std_logic := '0';
     signal c101_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c101_mvalid : std_logic;
-    signal c101_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c101_mready : std_logic := '1';
     signal c101_mlast  : std_logic;
     signal c101_muser  : std_logic;
 
@@ -4810,7 +4810,7 @@ architecture tb of conv2d_tb is
     signal c102_suser  : std_logic := '0';
     signal c102_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c102_mvalid : std_logic;
-    signal c102_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c102_mready : std_logic := '1';
     signal c102_mlast  : std_logic;
     signal c102_muser  : std_logic;
 
@@ -4822,7 +4822,7 @@ architecture tb of conv2d_tb is
     signal c103_suser  : std_logic := '0';
     signal c103_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c103_mvalid : std_logic;
-    signal c103_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c103_mready : std_logic := '1';
     signal c103_mlast  : std_logic;
     signal c103_muser  : std_logic;
 
@@ -4834,7 +4834,7 @@ architecture tb of conv2d_tb is
     signal c104_suser  : std_logic := '0';
     signal c104_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c104_mvalid : std_logic;
-    signal c104_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c104_mready : std_logic := '1';
     signal c104_mlast  : std_logic;
     signal c104_muser  : std_logic;
 
@@ -4846,7 +4846,7 @@ architecture tb of conv2d_tb is
     signal c105_suser  : std_logic := '0';
     signal c105_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c105_mvalid : std_logic;
-    signal c105_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c105_mready : std_logic := '1';
     signal c105_mlast  : std_logic;
     signal c105_muser  : std_logic;
 
@@ -4858,7 +4858,7 @@ architecture tb of conv2d_tb is
     signal c106_suser  : std_logic := '0';
     signal c106_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c106_mvalid : std_logic;
-    signal c106_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c106_mready : std_logic := '1';
     signal c106_mlast  : std_logic;
     signal c106_muser  : std_logic;
 
@@ -4870,7 +4870,7 @@ architecture tb of conv2d_tb is
     signal c107_suser  : std_logic := '0';
     signal c107_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c107_mvalid : std_logic;
-    signal c107_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c107_mready : std_logic := '1';
     signal c107_mlast  : std_logic;
     signal c107_muser  : std_logic;
 
@@ -4882,7 +4882,7 @@ architecture tb of conv2d_tb is
     signal c108_suser  : std_logic := '0';
     signal c108_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c108_mvalid : std_logic;
-    signal c108_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c108_mready : std_logic := '1';
     signal c108_mlast  : std_logic;
     signal c108_muser  : std_logic;
 
@@ -4894,7 +4894,7 @@ architecture tb of conv2d_tb is
     signal c109_suser  : std_logic := '0';
     signal c109_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c109_mvalid : std_logic;
-    signal c109_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c109_mready : std_logic := '1';
     signal c109_mlast  : std_logic;
     signal c109_muser  : std_logic;
 
@@ -4906,7 +4906,7 @@ architecture tb of conv2d_tb is
     signal c110_suser  : std_logic := '0';
     signal c110_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c110_mvalid : std_logic;
-    signal c110_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c110_mready : std_logic := '1';
     signal c110_mlast  : std_logic;
     signal c110_muser  : std_logic;
 
@@ -4918,7 +4918,7 @@ architecture tb of conv2d_tb is
     signal c111_suser  : std_logic := '0';
     signal c111_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c111_mvalid : std_logic;
-    signal c111_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c111_mready : std_logic := '1';
     signal c111_mlast  : std_logic;
     signal c111_muser  : std_logic;
 
@@ -4930,7 +4930,7 @@ architecture tb of conv2d_tb is
     signal c112_suser  : std_logic := '0';
     signal c112_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c112_mvalid : std_logic;
-    signal c112_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c112_mready : std_logic := '1';
     signal c112_mlast  : std_logic;
     signal c112_muser  : std_logic;
 
@@ -4942,7 +4942,7 @@ architecture tb of conv2d_tb is
     signal c113_suser  : std_logic := '0';
     signal c113_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c113_mvalid : std_logic;
-    signal c113_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c113_mready : std_logic := '1';
     signal c113_mlast  : std_logic;
     signal c113_muser  : std_logic;
 
@@ -4954,7 +4954,7 @@ architecture tb of conv2d_tb is
     signal c114_suser  : std_logic := '0';
     signal c114_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c114_mvalid : std_logic;
-    signal c114_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c114_mready : std_logic := '1';
     signal c114_mlast  : std_logic;
     signal c114_muser  : std_logic;
 
@@ -4966,7 +4966,7 @@ architecture tb of conv2d_tb is
     signal c115_suser  : std_logic := '0';
     signal c115_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c115_mvalid : std_logic;
-    signal c115_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c115_mready : std_logic := '1';
     signal c115_mlast  : std_logic;
     signal c115_muser  : std_logic;
 
@@ -4978,7 +4978,7 @@ architecture tb of conv2d_tb is
     signal c116_suser  : std_logic := '0';
     signal c116_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c116_mvalid : std_logic;
-    signal c116_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c116_mready : std_logic := '1';
     signal c116_mlast  : std_logic;
     signal c116_muser  : std_logic;
 
@@ -4990,7 +4990,7 @@ architecture tb of conv2d_tb is
     signal c117_suser  : std_logic := '0';
     signal c117_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c117_mvalid : std_logic;
-    signal c117_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c117_mready : std_logic := '1';
     signal c117_mlast  : std_logic;
     signal c117_muser  : std_logic;
 
@@ -5002,7 +5002,7 @@ architecture tb of conv2d_tb is
     signal c118_suser  : std_logic := '0';
     signal c118_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c118_mvalid : std_logic;
-    signal c118_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c118_mready : std_logic := '1';
     signal c118_mlast  : std_logic;
     signal c118_muser  : std_logic;
 
@@ -5014,7 +5014,7 @@ architecture tb of conv2d_tb is
     signal c119_suser  : std_logic := '0';
     signal c119_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c119_mvalid : std_logic;
-    signal c119_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c119_mready : std_logic := '1';
     signal c119_mlast  : std_logic;
     signal c119_muser  : std_logic;
 
@@ -5026,7 +5026,7 @@ architecture tb of conv2d_tb is
     signal c120_suser  : std_logic := '0';
     signal c120_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c120_mvalid : std_logic;
-    signal c120_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c120_mready : std_logic := '1';
     signal c120_mlast  : std_logic;
     signal c120_muser  : std_logic;
 
@@ -5038,7 +5038,7 @@ architecture tb of conv2d_tb is
     signal c121_suser  : std_logic := '0';
     signal c121_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c121_mvalid : std_logic;
-    signal c121_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c121_mready : std_logic := '1';
     signal c121_mlast  : std_logic;
     signal c121_muser  : std_logic;
 
@@ -5050,7 +5050,7 @@ architecture tb of conv2d_tb is
     signal c122_suser  : std_logic := '0';
     signal c122_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c122_mvalid : std_logic;
-    signal c122_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c122_mready : std_logic := '1';
     signal c122_mlast  : std_logic;
     signal c122_muser  : std_logic;
 
@@ -5062,7 +5062,7 @@ architecture tb of conv2d_tb is
     signal c123_suser  : std_logic := '0';
     signal c123_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c123_mvalid : std_logic;
-    signal c123_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c123_mready : std_logic := '1';
     signal c123_mlast  : std_logic;
     signal c123_muser  : std_logic;
 
@@ -5074,7 +5074,7 @@ architecture tb of conv2d_tb is
     signal c124_suser  : std_logic := '0';
     signal c124_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c124_mvalid : std_logic;
-    signal c124_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c124_mready : std_logic := '1';
     signal c124_mlast  : std_logic;
     signal c124_muser  : std_logic;
 
@@ -5086,7 +5086,7 @@ architecture tb of conv2d_tb is
     signal c125_suser  : std_logic := '0';
     signal c125_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c125_mvalid : std_logic;
-    signal c125_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c125_mready : std_logic := '1';
     signal c125_mlast  : std_logic;
     signal c125_muser  : std_logic;
 
@@ -5098,7 +5098,7 @@ architecture tb of conv2d_tb is
     signal c126_suser  : std_logic := '0';
     signal c126_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c126_mvalid : std_logic;
-    signal c126_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c126_mready : std_logic := '1';
     signal c126_mlast  : std_logic;
     signal c126_muser  : std_logic;
 
@@ -5110,7 +5110,7 @@ architecture tb of conv2d_tb is
     signal c127_suser  : std_logic := '0';
     signal c127_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c127_mvalid : std_logic;
-    signal c127_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c127_mready : std_logic := '1';
     signal c127_mlast  : std_logic;
     signal c127_muser  : std_logic;
 
@@ -5122,7 +5122,7 @@ architecture tb of conv2d_tb is
     signal c128_suser  : std_logic := '0';
     signal c128_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c128_mvalid : std_logic;
-    signal c128_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c128_mready : std_logic := '1';
     signal c128_mlast  : std_logic;
     signal c128_muser  : std_logic;
 
@@ -5134,7 +5134,7 @@ architecture tb of conv2d_tb is
     signal c129_suser  : std_logic := '0';
     signal c129_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c129_mvalid : std_logic;
-    signal c129_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c129_mready : std_logic := '1';
     signal c129_mlast  : std_logic;
     signal c129_muser  : std_logic;
 
@@ -5146,7 +5146,7 @@ architecture tb of conv2d_tb is
     signal c130_suser  : std_logic := '0';
     signal c130_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c130_mvalid : std_logic;
-    signal c130_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c130_mready : std_logic := '1';
     signal c130_mlast  : std_logic;
     signal c130_muser  : std_logic;
 
@@ -5158,7 +5158,7 @@ architecture tb of conv2d_tb is
     signal c131_suser  : std_logic := '0';
     signal c131_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c131_mvalid : std_logic;
-    signal c131_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c131_mready : std_logic := '1';
     signal c131_mlast  : std_logic;
     signal c131_muser  : std_logic;
 
@@ -5170,7 +5170,7 @@ architecture tb of conv2d_tb is
     signal c132_suser  : std_logic := '0';
     signal c132_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c132_mvalid : std_logic;
-    signal c132_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c132_mready : std_logic := '1';
     signal c132_mlast  : std_logic;
     signal c132_muser  : std_logic;
 
@@ -5182,7 +5182,7 @@ architecture tb of conv2d_tb is
     signal c133_suser  : std_logic := '0';
     signal c133_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c133_mvalid : std_logic;
-    signal c133_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c133_mready : std_logic := '1';
     signal c133_mlast  : std_logic;
     signal c133_muser  : std_logic;
 
@@ -5194,7 +5194,7 @@ architecture tb of conv2d_tb is
     signal c134_suser  : std_logic := '0';
     signal c134_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c134_mvalid : std_logic;
-    signal c134_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c134_mready : std_logic := '1';
     signal c134_mlast  : std_logic;
     signal c134_muser  : std_logic;
 
@@ -5206,7 +5206,7 @@ architecture tb of conv2d_tb is
     signal c135_suser  : std_logic := '0';
     signal c135_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c135_mvalid : std_logic;
-    signal c135_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c135_mready : std_logic := '1';
     signal c135_mlast  : std_logic;
     signal c135_muser  : std_logic;
 
@@ -5218,7 +5218,7 @@ architecture tb of conv2d_tb is
     signal c136_suser  : std_logic := '0';
     signal c136_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c136_mvalid : std_logic;
-    signal c136_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c136_mready : std_logic := '1';
     signal c136_mlast  : std_logic;
     signal c136_muser  : std_logic;
 
@@ -5230,7 +5230,7 @@ architecture tb of conv2d_tb is
     signal c137_suser  : std_logic := '0';
     signal c137_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c137_mvalid : std_logic;
-    signal c137_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c137_mready : std_logic := '1';
     signal c137_mlast  : std_logic;
     signal c137_muser  : std_logic;
 
@@ -5242,7 +5242,7 @@ architecture tb of conv2d_tb is
     signal c138_suser  : std_logic := '0';
     signal c138_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c138_mvalid : std_logic;
-    signal c138_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c138_mready : std_logic := '1';
     signal c138_mlast  : std_logic;
     signal c138_muser  : std_logic;
 
@@ -5254,7 +5254,7 @@ architecture tb of conv2d_tb is
     signal c139_suser  : std_logic := '0';
     signal c139_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c139_mvalid : std_logic;
-    signal c139_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c139_mready : std_logic := '1';
     signal c139_mlast  : std_logic;
     signal c139_muser  : std_logic;
 
@@ -5266,7 +5266,7 @@ architecture tb of conv2d_tb is
     signal c140_suser  : std_logic := '0';
     signal c140_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c140_mvalid : std_logic;
-    signal c140_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c140_mready : std_logic := '1';
     signal c140_mlast  : std_logic;
     signal c140_muser  : std_logic;
 
@@ -5278,7 +5278,7 @@ architecture tb of conv2d_tb is
     signal c141_suser  : std_logic := '0';
     signal c141_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c141_mvalid : std_logic;
-    signal c141_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c141_mready : std_logic := '1';
     signal c141_mlast  : std_logic;
     signal c141_muser  : std_logic;
 
@@ -5290,7 +5290,7 @@ architecture tb of conv2d_tb is
     signal c142_suser  : std_logic := '0';
     signal c142_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c142_mvalid : std_logic;
-    signal c142_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c142_mready : std_logic := '1';
     signal c142_mlast  : std_logic;
     signal c142_muser  : std_logic;
 
@@ -5302,7 +5302,7 @@ architecture tb of conv2d_tb is
     signal c143_suser  : std_logic := '0';
     signal c143_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c143_mvalid : std_logic;
-    signal c143_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c143_mready : std_logic := '1';
     signal c143_mlast  : std_logic;
     signal c143_muser  : std_logic;
 
@@ -5314,7 +5314,7 @@ architecture tb of conv2d_tb is
     signal c144_suser  : std_logic := '0';
     signal c144_mdata  : std_logic_vector(8*15-1 downto 0);
     signal c144_mvalid : std_logic;
-    signal c144_mready : std_logic_vector(15-1 downto 0) := (others => '1');
+    signal c144_mready : std_logic := '1';
     signal c144_mlast  : std_logic;
     signal c144_muser  : std_logic;
 
@@ -5326,7 +5326,7 @@ architecture tb of conv2d_tb is
     signal c145_suser  : std_logic := '0';
     signal c145_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c145_mvalid : std_logic;
-    signal c145_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c145_mready : std_logic := '1';
     signal c145_mlast  : std_logic;
     signal c145_muser  : std_logic;
 
@@ -5338,7 +5338,7 @@ architecture tb of conv2d_tb is
     signal c146_suser  : std_logic := '0';
     signal c146_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c146_mvalid : std_logic;
-    signal c146_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c146_mready : std_logic := '1';
     signal c146_mlast  : std_logic;
     signal c146_muser  : std_logic;
 
@@ -5350,7 +5350,7 @@ architecture tb of conv2d_tb is
     signal c147_suser  : std_logic := '0';
     signal c147_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c147_mvalid : std_logic;
-    signal c147_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c147_mready : std_logic := '1';
     signal c147_mlast  : std_logic;
     signal c147_muser  : std_logic;
 
@@ -5362,7 +5362,7 @@ architecture tb of conv2d_tb is
     signal c148_suser  : std_logic := '0';
     signal c148_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c148_mvalid : std_logic;
-    signal c148_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c148_mready : std_logic := '1';
     signal c148_mlast  : std_logic;
     signal c148_muser  : std_logic;
 
@@ -5374,7 +5374,7 @@ architecture tb of conv2d_tb is
     signal c149_suser  : std_logic := '0';
     signal c149_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c149_mvalid : std_logic;
-    signal c149_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c149_mready : std_logic := '1';
     signal c149_mlast  : std_logic;
     signal c149_muser  : std_logic;
 
@@ -5386,7 +5386,7 @@ architecture tb of conv2d_tb is
     signal c150_suser  : std_logic := '0';
     signal c150_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c150_mvalid : std_logic;
-    signal c150_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c150_mready : std_logic := '1';
     signal c150_mlast  : std_logic;
     signal c150_muser  : std_logic;
 
@@ -5398,7 +5398,7 @@ architecture tb of conv2d_tb is
     signal c151_suser  : std_logic := '0';
     signal c151_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c151_mvalid : std_logic;
-    signal c151_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c151_mready : std_logic := '1';
     signal c151_mlast  : std_logic;
     signal c151_muser  : std_logic;
 
@@ -5410,7 +5410,7 @@ architecture tb of conv2d_tb is
     signal c152_suser  : std_logic := '0';
     signal c152_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c152_mvalid : std_logic;
-    signal c152_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c152_mready : std_logic := '1';
     signal c152_mlast  : std_logic;
     signal c152_muser  : std_logic;
 
@@ -5422,7 +5422,7 @@ architecture tb of conv2d_tb is
     signal c153_suser  : std_logic := '0';
     signal c153_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c153_mvalid : std_logic;
-    signal c153_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c153_mready : std_logic := '1';
     signal c153_mlast  : std_logic;
     signal c153_muser  : std_logic;
 
@@ -5434,7 +5434,7 @@ architecture tb of conv2d_tb is
     signal c154_suser  : std_logic := '0';
     signal c154_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c154_mvalid : std_logic;
-    signal c154_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c154_mready : std_logic := '1';
     signal c154_mlast  : std_logic;
     signal c154_muser  : std_logic;
 
@@ -5446,7 +5446,7 @@ architecture tb of conv2d_tb is
     signal c155_suser  : std_logic := '0';
     signal c155_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c155_mvalid : std_logic;
-    signal c155_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c155_mready : std_logic := '1';
     signal c155_mlast  : std_logic;
     signal c155_muser  : std_logic;
 
@@ -5458,7 +5458,7 @@ architecture tb of conv2d_tb is
     signal c156_suser  : std_logic := '0';
     signal c156_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c156_mvalid : std_logic;
-    signal c156_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c156_mready : std_logic := '1';
     signal c156_mlast  : std_logic;
     signal c156_muser  : std_logic;
 
@@ -5470,7 +5470,7 @@ architecture tb of conv2d_tb is
     signal c157_suser  : std_logic := '0';
     signal c157_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c157_mvalid : std_logic;
-    signal c157_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c157_mready : std_logic := '1';
     signal c157_mlast  : std_logic;
     signal c157_muser  : std_logic;
 
@@ -5482,7 +5482,7 @@ architecture tb of conv2d_tb is
     signal c158_suser  : std_logic := '0';
     signal c158_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c158_mvalid : std_logic;
-    signal c158_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c158_mready : std_logic := '1';
     signal c158_mlast  : std_logic;
     signal c158_muser  : std_logic;
 
@@ -5494,7 +5494,7 @@ architecture tb of conv2d_tb is
     signal c159_suser  : std_logic := '0';
     signal c159_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c159_mvalid : std_logic;
-    signal c159_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c159_mready : std_logic := '1';
     signal c159_mlast  : std_logic;
     signal c159_muser  : std_logic;
 
@@ -5506,7 +5506,7 @@ architecture tb of conv2d_tb is
     signal c160_suser  : std_logic := '0';
     signal c160_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c160_mvalid : std_logic;
-    signal c160_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c160_mready : std_logic := '1';
     signal c160_mlast  : std_logic;
     signal c160_muser  : std_logic;
 
@@ -5518,7 +5518,7 @@ architecture tb of conv2d_tb is
     signal c161_suser  : std_logic := '0';
     signal c161_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c161_mvalid : std_logic;
-    signal c161_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c161_mready : std_logic := '1';
     signal c161_mlast  : std_logic;
     signal c161_muser  : std_logic;
 
@@ -5530,7 +5530,7 @@ architecture tb of conv2d_tb is
     signal c162_suser  : std_logic := '0';
     signal c162_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c162_mvalid : std_logic;
-    signal c162_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c162_mready : std_logic := '1';
     signal c162_mlast  : std_logic;
     signal c162_muser  : std_logic;
 
@@ -5542,7 +5542,7 @@ architecture tb of conv2d_tb is
     signal c163_suser  : std_logic := '0';
     signal c163_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c163_mvalid : std_logic;
-    signal c163_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c163_mready : std_logic := '1';
     signal c163_mlast  : std_logic;
     signal c163_muser  : std_logic;
 
@@ -5554,7 +5554,7 @@ architecture tb of conv2d_tb is
     signal c164_suser  : std_logic := '0';
     signal c164_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c164_mvalid : std_logic;
-    signal c164_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c164_mready : std_logic := '1';
     signal c164_mlast  : std_logic;
     signal c164_muser  : std_logic;
 
@@ -5566,7 +5566,7 @@ architecture tb of conv2d_tb is
     signal c165_suser  : std_logic := '0';
     signal c165_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c165_mvalid : std_logic;
-    signal c165_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c165_mready : std_logic := '1';
     signal c165_mlast  : std_logic;
     signal c165_muser  : std_logic;
 
@@ -5578,7 +5578,7 @@ architecture tb of conv2d_tb is
     signal c166_suser  : std_logic := '0';
     signal c166_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c166_mvalid : std_logic;
-    signal c166_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c166_mready : std_logic := '1';
     signal c166_mlast  : std_logic;
     signal c166_muser  : std_logic;
 
@@ -5590,7 +5590,7 @@ architecture tb of conv2d_tb is
     signal c167_suser  : std_logic := '0';
     signal c167_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c167_mvalid : std_logic;
-    signal c167_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c167_mready : std_logic := '1';
     signal c167_mlast  : std_logic;
     signal c167_muser  : std_logic;
 
@@ -5602,7 +5602,7 @@ architecture tb of conv2d_tb is
     signal c168_suser  : std_logic := '0';
     signal c168_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c168_mvalid : std_logic;
-    signal c168_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c168_mready : std_logic := '1';
     signal c168_mlast  : std_logic;
     signal c168_muser  : std_logic;
 
@@ -5614,7 +5614,7 @@ architecture tb of conv2d_tb is
     signal c169_suser  : std_logic := '0';
     signal c169_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c169_mvalid : std_logic;
-    signal c169_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c169_mready : std_logic := '1';
     signal c169_mlast  : std_logic;
     signal c169_muser  : std_logic;
 
@@ -5626,7 +5626,7 @@ architecture tb of conv2d_tb is
     signal c170_suser  : std_logic := '0';
     signal c170_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c170_mvalid : std_logic;
-    signal c170_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c170_mready : std_logic := '1';
     signal c170_mlast  : std_logic;
     signal c170_muser  : std_logic;
 
@@ -5638,7 +5638,7 @@ architecture tb of conv2d_tb is
     signal c171_suser  : std_logic := '0';
     signal c171_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c171_mvalid : std_logic;
-    signal c171_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c171_mready : std_logic := '1';
     signal c171_mlast  : std_logic;
     signal c171_muser  : std_logic;
 
@@ -5650,7 +5650,7 @@ architecture tb of conv2d_tb is
     signal c172_suser  : std_logic := '0';
     signal c172_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c172_mvalid : std_logic;
-    signal c172_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c172_mready : std_logic := '1';
     signal c172_mlast  : std_logic;
     signal c172_muser  : std_logic;
 
@@ -5662,7 +5662,7 @@ architecture tb of conv2d_tb is
     signal c173_suser  : std_logic := '0';
     signal c173_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c173_mvalid : std_logic;
-    signal c173_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c173_mready : std_logic := '1';
     signal c173_mlast  : std_logic;
     signal c173_muser  : std_logic;
 
@@ -5674,7 +5674,7 @@ architecture tb of conv2d_tb is
     signal c174_suser  : std_logic := '0';
     signal c174_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c174_mvalid : std_logic;
-    signal c174_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c174_mready : std_logic := '1';
     signal c174_mlast  : std_logic;
     signal c174_muser  : std_logic;
 
@@ -5686,7 +5686,7 @@ architecture tb of conv2d_tb is
     signal c175_suser  : std_logic := '0';
     signal c175_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c175_mvalid : std_logic;
-    signal c175_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c175_mready : std_logic := '1';
     signal c175_mlast  : std_logic;
     signal c175_muser  : std_logic;
 
@@ -5698,7 +5698,7 @@ architecture tb of conv2d_tb is
     signal c176_suser  : std_logic := '0';
     signal c176_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c176_mvalid : std_logic;
-    signal c176_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c176_mready : std_logic := '1';
     signal c176_mlast  : std_logic;
     signal c176_muser  : std_logic;
 
@@ -5710,7 +5710,7 @@ architecture tb of conv2d_tb is
     signal c177_suser  : std_logic := '0';
     signal c177_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c177_mvalid : std_logic;
-    signal c177_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c177_mready : std_logic := '1';
     signal c177_mlast  : std_logic;
     signal c177_muser  : std_logic;
 
@@ -5722,7 +5722,7 @@ architecture tb of conv2d_tb is
     signal c178_suser  : std_logic := '0';
     signal c178_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c178_mvalid : std_logic;
-    signal c178_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c178_mready : std_logic := '1';
     signal c178_mlast  : std_logic;
     signal c178_muser  : std_logic;
 
@@ -5734,7 +5734,7 @@ architecture tb of conv2d_tb is
     signal c179_suser  : std_logic := '0';
     signal c179_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c179_mvalid : std_logic;
-    signal c179_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c179_mready : std_logic := '1';
     signal c179_mlast  : std_logic;
     signal c179_muser  : std_logic;
 
@@ -5746,7 +5746,7 @@ architecture tb of conv2d_tb is
     signal c180_suser  : std_logic := '0';
     signal c180_mdata  : std_logic_vector(8*25-1 downto 0);
     signal c180_mvalid : std_logic;
-    signal c180_mready : std_logic_vector(25-1 downto 0) := (others => '1');
+    signal c180_mready : std_logic := '1';
     signal c180_mlast  : std_logic;
     signal c180_muser  : std_logic;
 
@@ -5758,7 +5758,7 @@ architecture tb of conv2d_tb is
     signal c181_suser  : std_logic := '0';
     signal c181_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c181_mvalid : std_logic;
-    signal c181_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c181_mready : std_logic := '1';
     signal c181_mlast  : std_logic;
     signal c181_muser  : std_logic;
 
@@ -5770,7 +5770,7 @@ architecture tb of conv2d_tb is
     signal c182_suser  : std_logic := '0';
     signal c182_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c182_mvalid : std_logic;
-    signal c182_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c182_mready : std_logic := '1';
     signal c182_mlast  : std_logic;
     signal c182_muser  : std_logic;
 
@@ -5782,7 +5782,7 @@ architecture tb of conv2d_tb is
     signal c183_suser  : std_logic := '0';
     signal c183_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c183_mvalid : std_logic;
-    signal c183_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c183_mready : std_logic := '1';
     signal c183_mlast  : std_logic;
     signal c183_muser  : std_logic;
 
@@ -5794,7 +5794,7 @@ architecture tb of conv2d_tb is
     signal c184_suser  : std_logic := '0';
     signal c184_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c184_mvalid : std_logic;
-    signal c184_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c184_mready : std_logic := '1';
     signal c184_mlast  : std_logic;
     signal c184_muser  : std_logic;
 
@@ -5806,7 +5806,7 @@ architecture tb of conv2d_tb is
     signal c185_suser  : std_logic := '0';
     signal c185_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c185_mvalid : std_logic;
-    signal c185_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c185_mready : std_logic := '1';
     signal c185_mlast  : std_logic;
     signal c185_muser  : std_logic;
 
@@ -5818,7 +5818,7 @@ architecture tb of conv2d_tb is
     signal c186_suser  : std_logic := '0';
     signal c186_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c186_mvalid : std_logic;
-    signal c186_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c186_mready : std_logic := '1';
     signal c186_mlast  : std_logic;
     signal c186_muser  : std_logic;
 
@@ -5830,7 +5830,7 @@ architecture tb of conv2d_tb is
     signal c187_suser  : std_logic := '0';
     signal c187_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c187_mvalid : std_logic;
-    signal c187_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c187_mready : std_logic := '1';
     signal c187_mlast  : std_logic;
     signal c187_muser  : std_logic;
 
@@ -5842,7 +5842,7 @@ architecture tb of conv2d_tb is
     signal c188_suser  : std_logic := '0';
     signal c188_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c188_mvalid : std_logic;
-    signal c188_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c188_mready : std_logic := '1';
     signal c188_mlast  : std_logic;
     signal c188_muser  : std_logic;
 
@@ -5854,7 +5854,7 @@ architecture tb of conv2d_tb is
     signal c189_suser  : std_logic := '0';
     signal c189_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c189_mvalid : std_logic;
-    signal c189_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c189_mready : std_logic := '1';
     signal c189_mlast  : std_logic;
     signal c189_muser  : std_logic;
 
@@ -5866,7 +5866,7 @@ architecture tb of conv2d_tb is
     signal c190_suser  : std_logic := '0';
     signal c190_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c190_mvalid : std_logic;
-    signal c190_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c190_mready : std_logic := '1';
     signal c190_mlast  : std_logic;
     signal c190_muser  : std_logic;
 
@@ -5878,7 +5878,7 @@ architecture tb of conv2d_tb is
     signal c191_suser  : std_logic := '0';
     signal c191_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c191_mvalid : std_logic;
-    signal c191_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c191_mready : std_logic := '1';
     signal c191_mlast  : std_logic;
     signal c191_muser  : std_logic;
 
@@ -5890,7 +5890,7 @@ architecture tb of conv2d_tb is
     signal c192_suser  : std_logic := '0';
     signal c192_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c192_mvalid : std_logic;
-    signal c192_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c192_mready : std_logic := '1';
     signal c192_mlast  : std_logic;
     signal c192_muser  : std_logic;
 
@@ -5902,7 +5902,7 @@ architecture tb of conv2d_tb is
     signal c193_suser  : std_logic := '0';
     signal c193_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c193_mvalid : std_logic;
-    signal c193_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c193_mready : std_logic := '1';
     signal c193_mlast  : std_logic;
     signal c193_muser  : std_logic;
 
@@ -5914,7 +5914,7 @@ architecture tb of conv2d_tb is
     signal c194_suser  : std_logic := '0';
     signal c194_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c194_mvalid : std_logic;
-    signal c194_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c194_mready : std_logic := '1';
     signal c194_mlast  : std_logic;
     signal c194_muser  : std_logic;
 
@@ -5926,7 +5926,7 @@ architecture tb of conv2d_tb is
     signal c195_suser  : std_logic := '0';
     signal c195_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c195_mvalid : std_logic;
-    signal c195_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c195_mready : std_logic := '1';
     signal c195_mlast  : std_logic;
     signal c195_muser  : std_logic;
 
@@ -5938,7 +5938,7 @@ architecture tb of conv2d_tb is
     signal c196_suser  : std_logic := '0';
     signal c196_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c196_mvalid : std_logic;
-    signal c196_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c196_mready : std_logic := '1';
     signal c196_mlast  : std_logic;
     signal c196_muser  : std_logic;
 
@@ -5950,7 +5950,7 @@ architecture tb of conv2d_tb is
     signal c197_suser  : std_logic := '0';
     signal c197_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c197_mvalid : std_logic;
-    signal c197_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c197_mready : std_logic := '1';
     signal c197_mlast  : std_logic;
     signal c197_muser  : std_logic;
 
@@ -5962,7 +5962,7 @@ architecture tb of conv2d_tb is
     signal c198_suser  : std_logic := '0';
     signal c198_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c198_mvalid : std_logic;
-    signal c198_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c198_mready : std_logic := '1';
     signal c198_mlast  : std_logic;
     signal c198_muser  : std_logic;
 
@@ -5974,7 +5974,7 @@ architecture tb of conv2d_tb is
     signal c199_suser  : std_logic := '0';
     signal c199_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c199_mvalid : std_logic;
-    signal c199_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c199_mready : std_logic := '1';
     signal c199_mlast  : std_logic;
     signal c199_muser  : std_logic;
 
@@ -5986,7 +5986,7 @@ architecture tb of conv2d_tb is
     signal c200_suser  : std_logic := '0';
     signal c200_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c200_mvalid : std_logic;
-    signal c200_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c200_mready : std_logic := '1';
     signal c200_mlast  : std_logic;
     signal c200_muser  : std_logic;
 
@@ -5998,7 +5998,7 @@ architecture tb of conv2d_tb is
     signal c201_suser  : std_logic := '0';
     signal c201_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c201_mvalid : std_logic;
-    signal c201_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c201_mready : std_logic := '1';
     signal c201_mlast  : std_logic;
     signal c201_muser  : std_logic;
 
@@ -6010,7 +6010,7 @@ architecture tb of conv2d_tb is
     signal c202_suser  : std_logic := '0';
     signal c202_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c202_mvalid : std_logic;
-    signal c202_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c202_mready : std_logic := '1';
     signal c202_mlast  : std_logic;
     signal c202_muser  : std_logic;
 
@@ -6022,7 +6022,7 @@ architecture tb of conv2d_tb is
     signal c203_suser  : std_logic := '0';
     signal c203_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c203_mvalid : std_logic;
-    signal c203_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c203_mready : std_logic := '1';
     signal c203_mlast  : std_logic;
     signal c203_muser  : std_logic;
 
@@ -6034,7 +6034,7 @@ architecture tb of conv2d_tb is
     signal c204_suser  : std_logic := '0';
     signal c204_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c204_mvalid : std_logic;
-    signal c204_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c204_mready : std_logic := '1';
     signal c204_mlast  : std_logic;
     signal c204_muser  : std_logic;
 
@@ -6046,7 +6046,7 @@ architecture tb of conv2d_tb is
     signal c205_suser  : std_logic := '0';
     signal c205_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c205_mvalid : std_logic;
-    signal c205_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c205_mready : std_logic := '1';
     signal c205_mlast  : std_logic;
     signal c205_muser  : std_logic;
 
@@ -6058,7 +6058,7 @@ architecture tb of conv2d_tb is
     signal c206_suser  : std_logic := '0';
     signal c206_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c206_mvalid : std_logic;
-    signal c206_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c206_mready : std_logic := '1';
     signal c206_mlast  : std_logic;
     signal c206_muser  : std_logic;
 
@@ -6070,7 +6070,7 @@ architecture tb of conv2d_tb is
     signal c207_suser  : std_logic := '0';
     signal c207_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c207_mvalid : std_logic;
-    signal c207_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c207_mready : std_logic := '1';
     signal c207_mlast  : std_logic;
     signal c207_muser  : std_logic;
 
@@ -6082,7 +6082,7 @@ architecture tb of conv2d_tb is
     signal c208_suser  : std_logic := '0';
     signal c208_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c208_mvalid : std_logic;
-    signal c208_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c208_mready : std_logic := '1';
     signal c208_mlast  : std_logic;
     signal c208_muser  : std_logic;
 
@@ -6094,7 +6094,7 @@ architecture tb of conv2d_tb is
     signal c209_suser  : std_logic := '0';
     signal c209_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c209_mvalid : std_logic;
-    signal c209_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c209_mready : std_logic := '1';
     signal c209_mlast  : std_logic;
     signal c209_muser  : std_logic;
 
@@ -6106,7 +6106,7 @@ architecture tb of conv2d_tb is
     signal c210_suser  : std_logic := '0';
     signal c210_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c210_mvalid : std_logic;
-    signal c210_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c210_mready : std_logic := '1';
     signal c210_mlast  : std_logic;
     signal c210_muser  : std_logic;
 
@@ -6118,7 +6118,7 @@ architecture tb of conv2d_tb is
     signal c211_suser  : std_logic := '0';
     signal c211_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c211_mvalid : std_logic;
-    signal c211_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c211_mready : std_logic := '1';
     signal c211_mlast  : std_logic;
     signal c211_muser  : std_logic;
 
@@ -6130,7 +6130,7 @@ architecture tb of conv2d_tb is
     signal c212_suser  : std_logic := '0';
     signal c212_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c212_mvalid : std_logic;
-    signal c212_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c212_mready : std_logic := '1';
     signal c212_mlast  : std_logic;
     signal c212_muser  : std_logic;
 
@@ -6142,7 +6142,7 @@ architecture tb of conv2d_tb is
     signal c213_suser  : std_logic := '0';
     signal c213_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c213_mvalid : std_logic;
-    signal c213_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c213_mready : std_logic := '1';
     signal c213_mlast  : std_logic;
     signal c213_muser  : std_logic;
 
@@ -6154,7 +6154,7 @@ architecture tb of conv2d_tb is
     signal c214_suser  : std_logic := '0';
     signal c214_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c214_mvalid : std_logic;
-    signal c214_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c214_mready : std_logic := '1';
     signal c214_mlast  : std_logic;
     signal c214_muser  : std_logic;
 
@@ -6166,7 +6166,7 @@ architecture tb of conv2d_tb is
     signal c215_suser  : std_logic := '0';
     signal c215_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c215_mvalid : std_logic;
-    signal c215_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c215_mready : std_logic := '1';
     signal c215_mlast  : std_logic;
     signal c215_muser  : std_logic;
 
@@ -6178,7 +6178,7 @@ architecture tb of conv2d_tb is
     signal c216_suser  : std_logic := '0';
     signal c216_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c216_mvalid : std_logic;
-    signal c216_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c216_mready : std_logic := '1';
     signal c216_mlast  : std_logic;
     signal c216_muser  : std_logic;
 
@@ -6190,7 +6190,7 @@ architecture tb of conv2d_tb is
     signal c217_suser  : std_logic := '0';
     signal c217_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c217_mvalid : std_logic;
-    signal c217_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c217_mready : std_logic := '1';
     signal c217_mlast  : std_logic;
     signal c217_muser  : std_logic;
 
@@ -6202,7 +6202,7 @@ architecture tb of conv2d_tb is
     signal c218_suser  : std_logic := '0';
     signal c218_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c218_mvalid : std_logic;
-    signal c218_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c218_mready : std_logic := '1';
     signal c218_mlast  : std_logic;
     signal c218_muser  : std_logic;
 
@@ -6214,7 +6214,7 @@ architecture tb of conv2d_tb is
     signal c219_suser  : std_logic := '0';
     signal c219_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c219_mvalid : std_logic;
-    signal c219_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c219_mready : std_logic := '1';
     signal c219_mlast  : std_logic;
     signal c219_muser  : std_logic;
 
@@ -6226,7 +6226,7 @@ architecture tb of conv2d_tb is
     signal c220_suser  : std_logic := '0';
     signal c220_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c220_mvalid : std_logic;
-    signal c220_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c220_mready : std_logic := '1';
     signal c220_mlast  : std_logic;
     signal c220_muser  : std_logic;
 
@@ -6238,7 +6238,7 @@ architecture tb of conv2d_tb is
     signal c221_suser  : std_logic := '0';
     signal c221_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c221_mvalid : std_logic;
-    signal c221_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c221_mready : std_logic := '1';
     signal c221_mlast  : std_logic;
     signal c221_muser  : std_logic;
 
@@ -6250,7 +6250,7 @@ architecture tb of conv2d_tb is
     signal c222_suser  : std_logic := '0';
     signal c222_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c222_mvalid : std_logic;
-    signal c222_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c222_mready : std_logic := '1';
     signal c222_mlast  : std_logic;
     signal c222_muser  : std_logic;
 
@@ -6262,7 +6262,7 @@ architecture tb of conv2d_tb is
     signal c223_suser  : std_logic := '0';
     signal c223_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c223_mvalid : std_logic;
-    signal c223_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c223_mready : std_logic := '1';
     signal c223_mlast  : std_logic;
     signal c223_muser  : std_logic;
 
@@ -6274,7 +6274,7 @@ architecture tb of conv2d_tb is
     signal c224_suser  : std_logic := '0';
     signal c224_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c224_mvalid : std_logic;
-    signal c224_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c224_mready : std_logic := '1';
     signal c224_mlast  : std_logic;
     signal c224_muser  : std_logic;
 
@@ -6286,7 +6286,7 @@ architecture tb of conv2d_tb is
     signal c225_suser  : std_logic := '0';
     signal c225_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c225_mvalid : std_logic;
-    signal c225_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c225_mready : std_logic := '1';
     signal c225_mlast  : std_logic;
     signal c225_muser  : std_logic;
 
@@ -6298,7 +6298,7 @@ architecture tb of conv2d_tb is
     signal c226_suser  : std_logic := '0';
     signal c226_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c226_mvalid : std_logic;
-    signal c226_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c226_mready : std_logic := '1';
     signal c226_mlast  : std_logic;
     signal c226_muser  : std_logic;
 
@@ -6310,7 +6310,7 @@ architecture tb of conv2d_tb is
     signal c227_suser  : std_logic := '0';
     signal c227_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c227_mvalid : std_logic;
-    signal c227_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c227_mready : std_logic := '1';
     signal c227_mlast  : std_logic;
     signal c227_muser  : std_logic;
 
@@ -6322,7 +6322,7 @@ architecture tb of conv2d_tb is
     signal c228_suser  : std_logic := '0';
     signal c228_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c228_mvalid : std_logic;
-    signal c228_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c228_mready : std_logic := '1';
     signal c228_mlast  : std_logic;
     signal c228_muser  : std_logic;
 
@@ -6334,7 +6334,7 @@ architecture tb of conv2d_tb is
     signal c229_suser  : std_logic := '0';
     signal c229_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c229_mvalid : std_logic;
-    signal c229_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c229_mready : std_logic := '1';
     signal c229_mlast  : std_logic;
     signal c229_muser  : std_logic;
 
@@ -6346,7 +6346,7 @@ architecture tb of conv2d_tb is
     signal c230_suser  : std_logic := '0';
     signal c230_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c230_mvalid : std_logic;
-    signal c230_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c230_mready : std_logic := '1';
     signal c230_mlast  : std_logic;
     signal c230_muser  : std_logic;
 
@@ -6358,7 +6358,7 @@ architecture tb of conv2d_tb is
     signal c231_suser  : std_logic := '0';
     signal c231_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c231_mvalid : std_logic;
-    signal c231_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c231_mready : std_logic := '1';
     signal c231_mlast  : std_logic;
     signal c231_muser  : std_logic;
 
@@ -6370,7 +6370,7 @@ architecture tb of conv2d_tb is
     signal c232_suser  : std_logic := '0';
     signal c232_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c232_mvalid : std_logic;
-    signal c232_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c232_mready : std_logic := '1';
     signal c232_mlast  : std_logic;
     signal c232_muser  : std_logic;
 
@@ -6382,7 +6382,7 @@ architecture tb of conv2d_tb is
     signal c233_suser  : std_logic := '0';
     signal c233_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c233_mvalid : std_logic;
-    signal c233_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c233_mready : std_logic := '1';
     signal c233_mlast  : std_logic;
     signal c233_muser  : std_logic;
 
@@ -6394,7 +6394,7 @@ architecture tb of conv2d_tb is
     signal c234_suser  : std_logic := '0';
     signal c234_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c234_mvalid : std_logic;
-    signal c234_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c234_mready : std_logic := '1';
     signal c234_mlast  : std_logic;
     signal c234_muser  : std_logic;
 
@@ -6406,7 +6406,7 @@ architecture tb of conv2d_tb is
     signal c235_suser  : std_logic := '0';
     signal c235_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c235_mvalid : std_logic;
-    signal c235_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c235_mready : std_logic := '1';
     signal c235_mlast  : std_logic;
     signal c235_muser  : std_logic;
 
@@ -6418,7 +6418,7 @@ architecture tb of conv2d_tb is
     signal c236_suser  : std_logic := '0';
     signal c236_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c236_mvalid : std_logic;
-    signal c236_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c236_mready : std_logic := '1';
     signal c236_mlast  : std_logic;
     signal c236_muser  : std_logic;
 
@@ -6430,7 +6430,7 @@ architecture tb of conv2d_tb is
     signal c237_suser  : std_logic := '0';
     signal c237_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c237_mvalid : std_logic;
-    signal c237_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c237_mready : std_logic := '1';
     signal c237_mlast  : std_logic;
     signal c237_muser  : std_logic;
 
@@ -6442,7 +6442,7 @@ architecture tb of conv2d_tb is
     signal c238_suser  : std_logic := '0';
     signal c238_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c238_mvalid : std_logic;
-    signal c238_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c238_mready : std_logic := '1';
     signal c238_mlast  : std_logic;
     signal c238_muser  : std_logic;
 
@@ -6454,7 +6454,7 @@ architecture tb of conv2d_tb is
     signal c239_suser  : std_logic := '0';
     signal c239_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c239_mvalid : std_logic;
-    signal c239_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c239_mready : std_logic := '1';
     signal c239_mlast  : std_logic;
     signal c239_muser  : std_logic;
 
@@ -6466,7 +6466,7 @@ architecture tb of conv2d_tb is
     signal c240_suser  : std_logic := '0';
     signal c240_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c240_mvalid : std_logic;
-    signal c240_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c240_mready : std_logic := '1';
     signal c240_mlast  : std_logic;
     signal c240_muser  : std_logic;
 
@@ -6478,7 +6478,7 @@ architecture tb of conv2d_tb is
     signal c241_suser  : std_logic := '0';
     signal c241_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c241_mvalid : std_logic;
-    signal c241_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c241_mready : std_logic := '1';
     signal c241_mlast  : std_logic;
     signal c241_muser  : std_logic;
 
@@ -6490,7 +6490,7 @@ architecture tb of conv2d_tb is
     signal c242_suser  : std_logic := '0';
     signal c242_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c242_mvalid : std_logic;
-    signal c242_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c242_mready : std_logic := '1';
     signal c242_mlast  : std_logic;
     signal c242_muser  : std_logic;
 
@@ -6502,7 +6502,7 @@ architecture tb of conv2d_tb is
     signal c243_suser  : std_logic := '0';
     signal c243_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c243_mvalid : std_logic;
-    signal c243_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c243_mready : std_logic := '1';
     signal c243_mlast  : std_logic;
     signal c243_muser  : std_logic;
 
@@ -6514,7 +6514,7 @@ architecture tb of conv2d_tb is
     signal c244_suser  : std_logic := '0';
     signal c244_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c244_mvalid : std_logic;
-    signal c244_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c244_mready : std_logic := '1';
     signal c244_mlast  : std_logic;
     signal c244_muser  : std_logic;
 
@@ -6526,7 +6526,7 @@ architecture tb of conv2d_tb is
     signal c245_suser  : std_logic := '0';
     signal c245_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c245_mvalid : std_logic;
-    signal c245_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c245_mready : std_logic := '1';
     signal c245_mlast  : std_logic;
     signal c245_muser  : std_logic;
 
@@ -6538,7 +6538,7 @@ architecture tb of conv2d_tb is
     signal c246_suser  : std_logic := '0';
     signal c246_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c246_mvalid : std_logic;
-    signal c246_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c246_mready : std_logic := '1';
     signal c246_mlast  : std_logic;
     signal c246_muser  : std_logic;
 
@@ -6550,7 +6550,7 @@ architecture tb of conv2d_tb is
     signal c247_suser  : std_logic := '0';
     signal c247_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c247_mvalid : std_logic;
-    signal c247_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c247_mready : std_logic := '1';
     signal c247_mlast  : std_logic;
     signal c247_muser  : std_logic;
 
@@ -6562,7 +6562,7 @@ architecture tb of conv2d_tb is
     signal c248_suser  : std_logic := '0';
     signal c248_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c248_mvalid : std_logic;
-    signal c248_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c248_mready : std_logic := '1';
     signal c248_mlast  : std_logic;
     signal c248_muser  : std_logic;
 
@@ -6574,7 +6574,7 @@ architecture tb of conv2d_tb is
     signal c249_suser  : std_logic := '0';
     signal c249_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c249_mvalid : std_logic;
-    signal c249_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c249_mready : std_logic := '1';
     signal c249_mlast  : std_logic;
     signal c249_muser  : std_logic;
 
@@ -6586,7 +6586,7 @@ architecture tb of conv2d_tb is
     signal c250_suser  : std_logic := '0';
     signal c250_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c250_mvalid : std_logic;
-    signal c250_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c250_mready : std_logic := '1';
     signal c250_mlast  : std_logic;
     signal c250_muser  : std_logic;
 
@@ -6598,7 +6598,7 @@ architecture tb of conv2d_tb is
     signal c251_suser  : std_logic := '0';
     signal c251_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c251_mvalid : std_logic;
-    signal c251_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c251_mready : std_logic := '1';
     signal c251_mlast  : std_logic;
     signal c251_muser  : std_logic;
 
@@ -6610,7 +6610,7 @@ architecture tb of conv2d_tb is
     signal c252_suser  : std_logic := '0';
     signal c252_mdata  : std_logic_vector(8*21-1 downto 0);
     signal c252_mvalid : std_logic;
-    signal c252_mready : std_logic_vector(21-1 downto 0) := (others => '1');
+    signal c252_mready : std_logic := '1';
     signal c252_mlast  : std_logic;
     signal c252_muser  : std_logic;
 
@@ -6622,7 +6622,7 @@ architecture tb of conv2d_tb is
     signal c253_suser  : std_logic := '0';
     signal c253_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c253_mvalid : std_logic;
-    signal c253_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c253_mready : std_logic := '1';
     signal c253_mlast  : std_logic;
     signal c253_muser  : std_logic;
 
@@ -6634,7 +6634,7 @@ architecture tb of conv2d_tb is
     signal c254_suser  : std_logic := '0';
     signal c254_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c254_mvalid : std_logic;
-    signal c254_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c254_mready : std_logic := '1';
     signal c254_mlast  : std_logic;
     signal c254_muser  : std_logic;
 
@@ -6646,7 +6646,7 @@ architecture tb of conv2d_tb is
     signal c255_suser  : std_logic := '0';
     signal c255_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c255_mvalid : std_logic;
-    signal c255_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c255_mready : std_logic := '1';
     signal c255_mlast  : std_logic;
     signal c255_muser  : std_logic;
 
@@ -6658,7 +6658,7 @@ architecture tb of conv2d_tb is
     signal c256_suser  : std_logic := '0';
     signal c256_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c256_mvalid : std_logic;
-    signal c256_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c256_mready : std_logic := '1';
     signal c256_mlast  : std_logic;
     signal c256_muser  : std_logic;
 
@@ -6670,7 +6670,7 @@ architecture tb of conv2d_tb is
     signal c257_suser  : std_logic := '0';
     signal c257_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c257_mvalid : std_logic;
-    signal c257_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c257_mready : std_logic := '1';
     signal c257_mlast  : std_logic;
     signal c257_muser  : std_logic;
 
@@ -6682,7 +6682,7 @@ architecture tb of conv2d_tb is
     signal c258_suser  : std_logic := '0';
     signal c258_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c258_mvalid : std_logic;
-    signal c258_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c258_mready : std_logic := '1';
     signal c258_mlast  : std_logic;
     signal c258_muser  : std_logic;
 
@@ -6694,7 +6694,7 @@ architecture tb of conv2d_tb is
     signal c259_suser  : std_logic := '0';
     signal c259_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c259_mvalid : std_logic;
-    signal c259_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c259_mready : std_logic := '1';
     signal c259_mlast  : std_logic;
     signal c259_muser  : std_logic;
 
@@ -6706,7 +6706,7 @@ architecture tb of conv2d_tb is
     signal c260_suser  : std_logic := '0';
     signal c260_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c260_mvalid : std_logic;
-    signal c260_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c260_mready : std_logic := '1';
     signal c260_mlast  : std_logic;
     signal c260_muser  : std_logic;
 
@@ -6718,7 +6718,7 @@ architecture tb of conv2d_tb is
     signal c261_suser  : std_logic := '0';
     signal c261_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c261_mvalid : std_logic;
-    signal c261_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c261_mready : std_logic := '1';
     signal c261_mlast  : std_logic;
     signal c261_muser  : std_logic;
 
@@ -6730,7 +6730,7 @@ architecture tb of conv2d_tb is
     signal c262_suser  : std_logic := '0';
     signal c262_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c262_mvalid : std_logic;
-    signal c262_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c262_mready : std_logic := '1';
     signal c262_mlast  : std_logic;
     signal c262_muser  : std_logic;
 
@@ -6742,7 +6742,7 @@ architecture tb of conv2d_tb is
     signal c263_suser  : std_logic := '0';
     signal c263_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c263_mvalid : std_logic;
-    signal c263_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c263_mready : std_logic := '1';
     signal c263_mlast  : std_logic;
     signal c263_muser  : std_logic;
 
@@ -6754,7 +6754,7 @@ architecture tb of conv2d_tb is
     signal c264_suser  : std_logic := '0';
     signal c264_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c264_mvalid : std_logic;
-    signal c264_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c264_mready : std_logic := '1';
     signal c264_mlast  : std_logic;
     signal c264_muser  : std_logic;
 
@@ -6766,7 +6766,7 @@ architecture tb of conv2d_tb is
     signal c265_suser  : std_logic := '0';
     signal c265_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c265_mvalid : std_logic;
-    signal c265_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c265_mready : std_logic := '1';
     signal c265_mlast  : std_logic;
     signal c265_muser  : std_logic;
 
@@ -6778,7 +6778,7 @@ architecture tb of conv2d_tb is
     signal c266_suser  : std_logic := '0';
     signal c266_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c266_mvalid : std_logic;
-    signal c266_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c266_mready : std_logic := '1';
     signal c266_mlast  : std_logic;
     signal c266_muser  : std_logic;
 
@@ -6790,7 +6790,7 @@ architecture tb of conv2d_tb is
     signal c267_suser  : std_logic := '0';
     signal c267_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c267_mvalid : std_logic;
-    signal c267_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c267_mready : std_logic := '1';
     signal c267_mlast  : std_logic;
     signal c267_muser  : std_logic;
 
@@ -6802,7 +6802,7 @@ architecture tb of conv2d_tb is
     signal c268_suser  : std_logic := '0';
     signal c268_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c268_mvalid : std_logic;
-    signal c268_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c268_mready : std_logic := '1';
     signal c268_mlast  : std_logic;
     signal c268_muser  : std_logic;
 
@@ -6814,7 +6814,7 @@ architecture tb of conv2d_tb is
     signal c269_suser  : std_logic := '0';
     signal c269_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c269_mvalid : std_logic;
-    signal c269_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c269_mready : std_logic := '1';
     signal c269_mlast  : std_logic;
     signal c269_muser  : std_logic;
 
@@ -6826,7 +6826,7 @@ architecture tb of conv2d_tb is
     signal c270_suser  : std_logic := '0';
     signal c270_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c270_mvalid : std_logic;
-    signal c270_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c270_mready : std_logic := '1';
     signal c270_mlast  : std_logic;
     signal c270_muser  : std_logic;
 
@@ -6838,7 +6838,7 @@ architecture tb of conv2d_tb is
     signal c271_suser  : std_logic := '0';
     signal c271_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c271_mvalid : std_logic;
-    signal c271_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c271_mready : std_logic := '1';
     signal c271_mlast  : std_logic;
     signal c271_muser  : std_logic;
 
@@ -6850,7 +6850,7 @@ architecture tb of conv2d_tb is
     signal c272_suser  : std_logic := '0';
     signal c272_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c272_mvalid : std_logic;
-    signal c272_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c272_mready : std_logic := '1';
     signal c272_mlast  : std_logic;
     signal c272_muser  : std_logic;
 
@@ -6862,7 +6862,7 @@ architecture tb of conv2d_tb is
     signal c273_suser  : std_logic := '0';
     signal c273_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c273_mvalid : std_logic;
-    signal c273_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c273_mready : std_logic := '1';
     signal c273_mlast  : std_logic;
     signal c273_muser  : std_logic;
 
@@ -6874,7 +6874,7 @@ architecture tb of conv2d_tb is
     signal c274_suser  : std_logic := '0';
     signal c274_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c274_mvalid : std_logic;
-    signal c274_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c274_mready : std_logic := '1';
     signal c274_mlast  : std_logic;
     signal c274_muser  : std_logic;
 
@@ -6886,7 +6886,7 @@ architecture tb of conv2d_tb is
     signal c275_suser  : std_logic := '0';
     signal c275_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c275_mvalid : std_logic;
-    signal c275_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c275_mready : std_logic := '1';
     signal c275_mlast  : std_logic;
     signal c275_muser  : std_logic;
 
@@ -6898,7 +6898,7 @@ architecture tb of conv2d_tb is
     signal c276_suser  : std_logic := '0';
     signal c276_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c276_mvalid : std_logic;
-    signal c276_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c276_mready : std_logic := '1';
     signal c276_mlast  : std_logic;
     signal c276_muser  : std_logic;
 
@@ -6910,7 +6910,7 @@ architecture tb of conv2d_tb is
     signal c277_suser  : std_logic := '0';
     signal c277_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c277_mvalid : std_logic;
-    signal c277_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c277_mready : std_logic := '1';
     signal c277_mlast  : std_logic;
     signal c277_muser  : std_logic;
 
@@ -6922,7 +6922,7 @@ architecture tb of conv2d_tb is
     signal c278_suser  : std_logic := '0';
     signal c278_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c278_mvalid : std_logic;
-    signal c278_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c278_mready : std_logic := '1';
     signal c278_mlast  : std_logic;
     signal c278_muser  : std_logic;
 
@@ -6934,7 +6934,7 @@ architecture tb of conv2d_tb is
     signal c279_suser  : std_logic := '0';
     signal c279_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c279_mvalid : std_logic;
-    signal c279_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c279_mready : std_logic := '1';
     signal c279_mlast  : std_logic;
     signal c279_muser  : std_logic;
 
@@ -6946,7 +6946,7 @@ architecture tb of conv2d_tb is
     signal c280_suser  : std_logic := '0';
     signal c280_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c280_mvalid : std_logic;
-    signal c280_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c280_mready : std_logic := '1';
     signal c280_mlast  : std_logic;
     signal c280_muser  : std_logic;
 
@@ -6958,7 +6958,7 @@ architecture tb of conv2d_tb is
     signal c281_suser  : std_logic := '0';
     signal c281_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c281_mvalid : std_logic;
-    signal c281_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c281_mready : std_logic := '1';
     signal c281_mlast  : std_logic;
     signal c281_muser  : std_logic;
 
@@ -6970,7 +6970,7 @@ architecture tb of conv2d_tb is
     signal c282_suser  : std_logic := '0';
     signal c282_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c282_mvalid : std_logic;
-    signal c282_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c282_mready : std_logic := '1';
     signal c282_mlast  : std_logic;
     signal c282_muser  : std_logic;
 
@@ -6982,7 +6982,7 @@ architecture tb of conv2d_tb is
     signal c283_suser  : std_logic := '0';
     signal c283_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c283_mvalid : std_logic;
-    signal c283_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c283_mready : std_logic := '1';
     signal c283_mlast  : std_logic;
     signal c283_muser  : std_logic;
 
@@ -6994,7 +6994,7 @@ architecture tb of conv2d_tb is
     signal c284_suser  : std_logic := '0';
     signal c284_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c284_mvalid : std_logic;
-    signal c284_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c284_mready : std_logic := '1';
     signal c284_mlast  : std_logic;
     signal c284_muser  : std_logic;
 
@@ -7006,7 +7006,7 @@ architecture tb of conv2d_tb is
     signal c285_suser  : std_logic := '0';
     signal c285_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c285_mvalid : std_logic;
-    signal c285_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c285_mready : std_logic := '1';
     signal c285_mlast  : std_logic;
     signal c285_muser  : std_logic;
 
@@ -7018,7 +7018,7 @@ architecture tb of conv2d_tb is
     signal c286_suser  : std_logic := '0';
     signal c286_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c286_mvalid : std_logic;
-    signal c286_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c286_mready : std_logic := '1';
     signal c286_mlast  : std_logic;
     signal c286_muser  : std_logic;
 
@@ -7030,7 +7030,7 @@ architecture tb of conv2d_tb is
     signal c287_suser  : std_logic := '0';
     signal c287_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c287_mvalid : std_logic;
-    signal c287_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c287_mready : std_logic := '1';
     signal c287_mlast  : std_logic;
     signal c287_muser  : std_logic;
 
@@ -7042,7 +7042,7 @@ architecture tb of conv2d_tb is
     signal c288_suser  : std_logic := '0';
     signal c288_mdata  : std_logic_vector(8*35-1 downto 0);
     signal c288_mvalid : std_logic;
-    signal c288_mready : std_logic_vector(35-1 downto 0) := (others => '1');
+    signal c288_mready : std_logic := '1';
     signal c288_mlast  : std_logic;
     signal c288_muser  : std_logic;
 
@@ -7054,7 +7054,7 @@ architecture tb of conv2d_tb is
     signal c289_suser  : std_logic := '0';
     signal c289_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c289_mvalid : std_logic;
-    signal c289_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c289_mready : std_logic := '1';
     signal c289_mlast  : std_logic;
     signal c289_muser  : std_logic;
 
@@ -7066,7 +7066,7 @@ architecture tb of conv2d_tb is
     signal c290_suser  : std_logic := '0';
     signal c290_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c290_mvalid : std_logic;
-    signal c290_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c290_mready : std_logic := '1';
     signal c290_mlast  : std_logic;
     signal c290_muser  : std_logic;
 
@@ -7078,7 +7078,7 @@ architecture tb of conv2d_tb is
     signal c291_suser  : std_logic := '0';
     signal c291_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c291_mvalid : std_logic;
-    signal c291_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c291_mready : std_logic := '1';
     signal c291_mlast  : std_logic;
     signal c291_muser  : std_logic;
 
@@ -7090,7 +7090,7 @@ architecture tb of conv2d_tb is
     signal c292_suser  : std_logic := '0';
     signal c292_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c292_mvalid : std_logic;
-    signal c292_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c292_mready : std_logic := '1';
     signal c292_mlast  : std_logic;
     signal c292_muser  : std_logic;
 
@@ -7102,7 +7102,7 @@ architecture tb of conv2d_tb is
     signal c293_suser  : std_logic := '0';
     signal c293_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c293_mvalid : std_logic;
-    signal c293_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c293_mready : std_logic := '1';
     signal c293_mlast  : std_logic;
     signal c293_muser  : std_logic;
 
@@ -7114,7 +7114,7 @@ architecture tb of conv2d_tb is
     signal c294_suser  : std_logic := '0';
     signal c294_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c294_mvalid : std_logic;
-    signal c294_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c294_mready : std_logic := '1';
     signal c294_mlast  : std_logic;
     signal c294_muser  : std_logic;
 
@@ -7126,7 +7126,7 @@ architecture tb of conv2d_tb is
     signal c295_suser  : std_logic := '0';
     signal c295_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c295_mvalid : std_logic;
-    signal c295_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c295_mready : std_logic := '1';
     signal c295_mlast  : std_logic;
     signal c295_muser  : std_logic;
 
@@ -7138,7 +7138,7 @@ architecture tb of conv2d_tb is
     signal c296_suser  : std_logic := '0';
     signal c296_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c296_mvalid : std_logic;
-    signal c296_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c296_mready : std_logic := '1';
     signal c296_mlast  : std_logic;
     signal c296_muser  : std_logic;
 
@@ -7150,7 +7150,7 @@ architecture tb of conv2d_tb is
     signal c297_suser  : std_logic := '0';
     signal c297_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c297_mvalid : std_logic;
-    signal c297_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c297_mready : std_logic := '1';
     signal c297_mlast  : std_logic;
     signal c297_muser  : std_logic;
 
@@ -7162,7 +7162,7 @@ architecture tb of conv2d_tb is
     signal c298_suser  : std_logic := '0';
     signal c298_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c298_mvalid : std_logic;
-    signal c298_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c298_mready : std_logic := '1';
     signal c298_mlast  : std_logic;
     signal c298_muser  : std_logic;
 
@@ -7174,7 +7174,7 @@ architecture tb of conv2d_tb is
     signal c299_suser  : std_logic := '0';
     signal c299_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c299_mvalid : std_logic;
-    signal c299_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c299_mready : std_logic := '1';
     signal c299_mlast  : std_logic;
     signal c299_muser  : std_logic;
 
@@ -7186,7 +7186,7 @@ architecture tb of conv2d_tb is
     signal c300_suser  : std_logic := '0';
     signal c300_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c300_mvalid : std_logic;
-    signal c300_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c300_mready : std_logic := '1';
     signal c300_mlast  : std_logic;
     signal c300_muser  : std_logic;
 
@@ -7198,7 +7198,7 @@ architecture tb of conv2d_tb is
     signal c301_suser  : std_logic := '0';
     signal c301_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c301_mvalid : std_logic;
-    signal c301_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c301_mready : std_logic := '1';
     signal c301_mlast  : std_logic;
     signal c301_muser  : std_logic;
 
@@ -7210,7 +7210,7 @@ architecture tb of conv2d_tb is
     signal c302_suser  : std_logic := '0';
     signal c302_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c302_mvalid : std_logic;
-    signal c302_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c302_mready : std_logic := '1';
     signal c302_mlast  : std_logic;
     signal c302_muser  : std_logic;
 
@@ -7222,7 +7222,7 @@ architecture tb of conv2d_tb is
     signal c303_suser  : std_logic := '0';
     signal c303_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c303_mvalid : std_logic;
-    signal c303_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c303_mready : std_logic := '1';
     signal c303_mlast  : std_logic;
     signal c303_muser  : std_logic;
 
@@ -7234,7 +7234,7 @@ architecture tb of conv2d_tb is
     signal c304_suser  : std_logic := '0';
     signal c304_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c304_mvalid : std_logic;
-    signal c304_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c304_mready : std_logic := '1';
     signal c304_mlast  : std_logic;
     signal c304_muser  : std_logic;
 
@@ -7246,7 +7246,7 @@ architecture tb of conv2d_tb is
     signal c305_suser  : std_logic := '0';
     signal c305_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c305_mvalid : std_logic;
-    signal c305_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c305_mready : std_logic := '1';
     signal c305_mlast  : std_logic;
     signal c305_muser  : std_logic;
 
@@ -7258,7 +7258,7 @@ architecture tb of conv2d_tb is
     signal c306_suser  : std_logic := '0';
     signal c306_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c306_mvalid : std_logic;
-    signal c306_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c306_mready : std_logic := '1';
     signal c306_mlast  : std_logic;
     signal c306_muser  : std_logic;
 
@@ -7270,7 +7270,7 @@ architecture tb of conv2d_tb is
     signal c307_suser  : std_logic := '0';
     signal c307_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c307_mvalid : std_logic;
-    signal c307_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c307_mready : std_logic := '1';
     signal c307_mlast  : std_logic;
     signal c307_muser  : std_logic;
 
@@ -7282,7 +7282,7 @@ architecture tb of conv2d_tb is
     signal c308_suser  : std_logic := '0';
     signal c308_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c308_mvalid : std_logic;
-    signal c308_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c308_mready : std_logic := '1';
     signal c308_mlast  : std_logic;
     signal c308_muser  : std_logic;
 
@@ -7294,7 +7294,7 @@ architecture tb of conv2d_tb is
     signal c309_suser  : std_logic := '0';
     signal c309_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c309_mvalid : std_logic;
-    signal c309_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c309_mready : std_logic := '1';
     signal c309_mlast  : std_logic;
     signal c309_muser  : std_logic;
 
@@ -7306,7 +7306,7 @@ architecture tb of conv2d_tb is
     signal c310_suser  : std_logic := '0';
     signal c310_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c310_mvalid : std_logic;
-    signal c310_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c310_mready : std_logic := '1';
     signal c310_mlast  : std_logic;
     signal c310_muser  : std_logic;
 
@@ -7318,7 +7318,7 @@ architecture tb of conv2d_tb is
     signal c311_suser  : std_logic := '0';
     signal c311_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c311_mvalid : std_logic;
-    signal c311_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c311_mready : std_logic := '1';
     signal c311_mlast  : std_logic;
     signal c311_muser  : std_logic;
 
@@ -7330,7 +7330,7 @@ architecture tb of conv2d_tb is
     signal c312_suser  : std_logic := '0';
     signal c312_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c312_mvalid : std_logic;
-    signal c312_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c312_mready : std_logic := '1';
     signal c312_mlast  : std_logic;
     signal c312_muser  : std_logic;
 
@@ -7342,7 +7342,7 @@ architecture tb of conv2d_tb is
     signal c313_suser  : std_logic := '0';
     signal c313_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c313_mvalid : std_logic;
-    signal c313_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c313_mready : std_logic := '1';
     signal c313_mlast  : std_logic;
     signal c313_muser  : std_logic;
 
@@ -7354,7 +7354,7 @@ architecture tb of conv2d_tb is
     signal c314_suser  : std_logic := '0';
     signal c314_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c314_mvalid : std_logic;
-    signal c314_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c314_mready : std_logic := '1';
     signal c314_mlast  : std_logic;
     signal c314_muser  : std_logic;
 
@@ -7366,7 +7366,7 @@ architecture tb of conv2d_tb is
     signal c315_suser  : std_logic := '0';
     signal c315_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c315_mvalid : std_logic;
-    signal c315_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c315_mready : std_logic := '1';
     signal c315_mlast  : std_logic;
     signal c315_muser  : std_logic;
 
@@ -7378,7 +7378,7 @@ architecture tb of conv2d_tb is
     signal c316_suser  : std_logic := '0';
     signal c316_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c316_mvalid : std_logic;
-    signal c316_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c316_mready : std_logic := '1';
     signal c316_mlast  : std_logic;
     signal c316_muser  : std_logic;
 
@@ -7390,7 +7390,7 @@ architecture tb of conv2d_tb is
     signal c317_suser  : std_logic := '0';
     signal c317_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c317_mvalid : std_logic;
-    signal c317_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c317_mready : std_logic := '1';
     signal c317_mlast  : std_logic;
     signal c317_muser  : std_logic;
 
@@ -7402,7 +7402,7 @@ architecture tb of conv2d_tb is
     signal c318_suser  : std_logic := '0';
     signal c318_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c318_mvalid : std_logic;
-    signal c318_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c318_mready : std_logic := '1';
     signal c318_mlast  : std_logic;
     signal c318_muser  : std_logic;
 
@@ -7414,7 +7414,7 @@ architecture tb of conv2d_tb is
     signal c319_suser  : std_logic := '0';
     signal c319_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c319_mvalid : std_logic;
-    signal c319_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c319_mready : std_logic := '1';
     signal c319_mlast  : std_logic;
     signal c319_muser  : std_logic;
 
@@ -7426,7 +7426,7 @@ architecture tb of conv2d_tb is
     signal c320_suser  : std_logic := '0';
     signal c320_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c320_mvalid : std_logic;
-    signal c320_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c320_mready : std_logic := '1';
     signal c320_mlast  : std_logic;
     signal c320_muser  : std_logic;
 
@@ -7438,7 +7438,7 @@ architecture tb of conv2d_tb is
     signal c321_suser  : std_logic := '0';
     signal c321_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c321_mvalid : std_logic;
-    signal c321_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c321_mready : std_logic := '1';
     signal c321_mlast  : std_logic;
     signal c321_muser  : std_logic;
 
@@ -7450,7 +7450,7 @@ architecture tb of conv2d_tb is
     signal c322_suser  : std_logic := '0';
     signal c322_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c322_mvalid : std_logic;
-    signal c322_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c322_mready : std_logic := '1';
     signal c322_mlast  : std_logic;
     signal c322_muser  : std_logic;
 
@@ -7462,7 +7462,7 @@ architecture tb of conv2d_tb is
     signal c323_suser  : std_logic := '0';
     signal c323_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c323_mvalid : std_logic;
-    signal c323_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c323_mready : std_logic := '1';
     signal c323_mlast  : std_logic;
     signal c323_muser  : std_logic;
 
@@ -7474,7 +7474,7 @@ architecture tb of conv2d_tb is
     signal c324_suser  : std_logic := '0';
     signal c324_mdata  : std_logic_vector(8*49-1 downto 0);
     signal c324_mvalid : std_logic;
-    signal c324_mready : std_logic_vector(49-1 downto 0) := (others => '1');
+    signal c324_mready : std_logic := '1';
     signal c324_mlast  : std_logic;
     signal c324_muser  : std_logic;
 
@@ -13642,36 +13642,34 @@ begin
             m_tlast  => c324_mlast,    m_tuser  => c324_muser
         );
 
-    -- BP: cfg001 (post_reset — m_tready(0) stalled 10 cycles post-reset)
+    -- BP: cfg001 (post_reset — m_tready stalled 10 cycles post-reset)
     p_bp_001 : process
     begin
-        c001_mready(0) <= '0';
-        c001_mready(C001_NUM_TAPS-1 downto 1) <= (others => '1');
+        c001_mready <= '0';
         wait until c001_rst = '0';
         wait for CLK_PERIOD * 10;
-        c001_mready <= (others => '1');
+        c001_mready <= '1';
         wait;
     end process p_bp_001;
 
-    -- BP: cfg055 (post_reset_last — m_tready(NUM_TAPS-1) stalled 10 cycles post-reset)
+    -- BP: cfg055 (post_reset_last — m_tready stalled 10 cycles post-reset)
     p_bp_055 : process
     begin
-        c055_mready(C055_NUM_TAPS-1) <= '0';
-        c055_mready(C055_NUM_TAPS-2 downto 0) <= (others => '1');
+        c055_mready <= '0';
         wait until c055_rst = '0';
         wait for CLK_PERIOD * 10;
-        c055_mready <= (others => '1');
+        c055_mready <= '1';
         wait;
     end process p_bp_055;
 
-    -- BP: cfg040 (mid_sim — m_tready(0) stalled 15 cycles mid-sim)
+    -- BP: cfg040 (mid_sim — m_tready stalled 15 cycles mid-sim)
     p_bp_040 : process
     begin
         wait until c040_rst = '0';
         wait for CLK_PERIOD * 210;
-        c040_mready(0) <= '0';
+        c040_mready <= '0';
         wait for CLK_PERIOD * 15;
-        c040_mready(0) <= '1';
+        c040_mready <= '1';
         wait;
     end process p_bp_040;
 
@@ -23734,7 +23732,7 @@ begin
         wait until c001_rst = '0';
         file_open(f, C001_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c001_mvalid = '1' and (and c001_mready) = '1';
+            wait until rising_edge(clk) and c001_mvalid = '1' and c001_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -23772,7 +23770,7 @@ begin
         wait until c002_rst = '0';
         file_open(f, C002_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c002_mvalid = '1' and (and c002_mready) = '1';
+            wait until rising_edge(clk) and c002_mvalid = '1' and c002_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -23810,7 +23808,7 @@ begin
         wait until c003_rst = '0';
         file_open(f, C003_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c003_mvalid = '1' and (and c003_mready) = '1';
+            wait until rising_edge(clk) and c003_mvalid = '1' and c003_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -23848,7 +23846,7 @@ begin
         wait until c004_rst = '0';
         file_open(f, C004_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c004_mvalid = '1' and (and c004_mready) = '1';
+            wait until rising_edge(clk) and c004_mvalid = '1' and c004_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -23886,7 +23884,7 @@ begin
         wait until c005_rst = '0';
         file_open(f, C005_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c005_mvalid = '1' and (and c005_mready) = '1';
+            wait until rising_edge(clk) and c005_mvalid = '1' and c005_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -23924,7 +23922,7 @@ begin
         wait until c006_rst = '0';
         file_open(f, C006_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c006_mvalid = '1' and (and c006_mready) = '1';
+            wait until rising_edge(clk) and c006_mvalid = '1' and c006_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -23962,7 +23960,7 @@ begin
         wait until c007_rst = '0';
         file_open(f, C007_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c007_mvalid = '1' and (and c007_mready) = '1';
+            wait until rising_edge(clk) and c007_mvalid = '1' and c007_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24000,7 +23998,7 @@ begin
         wait until c008_rst = '0';
         file_open(f, C008_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c008_mvalid = '1' and (and c008_mready) = '1';
+            wait until rising_edge(clk) and c008_mvalid = '1' and c008_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24038,7 +24036,7 @@ begin
         wait until c009_rst = '0';
         file_open(f, C009_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c009_mvalid = '1' and (and c009_mready) = '1';
+            wait until rising_edge(clk) and c009_mvalid = '1' and c009_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24076,7 +24074,7 @@ begin
         wait until c010_rst = '0';
         file_open(f, C010_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c010_mvalid = '1' and (and c010_mready) = '1';
+            wait until rising_edge(clk) and c010_mvalid = '1' and c010_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24114,7 +24112,7 @@ begin
         wait until c011_rst = '0';
         file_open(f, C011_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c011_mvalid = '1' and (and c011_mready) = '1';
+            wait until rising_edge(clk) and c011_mvalid = '1' and c011_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24152,7 +24150,7 @@ begin
         wait until c012_rst = '0';
         file_open(f, C012_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c012_mvalid = '1' and (and c012_mready) = '1';
+            wait until rising_edge(clk) and c012_mvalid = '1' and c012_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24190,7 +24188,7 @@ begin
         wait until c013_rst = '0';
         file_open(f, C013_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c013_mvalid = '1' and (and c013_mready) = '1';
+            wait until rising_edge(clk) and c013_mvalid = '1' and c013_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24228,7 +24226,7 @@ begin
         wait until c014_rst = '0';
         file_open(f, C014_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c014_mvalid = '1' and (and c014_mready) = '1';
+            wait until rising_edge(clk) and c014_mvalid = '1' and c014_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24266,7 +24264,7 @@ begin
         wait until c015_rst = '0';
         file_open(f, C015_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c015_mvalid = '1' and (and c015_mready) = '1';
+            wait until rising_edge(clk) and c015_mvalid = '1' and c015_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24304,7 +24302,7 @@ begin
         wait until c016_rst = '0';
         file_open(f, C016_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c016_mvalid = '1' and (and c016_mready) = '1';
+            wait until rising_edge(clk) and c016_mvalid = '1' and c016_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24342,7 +24340,7 @@ begin
         wait until c017_rst = '0';
         file_open(f, C017_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c017_mvalid = '1' and (and c017_mready) = '1';
+            wait until rising_edge(clk) and c017_mvalid = '1' and c017_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24380,7 +24378,7 @@ begin
         wait until c018_rst = '0';
         file_open(f, C018_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c018_mvalid = '1' and (and c018_mready) = '1';
+            wait until rising_edge(clk) and c018_mvalid = '1' and c018_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24418,7 +24416,7 @@ begin
         wait until c019_rst = '0';
         file_open(f, C019_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c019_mvalid = '1' and (and c019_mready) = '1';
+            wait until rising_edge(clk) and c019_mvalid = '1' and c019_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24456,7 +24454,7 @@ begin
         wait until c020_rst = '0';
         file_open(f, C020_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c020_mvalid = '1' and (and c020_mready) = '1';
+            wait until rising_edge(clk) and c020_mvalid = '1' and c020_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24494,7 +24492,7 @@ begin
         wait until c021_rst = '0';
         file_open(f, C021_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c021_mvalid = '1' and (and c021_mready) = '1';
+            wait until rising_edge(clk) and c021_mvalid = '1' and c021_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24532,7 +24530,7 @@ begin
         wait until c022_rst = '0';
         file_open(f, C022_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c022_mvalid = '1' and (and c022_mready) = '1';
+            wait until rising_edge(clk) and c022_mvalid = '1' and c022_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24570,7 +24568,7 @@ begin
         wait until c023_rst = '0';
         file_open(f, C023_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c023_mvalid = '1' and (and c023_mready) = '1';
+            wait until rising_edge(clk) and c023_mvalid = '1' and c023_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24608,7 +24606,7 @@ begin
         wait until c024_rst = '0';
         file_open(f, C024_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c024_mvalid = '1' and (and c024_mready) = '1';
+            wait until rising_edge(clk) and c024_mvalid = '1' and c024_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24646,7 +24644,7 @@ begin
         wait until c025_rst = '0';
         file_open(f, C025_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c025_mvalid = '1' and (and c025_mready) = '1';
+            wait until rising_edge(clk) and c025_mvalid = '1' and c025_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24684,7 +24682,7 @@ begin
         wait until c026_rst = '0';
         file_open(f, C026_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c026_mvalid = '1' and (and c026_mready) = '1';
+            wait until rising_edge(clk) and c026_mvalid = '1' and c026_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24722,7 +24720,7 @@ begin
         wait until c027_rst = '0';
         file_open(f, C027_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c027_mvalid = '1' and (and c027_mready) = '1';
+            wait until rising_edge(clk) and c027_mvalid = '1' and c027_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24760,7 +24758,7 @@ begin
         wait until c028_rst = '0';
         file_open(f, C028_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c028_mvalid = '1' and (and c028_mready) = '1';
+            wait until rising_edge(clk) and c028_mvalid = '1' and c028_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24798,7 +24796,7 @@ begin
         wait until c029_rst = '0';
         file_open(f, C029_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c029_mvalid = '1' and (and c029_mready) = '1';
+            wait until rising_edge(clk) and c029_mvalid = '1' and c029_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24836,7 +24834,7 @@ begin
         wait until c030_rst = '0';
         file_open(f, C030_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c030_mvalid = '1' and (and c030_mready) = '1';
+            wait until rising_edge(clk) and c030_mvalid = '1' and c030_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24874,7 +24872,7 @@ begin
         wait until c031_rst = '0';
         file_open(f, C031_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c031_mvalid = '1' and (and c031_mready) = '1';
+            wait until rising_edge(clk) and c031_mvalid = '1' and c031_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24912,7 +24910,7 @@ begin
         wait until c032_rst = '0';
         file_open(f, C032_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c032_mvalid = '1' and (and c032_mready) = '1';
+            wait until rising_edge(clk) and c032_mvalid = '1' and c032_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24950,7 +24948,7 @@ begin
         wait until c033_rst = '0';
         file_open(f, C033_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c033_mvalid = '1' and (and c033_mready) = '1';
+            wait until rising_edge(clk) and c033_mvalid = '1' and c033_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -24988,7 +24986,7 @@ begin
         wait until c034_rst = '0';
         file_open(f, C034_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c034_mvalid = '1' and (and c034_mready) = '1';
+            wait until rising_edge(clk) and c034_mvalid = '1' and c034_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -25026,7 +25024,7 @@ begin
         wait until c035_rst = '0';
         file_open(f, C035_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c035_mvalid = '1' and (and c035_mready) = '1';
+            wait until rising_edge(clk) and c035_mvalid = '1' and c035_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -25064,7 +25062,7 @@ begin
         wait until c036_rst = '0';
         file_open(f, C036_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c036_mvalid = '1' and (and c036_mready) = '1';
+            wait until rising_edge(clk) and c036_mvalid = '1' and c036_mready = '1';
             readline(f, ln);
             for tap in 0 to 9-1 loop
                 read(ln, tv);
@@ -25102,7 +25100,7 @@ begin
         wait until c037_rst = '0';
         file_open(f, C037_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c037_mvalid = '1' and (and c037_mready) = '1';
+            wait until rising_edge(clk) and c037_mvalid = '1' and c037_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25140,7 +25138,7 @@ begin
         wait until c038_rst = '0';
         file_open(f, C038_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c038_mvalid = '1' and (and c038_mready) = '1';
+            wait until rising_edge(clk) and c038_mvalid = '1' and c038_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25178,7 +25176,7 @@ begin
         wait until c039_rst = '0';
         file_open(f, C039_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c039_mvalid = '1' and (and c039_mready) = '1';
+            wait until rising_edge(clk) and c039_mvalid = '1' and c039_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25216,7 +25214,7 @@ begin
         wait until c040_rst = '0';
         file_open(f, C040_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c040_mvalid = '1' and (and c040_mready) = '1';
+            wait until rising_edge(clk) and c040_mvalid = '1' and c040_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25254,7 +25252,7 @@ begin
         wait until c041_rst = '0';
         file_open(f, C041_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c041_mvalid = '1' and (and c041_mready) = '1';
+            wait until rising_edge(clk) and c041_mvalid = '1' and c041_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25292,7 +25290,7 @@ begin
         wait until c042_rst = '0';
         file_open(f, C042_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c042_mvalid = '1' and (and c042_mready) = '1';
+            wait until rising_edge(clk) and c042_mvalid = '1' and c042_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25330,7 +25328,7 @@ begin
         wait until c043_rst = '0';
         file_open(f, C043_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c043_mvalid = '1' and (and c043_mready) = '1';
+            wait until rising_edge(clk) and c043_mvalid = '1' and c043_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25368,7 +25366,7 @@ begin
         wait until c044_rst = '0';
         file_open(f, C044_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c044_mvalid = '1' and (and c044_mready) = '1';
+            wait until rising_edge(clk) and c044_mvalid = '1' and c044_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25406,7 +25404,7 @@ begin
         wait until c045_rst = '0';
         file_open(f, C045_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c045_mvalid = '1' and (and c045_mready) = '1';
+            wait until rising_edge(clk) and c045_mvalid = '1' and c045_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25444,7 +25442,7 @@ begin
         wait until c046_rst = '0';
         file_open(f, C046_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c046_mvalid = '1' and (and c046_mready) = '1';
+            wait until rising_edge(clk) and c046_mvalid = '1' and c046_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25482,7 +25480,7 @@ begin
         wait until c047_rst = '0';
         file_open(f, C047_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c047_mvalid = '1' and (and c047_mready) = '1';
+            wait until rising_edge(clk) and c047_mvalid = '1' and c047_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25520,7 +25518,7 @@ begin
         wait until c048_rst = '0';
         file_open(f, C048_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c048_mvalid = '1' and (and c048_mready) = '1';
+            wait until rising_edge(clk) and c048_mvalid = '1' and c048_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25558,7 +25556,7 @@ begin
         wait until c049_rst = '0';
         file_open(f, C049_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c049_mvalid = '1' and (and c049_mready) = '1';
+            wait until rising_edge(clk) and c049_mvalid = '1' and c049_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25596,7 +25594,7 @@ begin
         wait until c050_rst = '0';
         file_open(f, C050_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c050_mvalid = '1' and (and c050_mready) = '1';
+            wait until rising_edge(clk) and c050_mvalid = '1' and c050_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25634,7 +25632,7 @@ begin
         wait until c051_rst = '0';
         file_open(f, C051_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c051_mvalid = '1' and (and c051_mready) = '1';
+            wait until rising_edge(clk) and c051_mvalid = '1' and c051_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25672,7 +25670,7 @@ begin
         wait until c052_rst = '0';
         file_open(f, C052_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c052_mvalid = '1' and (and c052_mready) = '1';
+            wait until rising_edge(clk) and c052_mvalid = '1' and c052_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25710,7 +25708,7 @@ begin
         wait until c053_rst = '0';
         file_open(f, C053_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c053_mvalid = '1' and (and c053_mready) = '1';
+            wait until rising_edge(clk) and c053_mvalid = '1' and c053_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25748,7 +25746,7 @@ begin
         wait until c054_rst = '0';
         file_open(f, C054_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c054_mvalid = '1' and (and c054_mready) = '1';
+            wait until rising_edge(clk) and c054_mvalid = '1' and c054_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25786,7 +25784,7 @@ begin
         wait until c055_rst = '0';
         file_open(f, C055_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c055_mvalid = '1' and (and c055_mready) = '1';
+            wait until rising_edge(clk) and c055_mvalid = '1' and c055_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25824,7 +25822,7 @@ begin
         wait until c056_rst = '0';
         file_open(f, C056_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c056_mvalid = '1' and (and c056_mready) = '1';
+            wait until rising_edge(clk) and c056_mvalid = '1' and c056_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25862,7 +25860,7 @@ begin
         wait until c057_rst = '0';
         file_open(f, C057_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c057_mvalid = '1' and (and c057_mready) = '1';
+            wait until rising_edge(clk) and c057_mvalid = '1' and c057_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25900,7 +25898,7 @@ begin
         wait until c058_rst = '0';
         file_open(f, C058_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c058_mvalid = '1' and (and c058_mready) = '1';
+            wait until rising_edge(clk) and c058_mvalid = '1' and c058_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25938,7 +25936,7 @@ begin
         wait until c059_rst = '0';
         file_open(f, C059_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c059_mvalid = '1' and (and c059_mready) = '1';
+            wait until rising_edge(clk) and c059_mvalid = '1' and c059_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -25976,7 +25974,7 @@ begin
         wait until c060_rst = '0';
         file_open(f, C060_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c060_mvalid = '1' and (and c060_mready) = '1';
+            wait until rising_edge(clk) and c060_mvalid = '1' and c060_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26014,7 +26012,7 @@ begin
         wait until c061_rst = '0';
         file_open(f, C061_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c061_mvalid = '1' and (and c061_mready) = '1';
+            wait until rising_edge(clk) and c061_mvalid = '1' and c061_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26052,7 +26050,7 @@ begin
         wait until c062_rst = '0';
         file_open(f, C062_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c062_mvalid = '1' and (and c062_mready) = '1';
+            wait until rising_edge(clk) and c062_mvalid = '1' and c062_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26090,7 +26088,7 @@ begin
         wait until c063_rst = '0';
         file_open(f, C063_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c063_mvalid = '1' and (and c063_mready) = '1';
+            wait until rising_edge(clk) and c063_mvalid = '1' and c063_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26128,7 +26126,7 @@ begin
         wait until c064_rst = '0';
         file_open(f, C064_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c064_mvalid = '1' and (and c064_mready) = '1';
+            wait until rising_edge(clk) and c064_mvalid = '1' and c064_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26166,7 +26164,7 @@ begin
         wait until c065_rst = '0';
         file_open(f, C065_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c065_mvalid = '1' and (and c065_mready) = '1';
+            wait until rising_edge(clk) and c065_mvalid = '1' and c065_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26204,7 +26202,7 @@ begin
         wait until c066_rst = '0';
         file_open(f, C066_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c066_mvalid = '1' and (and c066_mready) = '1';
+            wait until rising_edge(clk) and c066_mvalid = '1' and c066_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26242,7 +26240,7 @@ begin
         wait until c067_rst = '0';
         file_open(f, C067_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c067_mvalid = '1' and (and c067_mready) = '1';
+            wait until rising_edge(clk) and c067_mvalid = '1' and c067_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26280,7 +26278,7 @@ begin
         wait until c068_rst = '0';
         file_open(f, C068_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c068_mvalid = '1' and (and c068_mready) = '1';
+            wait until rising_edge(clk) and c068_mvalid = '1' and c068_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26318,7 +26316,7 @@ begin
         wait until c069_rst = '0';
         file_open(f, C069_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c069_mvalid = '1' and (and c069_mready) = '1';
+            wait until rising_edge(clk) and c069_mvalid = '1' and c069_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26356,7 +26354,7 @@ begin
         wait until c070_rst = '0';
         file_open(f, C070_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c070_mvalid = '1' and (and c070_mready) = '1';
+            wait until rising_edge(clk) and c070_mvalid = '1' and c070_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26394,7 +26392,7 @@ begin
         wait until c071_rst = '0';
         file_open(f, C071_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c071_mvalid = '1' and (and c071_mready) = '1';
+            wait until rising_edge(clk) and c071_mvalid = '1' and c071_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26432,7 +26430,7 @@ begin
         wait until c072_rst = '0';
         file_open(f, C072_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c072_mvalid = '1' and (and c072_mready) = '1';
+            wait until rising_edge(clk) and c072_mvalid = '1' and c072_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -26470,7 +26468,7 @@ begin
         wait until c073_rst = '0';
         file_open(f, C073_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c073_mvalid = '1' and (and c073_mready) = '1';
+            wait until rising_edge(clk) and c073_mvalid = '1' and c073_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26508,7 +26506,7 @@ begin
         wait until c074_rst = '0';
         file_open(f, C074_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c074_mvalid = '1' and (and c074_mready) = '1';
+            wait until rising_edge(clk) and c074_mvalid = '1' and c074_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26546,7 +26544,7 @@ begin
         wait until c075_rst = '0';
         file_open(f, C075_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c075_mvalid = '1' and (and c075_mready) = '1';
+            wait until rising_edge(clk) and c075_mvalid = '1' and c075_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26584,7 +26582,7 @@ begin
         wait until c076_rst = '0';
         file_open(f, C076_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c076_mvalid = '1' and (and c076_mready) = '1';
+            wait until rising_edge(clk) and c076_mvalid = '1' and c076_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26622,7 +26620,7 @@ begin
         wait until c077_rst = '0';
         file_open(f, C077_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c077_mvalid = '1' and (and c077_mready) = '1';
+            wait until rising_edge(clk) and c077_mvalid = '1' and c077_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26660,7 +26658,7 @@ begin
         wait until c078_rst = '0';
         file_open(f, C078_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c078_mvalid = '1' and (and c078_mready) = '1';
+            wait until rising_edge(clk) and c078_mvalid = '1' and c078_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26698,7 +26696,7 @@ begin
         wait until c079_rst = '0';
         file_open(f, C079_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c079_mvalid = '1' and (and c079_mready) = '1';
+            wait until rising_edge(clk) and c079_mvalid = '1' and c079_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26736,7 +26734,7 @@ begin
         wait until c080_rst = '0';
         file_open(f, C080_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c080_mvalid = '1' and (and c080_mready) = '1';
+            wait until rising_edge(clk) and c080_mvalid = '1' and c080_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26774,7 +26772,7 @@ begin
         wait until c081_rst = '0';
         file_open(f, C081_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c081_mvalid = '1' and (and c081_mready) = '1';
+            wait until rising_edge(clk) and c081_mvalid = '1' and c081_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26812,7 +26810,7 @@ begin
         wait until c082_rst = '0';
         file_open(f, C082_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c082_mvalid = '1' and (and c082_mready) = '1';
+            wait until rising_edge(clk) and c082_mvalid = '1' and c082_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26850,7 +26848,7 @@ begin
         wait until c083_rst = '0';
         file_open(f, C083_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c083_mvalid = '1' and (and c083_mready) = '1';
+            wait until rising_edge(clk) and c083_mvalid = '1' and c083_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26888,7 +26886,7 @@ begin
         wait until c084_rst = '0';
         file_open(f, C084_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c084_mvalid = '1' and (and c084_mready) = '1';
+            wait until rising_edge(clk) and c084_mvalid = '1' and c084_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26926,7 +26924,7 @@ begin
         wait until c085_rst = '0';
         file_open(f, C085_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c085_mvalid = '1' and (and c085_mready) = '1';
+            wait until rising_edge(clk) and c085_mvalid = '1' and c085_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -26964,7 +26962,7 @@ begin
         wait until c086_rst = '0';
         file_open(f, C086_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c086_mvalid = '1' and (and c086_mready) = '1';
+            wait until rising_edge(clk) and c086_mvalid = '1' and c086_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27002,7 +27000,7 @@ begin
         wait until c087_rst = '0';
         file_open(f, C087_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c087_mvalid = '1' and (and c087_mready) = '1';
+            wait until rising_edge(clk) and c087_mvalid = '1' and c087_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27040,7 +27038,7 @@ begin
         wait until c088_rst = '0';
         file_open(f, C088_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c088_mvalid = '1' and (and c088_mready) = '1';
+            wait until rising_edge(clk) and c088_mvalid = '1' and c088_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27078,7 +27076,7 @@ begin
         wait until c089_rst = '0';
         file_open(f, C089_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c089_mvalid = '1' and (and c089_mready) = '1';
+            wait until rising_edge(clk) and c089_mvalid = '1' and c089_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27116,7 +27114,7 @@ begin
         wait until c090_rst = '0';
         file_open(f, C090_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c090_mvalid = '1' and (and c090_mready) = '1';
+            wait until rising_edge(clk) and c090_mvalid = '1' and c090_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27154,7 +27152,7 @@ begin
         wait until c091_rst = '0';
         file_open(f, C091_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c091_mvalid = '1' and (and c091_mready) = '1';
+            wait until rising_edge(clk) and c091_mvalid = '1' and c091_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27192,7 +27190,7 @@ begin
         wait until c092_rst = '0';
         file_open(f, C092_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c092_mvalid = '1' and (and c092_mready) = '1';
+            wait until rising_edge(clk) and c092_mvalid = '1' and c092_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27230,7 +27228,7 @@ begin
         wait until c093_rst = '0';
         file_open(f, C093_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c093_mvalid = '1' and (and c093_mready) = '1';
+            wait until rising_edge(clk) and c093_mvalid = '1' and c093_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27268,7 +27266,7 @@ begin
         wait until c094_rst = '0';
         file_open(f, C094_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c094_mvalid = '1' and (and c094_mready) = '1';
+            wait until rising_edge(clk) and c094_mvalid = '1' and c094_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27306,7 +27304,7 @@ begin
         wait until c095_rst = '0';
         file_open(f, C095_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c095_mvalid = '1' and (and c095_mready) = '1';
+            wait until rising_edge(clk) and c095_mvalid = '1' and c095_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27344,7 +27342,7 @@ begin
         wait until c096_rst = '0';
         file_open(f, C096_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c096_mvalid = '1' and (and c096_mready) = '1';
+            wait until rising_edge(clk) and c096_mvalid = '1' and c096_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27382,7 +27380,7 @@ begin
         wait until c097_rst = '0';
         file_open(f, C097_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c097_mvalid = '1' and (and c097_mready) = '1';
+            wait until rising_edge(clk) and c097_mvalid = '1' and c097_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27420,7 +27418,7 @@ begin
         wait until c098_rst = '0';
         file_open(f, C098_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c098_mvalid = '1' and (and c098_mready) = '1';
+            wait until rising_edge(clk) and c098_mvalid = '1' and c098_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27458,7 +27456,7 @@ begin
         wait until c099_rst = '0';
         file_open(f, C099_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c099_mvalid = '1' and (and c099_mready) = '1';
+            wait until rising_edge(clk) and c099_mvalid = '1' and c099_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27496,7 +27494,7 @@ begin
         wait until c100_rst = '0';
         file_open(f, C100_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c100_mvalid = '1' and (and c100_mready) = '1';
+            wait until rising_edge(clk) and c100_mvalid = '1' and c100_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27534,7 +27532,7 @@ begin
         wait until c101_rst = '0';
         file_open(f, C101_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c101_mvalid = '1' and (and c101_mready) = '1';
+            wait until rising_edge(clk) and c101_mvalid = '1' and c101_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27572,7 +27570,7 @@ begin
         wait until c102_rst = '0';
         file_open(f, C102_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c102_mvalid = '1' and (and c102_mready) = '1';
+            wait until rising_edge(clk) and c102_mvalid = '1' and c102_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27610,7 +27608,7 @@ begin
         wait until c103_rst = '0';
         file_open(f, C103_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c103_mvalid = '1' and (and c103_mready) = '1';
+            wait until rising_edge(clk) and c103_mvalid = '1' and c103_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27648,7 +27646,7 @@ begin
         wait until c104_rst = '0';
         file_open(f, C104_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c104_mvalid = '1' and (and c104_mready) = '1';
+            wait until rising_edge(clk) and c104_mvalid = '1' and c104_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27686,7 +27684,7 @@ begin
         wait until c105_rst = '0';
         file_open(f, C105_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c105_mvalid = '1' and (and c105_mready) = '1';
+            wait until rising_edge(clk) and c105_mvalid = '1' and c105_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27724,7 +27722,7 @@ begin
         wait until c106_rst = '0';
         file_open(f, C106_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c106_mvalid = '1' and (and c106_mready) = '1';
+            wait until rising_edge(clk) and c106_mvalid = '1' and c106_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27762,7 +27760,7 @@ begin
         wait until c107_rst = '0';
         file_open(f, C107_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c107_mvalid = '1' and (and c107_mready) = '1';
+            wait until rising_edge(clk) and c107_mvalid = '1' and c107_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27800,7 +27798,7 @@ begin
         wait until c108_rst = '0';
         file_open(f, C108_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c108_mvalid = '1' and (and c108_mready) = '1';
+            wait until rising_edge(clk) and c108_mvalid = '1' and c108_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -27838,7 +27836,7 @@ begin
         wait until c109_rst = '0';
         file_open(f, C109_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c109_mvalid = '1' and (and c109_mready) = '1';
+            wait until rising_edge(clk) and c109_mvalid = '1' and c109_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -27876,7 +27874,7 @@ begin
         wait until c110_rst = '0';
         file_open(f, C110_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c110_mvalid = '1' and (and c110_mready) = '1';
+            wait until rising_edge(clk) and c110_mvalid = '1' and c110_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -27914,7 +27912,7 @@ begin
         wait until c111_rst = '0';
         file_open(f, C111_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c111_mvalid = '1' and (and c111_mready) = '1';
+            wait until rising_edge(clk) and c111_mvalid = '1' and c111_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -27952,7 +27950,7 @@ begin
         wait until c112_rst = '0';
         file_open(f, C112_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c112_mvalid = '1' and (and c112_mready) = '1';
+            wait until rising_edge(clk) and c112_mvalid = '1' and c112_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -27990,7 +27988,7 @@ begin
         wait until c113_rst = '0';
         file_open(f, C113_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c113_mvalid = '1' and (and c113_mready) = '1';
+            wait until rising_edge(clk) and c113_mvalid = '1' and c113_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28028,7 +28026,7 @@ begin
         wait until c114_rst = '0';
         file_open(f, C114_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c114_mvalid = '1' and (and c114_mready) = '1';
+            wait until rising_edge(clk) and c114_mvalid = '1' and c114_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28066,7 +28064,7 @@ begin
         wait until c115_rst = '0';
         file_open(f, C115_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c115_mvalid = '1' and (and c115_mready) = '1';
+            wait until rising_edge(clk) and c115_mvalid = '1' and c115_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28104,7 +28102,7 @@ begin
         wait until c116_rst = '0';
         file_open(f, C116_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c116_mvalid = '1' and (and c116_mready) = '1';
+            wait until rising_edge(clk) and c116_mvalid = '1' and c116_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28142,7 +28140,7 @@ begin
         wait until c117_rst = '0';
         file_open(f, C117_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c117_mvalid = '1' and (and c117_mready) = '1';
+            wait until rising_edge(clk) and c117_mvalid = '1' and c117_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28180,7 +28178,7 @@ begin
         wait until c118_rst = '0';
         file_open(f, C118_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c118_mvalid = '1' and (and c118_mready) = '1';
+            wait until rising_edge(clk) and c118_mvalid = '1' and c118_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28218,7 +28216,7 @@ begin
         wait until c119_rst = '0';
         file_open(f, C119_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c119_mvalid = '1' and (and c119_mready) = '1';
+            wait until rising_edge(clk) and c119_mvalid = '1' and c119_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28256,7 +28254,7 @@ begin
         wait until c120_rst = '0';
         file_open(f, C120_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c120_mvalid = '1' and (and c120_mready) = '1';
+            wait until rising_edge(clk) and c120_mvalid = '1' and c120_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28294,7 +28292,7 @@ begin
         wait until c121_rst = '0';
         file_open(f, C121_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c121_mvalid = '1' and (and c121_mready) = '1';
+            wait until rising_edge(clk) and c121_mvalid = '1' and c121_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28332,7 +28330,7 @@ begin
         wait until c122_rst = '0';
         file_open(f, C122_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c122_mvalid = '1' and (and c122_mready) = '1';
+            wait until rising_edge(clk) and c122_mvalid = '1' and c122_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28370,7 +28368,7 @@ begin
         wait until c123_rst = '0';
         file_open(f, C123_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c123_mvalid = '1' and (and c123_mready) = '1';
+            wait until rising_edge(clk) and c123_mvalid = '1' and c123_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28408,7 +28406,7 @@ begin
         wait until c124_rst = '0';
         file_open(f, C124_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c124_mvalid = '1' and (and c124_mready) = '1';
+            wait until rising_edge(clk) and c124_mvalid = '1' and c124_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28446,7 +28444,7 @@ begin
         wait until c125_rst = '0';
         file_open(f, C125_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c125_mvalid = '1' and (and c125_mready) = '1';
+            wait until rising_edge(clk) and c125_mvalid = '1' and c125_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28484,7 +28482,7 @@ begin
         wait until c126_rst = '0';
         file_open(f, C126_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c126_mvalid = '1' and (and c126_mready) = '1';
+            wait until rising_edge(clk) and c126_mvalid = '1' and c126_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28522,7 +28520,7 @@ begin
         wait until c127_rst = '0';
         file_open(f, C127_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c127_mvalid = '1' and (and c127_mready) = '1';
+            wait until rising_edge(clk) and c127_mvalid = '1' and c127_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28560,7 +28558,7 @@ begin
         wait until c128_rst = '0';
         file_open(f, C128_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c128_mvalid = '1' and (and c128_mready) = '1';
+            wait until rising_edge(clk) and c128_mvalid = '1' and c128_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28598,7 +28596,7 @@ begin
         wait until c129_rst = '0';
         file_open(f, C129_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c129_mvalid = '1' and (and c129_mready) = '1';
+            wait until rising_edge(clk) and c129_mvalid = '1' and c129_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28636,7 +28634,7 @@ begin
         wait until c130_rst = '0';
         file_open(f, C130_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c130_mvalid = '1' and (and c130_mready) = '1';
+            wait until rising_edge(clk) and c130_mvalid = '1' and c130_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28674,7 +28672,7 @@ begin
         wait until c131_rst = '0';
         file_open(f, C131_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c131_mvalid = '1' and (and c131_mready) = '1';
+            wait until rising_edge(clk) and c131_mvalid = '1' and c131_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28712,7 +28710,7 @@ begin
         wait until c132_rst = '0';
         file_open(f, C132_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c132_mvalid = '1' and (and c132_mready) = '1';
+            wait until rising_edge(clk) and c132_mvalid = '1' and c132_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28750,7 +28748,7 @@ begin
         wait until c133_rst = '0';
         file_open(f, C133_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c133_mvalid = '1' and (and c133_mready) = '1';
+            wait until rising_edge(clk) and c133_mvalid = '1' and c133_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28788,7 +28786,7 @@ begin
         wait until c134_rst = '0';
         file_open(f, C134_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c134_mvalid = '1' and (and c134_mready) = '1';
+            wait until rising_edge(clk) and c134_mvalid = '1' and c134_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28826,7 +28824,7 @@ begin
         wait until c135_rst = '0';
         file_open(f, C135_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c135_mvalid = '1' and (and c135_mready) = '1';
+            wait until rising_edge(clk) and c135_mvalid = '1' and c135_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28864,7 +28862,7 @@ begin
         wait until c136_rst = '0';
         file_open(f, C136_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c136_mvalid = '1' and (and c136_mready) = '1';
+            wait until rising_edge(clk) and c136_mvalid = '1' and c136_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28902,7 +28900,7 @@ begin
         wait until c137_rst = '0';
         file_open(f, C137_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c137_mvalid = '1' and (and c137_mready) = '1';
+            wait until rising_edge(clk) and c137_mvalid = '1' and c137_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28940,7 +28938,7 @@ begin
         wait until c138_rst = '0';
         file_open(f, C138_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c138_mvalid = '1' and (and c138_mready) = '1';
+            wait until rising_edge(clk) and c138_mvalid = '1' and c138_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -28978,7 +28976,7 @@ begin
         wait until c139_rst = '0';
         file_open(f, C139_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c139_mvalid = '1' and (and c139_mready) = '1';
+            wait until rising_edge(clk) and c139_mvalid = '1' and c139_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -29016,7 +29014,7 @@ begin
         wait until c140_rst = '0';
         file_open(f, C140_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c140_mvalid = '1' and (and c140_mready) = '1';
+            wait until rising_edge(clk) and c140_mvalid = '1' and c140_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -29054,7 +29052,7 @@ begin
         wait until c141_rst = '0';
         file_open(f, C141_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c141_mvalid = '1' and (and c141_mready) = '1';
+            wait until rising_edge(clk) and c141_mvalid = '1' and c141_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -29092,7 +29090,7 @@ begin
         wait until c142_rst = '0';
         file_open(f, C142_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c142_mvalid = '1' and (and c142_mready) = '1';
+            wait until rising_edge(clk) and c142_mvalid = '1' and c142_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -29130,7 +29128,7 @@ begin
         wait until c143_rst = '0';
         file_open(f, C143_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c143_mvalid = '1' and (and c143_mready) = '1';
+            wait until rising_edge(clk) and c143_mvalid = '1' and c143_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -29168,7 +29166,7 @@ begin
         wait until c144_rst = '0';
         file_open(f, C144_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c144_mvalid = '1' and (and c144_mready) = '1';
+            wait until rising_edge(clk) and c144_mvalid = '1' and c144_mready = '1';
             readline(f, ln);
             for tap in 0 to 15-1 loop
                 read(ln, tv);
@@ -29206,7 +29204,7 @@ begin
         wait until c145_rst = '0';
         file_open(f, C145_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c145_mvalid = '1' and (and c145_mready) = '1';
+            wait until rising_edge(clk) and c145_mvalid = '1' and c145_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29244,7 +29242,7 @@ begin
         wait until c146_rst = '0';
         file_open(f, C146_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c146_mvalid = '1' and (and c146_mready) = '1';
+            wait until rising_edge(clk) and c146_mvalid = '1' and c146_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29282,7 +29280,7 @@ begin
         wait until c147_rst = '0';
         file_open(f, C147_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c147_mvalid = '1' and (and c147_mready) = '1';
+            wait until rising_edge(clk) and c147_mvalid = '1' and c147_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29320,7 +29318,7 @@ begin
         wait until c148_rst = '0';
         file_open(f, C148_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c148_mvalid = '1' and (and c148_mready) = '1';
+            wait until rising_edge(clk) and c148_mvalid = '1' and c148_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29358,7 +29356,7 @@ begin
         wait until c149_rst = '0';
         file_open(f, C149_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c149_mvalid = '1' and (and c149_mready) = '1';
+            wait until rising_edge(clk) and c149_mvalid = '1' and c149_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29396,7 +29394,7 @@ begin
         wait until c150_rst = '0';
         file_open(f, C150_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c150_mvalid = '1' and (and c150_mready) = '1';
+            wait until rising_edge(clk) and c150_mvalid = '1' and c150_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29434,7 +29432,7 @@ begin
         wait until c151_rst = '0';
         file_open(f, C151_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c151_mvalid = '1' and (and c151_mready) = '1';
+            wait until rising_edge(clk) and c151_mvalid = '1' and c151_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29472,7 +29470,7 @@ begin
         wait until c152_rst = '0';
         file_open(f, C152_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c152_mvalid = '1' and (and c152_mready) = '1';
+            wait until rising_edge(clk) and c152_mvalid = '1' and c152_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29510,7 +29508,7 @@ begin
         wait until c153_rst = '0';
         file_open(f, C153_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c153_mvalid = '1' and (and c153_mready) = '1';
+            wait until rising_edge(clk) and c153_mvalid = '1' and c153_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29548,7 +29546,7 @@ begin
         wait until c154_rst = '0';
         file_open(f, C154_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c154_mvalid = '1' and (and c154_mready) = '1';
+            wait until rising_edge(clk) and c154_mvalid = '1' and c154_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29586,7 +29584,7 @@ begin
         wait until c155_rst = '0';
         file_open(f, C155_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c155_mvalid = '1' and (and c155_mready) = '1';
+            wait until rising_edge(clk) and c155_mvalid = '1' and c155_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29624,7 +29622,7 @@ begin
         wait until c156_rst = '0';
         file_open(f, C156_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c156_mvalid = '1' and (and c156_mready) = '1';
+            wait until rising_edge(clk) and c156_mvalid = '1' and c156_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29662,7 +29660,7 @@ begin
         wait until c157_rst = '0';
         file_open(f, C157_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c157_mvalid = '1' and (and c157_mready) = '1';
+            wait until rising_edge(clk) and c157_mvalid = '1' and c157_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29700,7 +29698,7 @@ begin
         wait until c158_rst = '0';
         file_open(f, C158_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c158_mvalid = '1' and (and c158_mready) = '1';
+            wait until rising_edge(clk) and c158_mvalid = '1' and c158_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29738,7 +29736,7 @@ begin
         wait until c159_rst = '0';
         file_open(f, C159_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c159_mvalid = '1' and (and c159_mready) = '1';
+            wait until rising_edge(clk) and c159_mvalid = '1' and c159_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29776,7 +29774,7 @@ begin
         wait until c160_rst = '0';
         file_open(f, C160_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c160_mvalid = '1' and (and c160_mready) = '1';
+            wait until rising_edge(clk) and c160_mvalid = '1' and c160_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29814,7 +29812,7 @@ begin
         wait until c161_rst = '0';
         file_open(f, C161_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c161_mvalid = '1' and (and c161_mready) = '1';
+            wait until rising_edge(clk) and c161_mvalid = '1' and c161_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29852,7 +29850,7 @@ begin
         wait until c162_rst = '0';
         file_open(f, C162_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c162_mvalid = '1' and (and c162_mready) = '1';
+            wait until rising_edge(clk) and c162_mvalid = '1' and c162_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29890,7 +29888,7 @@ begin
         wait until c163_rst = '0';
         file_open(f, C163_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c163_mvalid = '1' and (and c163_mready) = '1';
+            wait until rising_edge(clk) and c163_mvalid = '1' and c163_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29928,7 +29926,7 @@ begin
         wait until c164_rst = '0';
         file_open(f, C164_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c164_mvalid = '1' and (and c164_mready) = '1';
+            wait until rising_edge(clk) and c164_mvalid = '1' and c164_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -29966,7 +29964,7 @@ begin
         wait until c165_rst = '0';
         file_open(f, C165_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c165_mvalid = '1' and (and c165_mready) = '1';
+            wait until rising_edge(clk) and c165_mvalid = '1' and c165_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30004,7 +30002,7 @@ begin
         wait until c166_rst = '0';
         file_open(f, C166_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c166_mvalid = '1' and (and c166_mready) = '1';
+            wait until rising_edge(clk) and c166_mvalid = '1' and c166_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30042,7 +30040,7 @@ begin
         wait until c167_rst = '0';
         file_open(f, C167_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c167_mvalid = '1' and (and c167_mready) = '1';
+            wait until rising_edge(clk) and c167_mvalid = '1' and c167_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30080,7 +30078,7 @@ begin
         wait until c168_rst = '0';
         file_open(f, C168_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c168_mvalid = '1' and (and c168_mready) = '1';
+            wait until rising_edge(clk) and c168_mvalid = '1' and c168_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30118,7 +30116,7 @@ begin
         wait until c169_rst = '0';
         file_open(f, C169_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c169_mvalid = '1' and (and c169_mready) = '1';
+            wait until rising_edge(clk) and c169_mvalid = '1' and c169_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30156,7 +30154,7 @@ begin
         wait until c170_rst = '0';
         file_open(f, C170_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c170_mvalid = '1' and (and c170_mready) = '1';
+            wait until rising_edge(clk) and c170_mvalid = '1' and c170_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30194,7 +30192,7 @@ begin
         wait until c171_rst = '0';
         file_open(f, C171_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c171_mvalid = '1' and (and c171_mready) = '1';
+            wait until rising_edge(clk) and c171_mvalid = '1' and c171_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30232,7 +30230,7 @@ begin
         wait until c172_rst = '0';
         file_open(f, C172_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c172_mvalid = '1' and (and c172_mready) = '1';
+            wait until rising_edge(clk) and c172_mvalid = '1' and c172_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30270,7 +30268,7 @@ begin
         wait until c173_rst = '0';
         file_open(f, C173_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c173_mvalid = '1' and (and c173_mready) = '1';
+            wait until rising_edge(clk) and c173_mvalid = '1' and c173_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30308,7 +30306,7 @@ begin
         wait until c174_rst = '0';
         file_open(f, C174_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c174_mvalid = '1' and (and c174_mready) = '1';
+            wait until rising_edge(clk) and c174_mvalid = '1' and c174_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30346,7 +30344,7 @@ begin
         wait until c175_rst = '0';
         file_open(f, C175_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c175_mvalid = '1' and (and c175_mready) = '1';
+            wait until rising_edge(clk) and c175_mvalid = '1' and c175_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30384,7 +30382,7 @@ begin
         wait until c176_rst = '0';
         file_open(f, C176_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c176_mvalid = '1' and (and c176_mready) = '1';
+            wait until rising_edge(clk) and c176_mvalid = '1' and c176_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30422,7 +30420,7 @@ begin
         wait until c177_rst = '0';
         file_open(f, C177_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c177_mvalid = '1' and (and c177_mready) = '1';
+            wait until rising_edge(clk) and c177_mvalid = '1' and c177_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30460,7 +30458,7 @@ begin
         wait until c178_rst = '0';
         file_open(f, C178_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c178_mvalid = '1' and (and c178_mready) = '1';
+            wait until rising_edge(clk) and c178_mvalid = '1' and c178_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30498,7 +30496,7 @@ begin
         wait until c179_rst = '0';
         file_open(f, C179_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c179_mvalid = '1' and (and c179_mready) = '1';
+            wait until rising_edge(clk) and c179_mvalid = '1' and c179_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30536,7 +30534,7 @@ begin
         wait until c180_rst = '0';
         file_open(f, C180_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c180_mvalid = '1' and (and c180_mready) = '1';
+            wait until rising_edge(clk) and c180_mvalid = '1' and c180_mready = '1';
             readline(f, ln);
             for tap in 0 to 25-1 loop
                 read(ln, tv);
@@ -30574,7 +30572,7 @@ begin
         wait until c181_rst = '0';
         file_open(f, C181_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c181_mvalid = '1' and (and c181_mready) = '1';
+            wait until rising_edge(clk) and c181_mvalid = '1' and c181_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30612,7 +30610,7 @@ begin
         wait until c182_rst = '0';
         file_open(f, C182_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c182_mvalid = '1' and (and c182_mready) = '1';
+            wait until rising_edge(clk) and c182_mvalid = '1' and c182_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30650,7 +30648,7 @@ begin
         wait until c183_rst = '0';
         file_open(f, C183_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c183_mvalid = '1' and (and c183_mready) = '1';
+            wait until rising_edge(clk) and c183_mvalid = '1' and c183_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30688,7 +30686,7 @@ begin
         wait until c184_rst = '0';
         file_open(f, C184_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c184_mvalid = '1' and (and c184_mready) = '1';
+            wait until rising_edge(clk) and c184_mvalid = '1' and c184_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30726,7 +30724,7 @@ begin
         wait until c185_rst = '0';
         file_open(f, C185_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c185_mvalid = '1' and (and c185_mready) = '1';
+            wait until rising_edge(clk) and c185_mvalid = '1' and c185_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30764,7 +30762,7 @@ begin
         wait until c186_rst = '0';
         file_open(f, C186_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c186_mvalid = '1' and (and c186_mready) = '1';
+            wait until rising_edge(clk) and c186_mvalid = '1' and c186_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30802,7 +30800,7 @@ begin
         wait until c187_rst = '0';
         file_open(f, C187_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c187_mvalid = '1' and (and c187_mready) = '1';
+            wait until rising_edge(clk) and c187_mvalid = '1' and c187_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30840,7 +30838,7 @@ begin
         wait until c188_rst = '0';
         file_open(f, C188_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c188_mvalid = '1' and (and c188_mready) = '1';
+            wait until rising_edge(clk) and c188_mvalid = '1' and c188_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30878,7 +30876,7 @@ begin
         wait until c189_rst = '0';
         file_open(f, C189_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c189_mvalid = '1' and (and c189_mready) = '1';
+            wait until rising_edge(clk) and c189_mvalid = '1' and c189_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30916,7 +30914,7 @@ begin
         wait until c190_rst = '0';
         file_open(f, C190_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c190_mvalid = '1' and (and c190_mready) = '1';
+            wait until rising_edge(clk) and c190_mvalid = '1' and c190_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30954,7 +30952,7 @@ begin
         wait until c191_rst = '0';
         file_open(f, C191_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c191_mvalid = '1' and (and c191_mready) = '1';
+            wait until rising_edge(clk) and c191_mvalid = '1' and c191_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -30992,7 +30990,7 @@ begin
         wait until c192_rst = '0';
         file_open(f, C192_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c192_mvalid = '1' and (and c192_mready) = '1';
+            wait until rising_edge(clk) and c192_mvalid = '1' and c192_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31030,7 +31028,7 @@ begin
         wait until c193_rst = '0';
         file_open(f, C193_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c193_mvalid = '1' and (and c193_mready) = '1';
+            wait until rising_edge(clk) and c193_mvalid = '1' and c193_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31068,7 +31066,7 @@ begin
         wait until c194_rst = '0';
         file_open(f, C194_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c194_mvalid = '1' and (and c194_mready) = '1';
+            wait until rising_edge(clk) and c194_mvalid = '1' and c194_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31106,7 +31104,7 @@ begin
         wait until c195_rst = '0';
         file_open(f, C195_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c195_mvalid = '1' and (and c195_mready) = '1';
+            wait until rising_edge(clk) and c195_mvalid = '1' and c195_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31144,7 +31142,7 @@ begin
         wait until c196_rst = '0';
         file_open(f, C196_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c196_mvalid = '1' and (and c196_mready) = '1';
+            wait until rising_edge(clk) and c196_mvalid = '1' and c196_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31182,7 +31180,7 @@ begin
         wait until c197_rst = '0';
         file_open(f, C197_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c197_mvalid = '1' and (and c197_mready) = '1';
+            wait until rising_edge(clk) and c197_mvalid = '1' and c197_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31220,7 +31218,7 @@ begin
         wait until c198_rst = '0';
         file_open(f, C198_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c198_mvalid = '1' and (and c198_mready) = '1';
+            wait until rising_edge(clk) and c198_mvalid = '1' and c198_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31258,7 +31256,7 @@ begin
         wait until c199_rst = '0';
         file_open(f, C199_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c199_mvalid = '1' and (and c199_mready) = '1';
+            wait until rising_edge(clk) and c199_mvalid = '1' and c199_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31296,7 +31294,7 @@ begin
         wait until c200_rst = '0';
         file_open(f, C200_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c200_mvalid = '1' and (and c200_mready) = '1';
+            wait until rising_edge(clk) and c200_mvalid = '1' and c200_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31334,7 +31332,7 @@ begin
         wait until c201_rst = '0';
         file_open(f, C201_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c201_mvalid = '1' and (and c201_mready) = '1';
+            wait until rising_edge(clk) and c201_mvalid = '1' and c201_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31372,7 +31370,7 @@ begin
         wait until c202_rst = '0';
         file_open(f, C202_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c202_mvalid = '1' and (and c202_mready) = '1';
+            wait until rising_edge(clk) and c202_mvalid = '1' and c202_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31410,7 +31408,7 @@ begin
         wait until c203_rst = '0';
         file_open(f, C203_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c203_mvalid = '1' and (and c203_mready) = '1';
+            wait until rising_edge(clk) and c203_mvalid = '1' and c203_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31448,7 +31446,7 @@ begin
         wait until c204_rst = '0';
         file_open(f, C204_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c204_mvalid = '1' and (and c204_mready) = '1';
+            wait until rising_edge(clk) and c204_mvalid = '1' and c204_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31486,7 +31484,7 @@ begin
         wait until c205_rst = '0';
         file_open(f, C205_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c205_mvalid = '1' and (and c205_mready) = '1';
+            wait until rising_edge(clk) and c205_mvalid = '1' and c205_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31524,7 +31522,7 @@ begin
         wait until c206_rst = '0';
         file_open(f, C206_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c206_mvalid = '1' and (and c206_mready) = '1';
+            wait until rising_edge(clk) and c206_mvalid = '1' and c206_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31562,7 +31560,7 @@ begin
         wait until c207_rst = '0';
         file_open(f, C207_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c207_mvalid = '1' and (and c207_mready) = '1';
+            wait until rising_edge(clk) and c207_mvalid = '1' and c207_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31600,7 +31598,7 @@ begin
         wait until c208_rst = '0';
         file_open(f, C208_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c208_mvalid = '1' and (and c208_mready) = '1';
+            wait until rising_edge(clk) and c208_mvalid = '1' and c208_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31638,7 +31636,7 @@ begin
         wait until c209_rst = '0';
         file_open(f, C209_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c209_mvalid = '1' and (and c209_mready) = '1';
+            wait until rising_edge(clk) and c209_mvalid = '1' and c209_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31676,7 +31674,7 @@ begin
         wait until c210_rst = '0';
         file_open(f, C210_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c210_mvalid = '1' and (and c210_mready) = '1';
+            wait until rising_edge(clk) and c210_mvalid = '1' and c210_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31714,7 +31712,7 @@ begin
         wait until c211_rst = '0';
         file_open(f, C211_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c211_mvalid = '1' and (and c211_mready) = '1';
+            wait until rising_edge(clk) and c211_mvalid = '1' and c211_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31752,7 +31750,7 @@ begin
         wait until c212_rst = '0';
         file_open(f, C212_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c212_mvalid = '1' and (and c212_mready) = '1';
+            wait until rising_edge(clk) and c212_mvalid = '1' and c212_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31790,7 +31788,7 @@ begin
         wait until c213_rst = '0';
         file_open(f, C213_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c213_mvalid = '1' and (and c213_mready) = '1';
+            wait until rising_edge(clk) and c213_mvalid = '1' and c213_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31828,7 +31826,7 @@ begin
         wait until c214_rst = '0';
         file_open(f, C214_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c214_mvalid = '1' and (and c214_mready) = '1';
+            wait until rising_edge(clk) and c214_mvalid = '1' and c214_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31866,7 +31864,7 @@ begin
         wait until c215_rst = '0';
         file_open(f, C215_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c215_mvalid = '1' and (and c215_mready) = '1';
+            wait until rising_edge(clk) and c215_mvalid = '1' and c215_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31904,7 +31902,7 @@ begin
         wait until c216_rst = '0';
         file_open(f, C216_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c216_mvalid = '1' and (and c216_mready) = '1';
+            wait until rising_edge(clk) and c216_mvalid = '1' and c216_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -31942,7 +31940,7 @@ begin
         wait until c217_rst = '0';
         file_open(f, C217_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c217_mvalid = '1' and (and c217_mready) = '1';
+            wait until rising_edge(clk) and c217_mvalid = '1' and c217_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -31980,7 +31978,7 @@ begin
         wait until c218_rst = '0';
         file_open(f, C218_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c218_mvalid = '1' and (and c218_mready) = '1';
+            wait until rising_edge(clk) and c218_mvalid = '1' and c218_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32018,7 +32016,7 @@ begin
         wait until c219_rst = '0';
         file_open(f, C219_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c219_mvalid = '1' and (and c219_mready) = '1';
+            wait until rising_edge(clk) and c219_mvalid = '1' and c219_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32056,7 +32054,7 @@ begin
         wait until c220_rst = '0';
         file_open(f, C220_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c220_mvalid = '1' and (and c220_mready) = '1';
+            wait until rising_edge(clk) and c220_mvalid = '1' and c220_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32094,7 +32092,7 @@ begin
         wait until c221_rst = '0';
         file_open(f, C221_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c221_mvalid = '1' and (and c221_mready) = '1';
+            wait until rising_edge(clk) and c221_mvalid = '1' and c221_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32132,7 +32130,7 @@ begin
         wait until c222_rst = '0';
         file_open(f, C222_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c222_mvalid = '1' and (and c222_mready) = '1';
+            wait until rising_edge(clk) and c222_mvalid = '1' and c222_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32170,7 +32168,7 @@ begin
         wait until c223_rst = '0';
         file_open(f, C223_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c223_mvalid = '1' and (and c223_mready) = '1';
+            wait until rising_edge(clk) and c223_mvalid = '1' and c223_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32208,7 +32206,7 @@ begin
         wait until c224_rst = '0';
         file_open(f, C224_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c224_mvalid = '1' and (and c224_mready) = '1';
+            wait until rising_edge(clk) and c224_mvalid = '1' and c224_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32246,7 +32244,7 @@ begin
         wait until c225_rst = '0';
         file_open(f, C225_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c225_mvalid = '1' and (and c225_mready) = '1';
+            wait until rising_edge(clk) and c225_mvalid = '1' and c225_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32284,7 +32282,7 @@ begin
         wait until c226_rst = '0';
         file_open(f, C226_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c226_mvalid = '1' and (and c226_mready) = '1';
+            wait until rising_edge(clk) and c226_mvalid = '1' and c226_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32322,7 +32320,7 @@ begin
         wait until c227_rst = '0';
         file_open(f, C227_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c227_mvalid = '1' and (and c227_mready) = '1';
+            wait until rising_edge(clk) and c227_mvalid = '1' and c227_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32360,7 +32358,7 @@ begin
         wait until c228_rst = '0';
         file_open(f, C228_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c228_mvalid = '1' and (and c228_mready) = '1';
+            wait until rising_edge(clk) and c228_mvalid = '1' and c228_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32398,7 +32396,7 @@ begin
         wait until c229_rst = '0';
         file_open(f, C229_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c229_mvalid = '1' and (and c229_mready) = '1';
+            wait until rising_edge(clk) and c229_mvalid = '1' and c229_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32436,7 +32434,7 @@ begin
         wait until c230_rst = '0';
         file_open(f, C230_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c230_mvalid = '1' and (and c230_mready) = '1';
+            wait until rising_edge(clk) and c230_mvalid = '1' and c230_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32474,7 +32472,7 @@ begin
         wait until c231_rst = '0';
         file_open(f, C231_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c231_mvalid = '1' and (and c231_mready) = '1';
+            wait until rising_edge(clk) and c231_mvalid = '1' and c231_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32512,7 +32510,7 @@ begin
         wait until c232_rst = '0';
         file_open(f, C232_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c232_mvalid = '1' and (and c232_mready) = '1';
+            wait until rising_edge(clk) and c232_mvalid = '1' and c232_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32550,7 +32548,7 @@ begin
         wait until c233_rst = '0';
         file_open(f, C233_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c233_mvalid = '1' and (and c233_mready) = '1';
+            wait until rising_edge(clk) and c233_mvalid = '1' and c233_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32588,7 +32586,7 @@ begin
         wait until c234_rst = '0';
         file_open(f, C234_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c234_mvalid = '1' and (and c234_mready) = '1';
+            wait until rising_edge(clk) and c234_mvalid = '1' and c234_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32626,7 +32624,7 @@ begin
         wait until c235_rst = '0';
         file_open(f, C235_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c235_mvalid = '1' and (and c235_mready) = '1';
+            wait until rising_edge(clk) and c235_mvalid = '1' and c235_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32664,7 +32662,7 @@ begin
         wait until c236_rst = '0';
         file_open(f, C236_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c236_mvalid = '1' and (and c236_mready) = '1';
+            wait until rising_edge(clk) and c236_mvalid = '1' and c236_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32702,7 +32700,7 @@ begin
         wait until c237_rst = '0';
         file_open(f, C237_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c237_mvalid = '1' and (and c237_mready) = '1';
+            wait until rising_edge(clk) and c237_mvalid = '1' and c237_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32740,7 +32738,7 @@ begin
         wait until c238_rst = '0';
         file_open(f, C238_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c238_mvalid = '1' and (and c238_mready) = '1';
+            wait until rising_edge(clk) and c238_mvalid = '1' and c238_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32778,7 +32776,7 @@ begin
         wait until c239_rst = '0';
         file_open(f, C239_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c239_mvalid = '1' and (and c239_mready) = '1';
+            wait until rising_edge(clk) and c239_mvalid = '1' and c239_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32816,7 +32814,7 @@ begin
         wait until c240_rst = '0';
         file_open(f, C240_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c240_mvalid = '1' and (and c240_mready) = '1';
+            wait until rising_edge(clk) and c240_mvalid = '1' and c240_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32854,7 +32852,7 @@ begin
         wait until c241_rst = '0';
         file_open(f, C241_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c241_mvalid = '1' and (and c241_mready) = '1';
+            wait until rising_edge(clk) and c241_mvalid = '1' and c241_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32892,7 +32890,7 @@ begin
         wait until c242_rst = '0';
         file_open(f, C242_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c242_mvalid = '1' and (and c242_mready) = '1';
+            wait until rising_edge(clk) and c242_mvalid = '1' and c242_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32930,7 +32928,7 @@ begin
         wait until c243_rst = '0';
         file_open(f, C243_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c243_mvalid = '1' and (and c243_mready) = '1';
+            wait until rising_edge(clk) and c243_mvalid = '1' and c243_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -32968,7 +32966,7 @@ begin
         wait until c244_rst = '0';
         file_open(f, C244_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c244_mvalid = '1' and (and c244_mready) = '1';
+            wait until rising_edge(clk) and c244_mvalid = '1' and c244_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33006,7 +33004,7 @@ begin
         wait until c245_rst = '0';
         file_open(f, C245_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c245_mvalid = '1' and (and c245_mready) = '1';
+            wait until rising_edge(clk) and c245_mvalid = '1' and c245_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33044,7 +33042,7 @@ begin
         wait until c246_rst = '0';
         file_open(f, C246_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c246_mvalid = '1' and (and c246_mready) = '1';
+            wait until rising_edge(clk) and c246_mvalid = '1' and c246_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33082,7 +33080,7 @@ begin
         wait until c247_rst = '0';
         file_open(f, C247_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c247_mvalid = '1' and (and c247_mready) = '1';
+            wait until rising_edge(clk) and c247_mvalid = '1' and c247_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33120,7 +33118,7 @@ begin
         wait until c248_rst = '0';
         file_open(f, C248_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c248_mvalid = '1' and (and c248_mready) = '1';
+            wait until rising_edge(clk) and c248_mvalid = '1' and c248_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33158,7 +33156,7 @@ begin
         wait until c249_rst = '0';
         file_open(f, C249_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c249_mvalid = '1' and (and c249_mready) = '1';
+            wait until rising_edge(clk) and c249_mvalid = '1' and c249_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33196,7 +33194,7 @@ begin
         wait until c250_rst = '0';
         file_open(f, C250_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c250_mvalid = '1' and (and c250_mready) = '1';
+            wait until rising_edge(clk) and c250_mvalid = '1' and c250_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33234,7 +33232,7 @@ begin
         wait until c251_rst = '0';
         file_open(f, C251_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c251_mvalid = '1' and (and c251_mready) = '1';
+            wait until rising_edge(clk) and c251_mvalid = '1' and c251_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33272,7 +33270,7 @@ begin
         wait until c252_rst = '0';
         file_open(f, C252_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c252_mvalid = '1' and (and c252_mready) = '1';
+            wait until rising_edge(clk) and c252_mvalid = '1' and c252_mready = '1';
             readline(f, ln);
             for tap in 0 to 21-1 loop
                 read(ln, tv);
@@ -33310,7 +33308,7 @@ begin
         wait until c253_rst = '0';
         file_open(f, C253_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c253_mvalid = '1' and (and c253_mready) = '1';
+            wait until rising_edge(clk) and c253_mvalid = '1' and c253_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33348,7 +33346,7 @@ begin
         wait until c254_rst = '0';
         file_open(f, C254_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c254_mvalid = '1' and (and c254_mready) = '1';
+            wait until rising_edge(clk) and c254_mvalid = '1' and c254_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33386,7 +33384,7 @@ begin
         wait until c255_rst = '0';
         file_open(f, C255_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c255_mvalid = '1' and (and c255_mready) = '1';
+            wait until rising_edge(clk) and c255_mvalid = '1' and c255_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33424,7 +33422,7 @@ begin
         wait until c256_rst = '0';
         file_open(f, C256_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c256_mvalid = '1' and (and c256_mready) = '1';
+            wait until rising_edge(clk) and c256_mvalid = '1' and c256_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33462,7 +33460,7 @@ begin
         wait until c257_rst = '0';
         file_open(f, C257_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c257_mvalid = '1' and (and c257_mready) = '1';
+            wait until rising_edge(clk) and c257_mvalid = '1' and c257_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33500,7 +33498,7 @@ begin
         wait until c258_rst = '0';
         file_open(f, C258_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c258_mvalid = '1' and (and c258_mready) = '1';
+            wait until rising_edge(clk) and c258_mvalid = '1' and c258_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33538,7 +33536,7 @@ begin
         wait until c259_rst = '0';
         file_open(f, C259_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c259_mvalid = '1' and (and c259_mready) = '1';
+            wait until rising_edge(clk) and c259_mvalid = '1' and c259_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33576,7 +33574,7 @@ begin
         wait until c260_rst = '0';
         file_open(f, C260_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c260_mvalid = '1' and (and c260_mready) = '1';
+            wait until rising_edge(clk) and c260_mvalid = '1' and c260_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33614,7 +33612,7 @@ begin
         wait until c261_rst = '0';
         file_open(f, C261_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c261_mvalid = '1' and (and c261_mready) = '1';
+            wait until rising_edge(clk) and c261_mvalid = '1' and c261_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33652,7 +33650,7 @@ begin
         wait until c262_rst = '0';
         file_open(f, C262_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c262_mvalid = '1' and (and c262_mready) = '1';
+            wait until rising_edge(clk) and c262_mvalid = '1' and c262_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33690,7 +33688,7 @@ begin
         wait until c263_rst = '0';
         file_open(f, C263_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c263_mvalid = '1' and (and c263_mready) = '1';
+            wait until rising_edge(clk) and c263_mvalid = '1' and c263_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33728,7 +33726,7 @@ begin
         wait until c264_rst = '0';
         file_open(f, C264_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c264_mvalid = '1' and (and c264_mready) = '1';
+            wait until rising_edge(clk) and c264_mvalid = '1' and c264_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33766,7 +33764,7 @@ begin
         wait until c265_rst = '0';
         file_open(f, C265_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c265_mvalid = '1' and (and c265_mready) = '1';
+            wait until rising_edge(clk) and c265_mvalid = '1' and c265_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33804,7 +33802,7 @@ begin
         wait until c266_rst = '0';
         file_open(f, C266_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c266_mvalid = '1' and (and c266_mready) = '1';
+            wait until rising_edge(clk) and c266_mvalid = '1' and c266_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33842,7 +33840,7 @@ begin
         wait until c267_rst = '0';
         file_open(f, C267_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c267_mvalid = '1' and (and c267_mready) = '1';
+            wait until rising_edge(clk) and c267_mvalid = '1' and c267_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33880,7 +33878,7 @@ begin
         wait until c268_rst = '0';
         file_open(f, C268_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c268_mvalid = '1' and (and c268_mready) = '1';
+            wait until rising_edge(clk) and c268_mvalid = '1' and c268_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33918,7 +33916,7 @@ begin
         wait until c269_rst = '0';
         file_open(f, C269_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c269_mvalid = '1' and (and c269_mready) = '1';
+            wait until rising_edge(clk) and c269_mvalid = '1' and c269_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33956,7 +33954,7 @@ begin
         wait until c270_rst = '0';
         file_open(f, C270_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c270_mvalid = '1' and (and c270_mready) = '1';
+            wait until rising_edge(clk) and c270_mvalid = '1' and c270_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -33994,7 +33992,7 @@ begin
         wait until c271_rst = '0';
         file_open(f, C271_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c271_mvalid = '1' and (and c271_mready) = '1';
+            wait until rising_edge(clk) and c271_mvalid = '1' and c271_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34032,7 +34030,7 @@ begin
         wait until c272_rst = '0';
         file_open(f, C272_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c272_mvalid = '1' and (and c272_mready) = '1';
+            wait until rising_edge(clk) and c272_mvalid = '1' and c272_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34070,7 +34068,7 @@ begin
         wait until c273_rst = '0';
         file_open(f, C273_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c273_mvalid = '1' and (and c273_mready) = '1';
+            wait until rising_edge(clk) and c273_mvalid = '1' and c273_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34108,7 +34106,7 @@ begin
         wait until c274_rst = '0';
         file_open(f, C274_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c274_mvalid = '1' and (and c274_mready) = '1';
+            wait until rising_edge(clk) and c274_mvalid = '1' and c274_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34146,7 +34144,7 @@ begin
         wait until c275_rst = '0';
         file_open(f, C275_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c275_mvalid = '1' and (and c275_mready) = '1';
+            wait until rising_edge(clk) and c275_mvalid = '1' and c275_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34184,7 +34182,7 @@ begin
         wait until c276_rst = '0';
         file_open(f, C276_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c276_mvalid = '1' and (and c276_mready) = '1';
+            wait until rising_edge(clk) and c276_mvalid = '1' and c276_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34222,7 +34220,7 @@ begin
         wait until c277_rst = '0';
         file_open(f, C277_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c277_mvalid = '1' and (and c277_mready) = '1';
+            wait until rising_edge(clk) and c277_mvalid = '1' and c277_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34260,7 +34258,7 @@ begin
         wait until c278_rst = '0';
         file_open(f, C278_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c278_mvalid = '1' and (and c278_mready) = '1';
+            wait until rising_edge(clk) and c278_mvalid = '1' and c278_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34298,7 +34296,7 @@ begin
         wait until c279_rst = '0';
         file_open(f, C279_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c279_mvalid = '1' and (and c279_mready) = '1';
+            wait until rising_edge(clk) and c279_mvalid = '1' and c279_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34336,7 +34334,7 @@ begin
         wait until c280_rst = '0';
         file_open(f, C280_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c280_mvalid = '1' and (and c280_mready) = '1';
+            wait until rising_edge(clk) and c280_mvalid = '1' and c280_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34374,7 +34372,7 @@ begin
         wait until c281_rst = '0';
         file_open(f, C281_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c281_mvalid = '1' and (and c281_mready) = '1';
+            wait until rising_edge(clk) and c281_mvalid = '1' and c281_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34412,7 +34410,7 @@ begin
         wait until c282_rst = '0';
         file_open(f, C282_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c282_mvalid = '1' and (and c282_mready) = '1';
+            wait until rising_edge(clk) and c282_mvalid = '1' and c282_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34450,7 +34448,7 @@ begin
         wait until c283_rst = '0';
         file_open(f, C283_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c283_mvalid = '1' and (and c283_mready) = '1';
+            wait until rising_edge(clk) and c283_mvalid = '1' and c283_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34488,7 +34486,7 @@ begin
         wait until c284_rst = '0';
         file_open(f, C284_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c284_mvalid = '1' and (and c284_mready) = '1';
+            wait until rising_edge(clk) and c284_mvalid = '1' and c284_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34526,7 +34524,7 @@ begin
         wait until c285_rst = '0';
         file_open(f, C285_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c285_mvalid = '1' and (and c285_mready) = '1';
+            wait until rising_edge(clk) and c285_mvalid = '1' and c285_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34564,7 +34562,7 @@ begin
         wait until c286_rst = '0';
         file_open(f, C286_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c286_mvalid = '1' and (and c286_mready) = '1';
+            wait until rising_edge(clk) and c286_mvalid = '1' and c286_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34602,7 +34600,7 @@ begin
         wait until c287_rst = '0';
         file_open(f, C287_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c287_mvalid = '1' and (and c287_mready) = '1';
+            wait until rising_edge(clk) and c287_mvalid = '1' and c287_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34640,7 +34638,7 @@ begin
         wait until c288_rst = '0';
         file_open(f, C288_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c288_mvalid = '1' and (and c288_mready) = '1';
+            wait until rising_edge(clk) and c288_mvalid = '1' and c288_mready = '1';
             readline(f, ln);
             for tap in 0 to 35-1 loop
                 read(ln, tv);
@@ -34678,7 +34676,7 @@ begin
         wait until c289_rst = '0';
         file_open(f, C289_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c289_mvalid = '1' and (and c289_mready) = '1';
+            wait until rising_edge(clk) and c289_mvalid = '1' and c289_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34716,7 +34714,7 @@ begin
         wait until c290_rst = '0';
         file_open(f, C290_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c290_mvalid = '1' and (and c290_mready) = '1';
+            wait until rising_edge(clk) and c290_mvalid = '1' and c290_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34754,7 +34752,7 @@ begin
         wait until c291_rst = '0';
         file_open(f, C291_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c291_mvalid = '1' and (and c291_mready) = '1';
+            wait until rising_edge(clk) and c291_mvalid = '1' and c291_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34792,7 +34790,7 @@ begin
         wait until c292_rst = '0';
         file_open(f, C292_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c292_mvalid = '1' and (and c292_mready) = '1';
+            wait until rising_edge(clk) and c292_mvalid = '1' and c292_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34830,7 +34828,7 @@ begin
         wait until c293_rst = '0';
         file_open(f, C293_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c293_mvalid = '1' and (and c293_mready) = '1';
+            wait until rising_edge(clk) and c293_mvalid = '1' and c293_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34868,7 +34866,7 @@ begin
         wait until c294_rst = '0';
         file_open(f, C294_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c294_mvalid = '1' and (and c294_mready) = '1';
+            wait until rising_edge(clk) and c294_mvalid = '1' and c294_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34906,7 +34904,7 @@ begin
         wait until c295_rst = '0';
         file_open(f, C295_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c295_mvalid = '1' and (and c295_mready) = '1';
+            wait until rising_edge(clk) and c295_mvalid = '1' and c295_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34944,7 +34942,7 @@ begin
         wait until c296_rst = '0';
         file_open(f, C296_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c296_mvalid = '1' and (and c296_mready) = '1';
+            wait until rising_edge(clk) and c296_mvalid = '1' and c296_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -34982,7 +34980,7 @@ begin
         wait until c297_rst = '0';
         file_open(f, C297_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c297_mvalid = '1' and (and c297_mready) = '1';
+            wait until rising_edge(clk) and c297_mvalid = '1' and c297_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35020,7 +35018,7 @@ begin
         wait until c298_rst = '0';
         file_open(f, C298_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c298_mvalid = '1' and (and c298_mready) = '1';
+            wait until rising_edge(clk) and c298_mvalid = '1' and c298_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35058,7 +35056,7 @@ begin
         wait until c299_rst = '0';
         file_open(f, C299_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c299_mvalid = '1' and (and c299_mready) = '1';
+            wait until rising_edge(clk) and c299_mvalid = '1' and c299_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35096,7 +35094,7 @@ begin
         wait until c300_rst = '0';
         file_open(f, C300_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c300_mvalid = '1' and (and c300_mready) = '1';
+            wait until rising_edge(clk) and c300_mvalid = '1' and c300_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35134,7 +35132,7 @@ begin
         wait until c301_rst = '0';
         file_open(f, C301_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c301_mvalid = '1' and (and c301_mready) = '1';
+            wait until rising_edge(clk) and c301_mvalid = '1' and c301_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35172,7 +35170,7 @@ begin
         wait until c302_rst = '0';
         file_open(f, C302_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c302_mvalid = '1' and (and c302_mready) = '1';
+            wait until rising_edge(clk) and c302_mvalid = '1' and c302_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35210,7 +35208,7 @@ begin
         wait until c303_rst = '0';
         file_open(f, C303_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c303_mvalid = '1' and (and c303_mready) = '1';
+            wait until rising_edge(clk) and c303_mvalid = '1' and c303_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35248,7 +35246,7 @@ begin
         wait until c304_rst = '0';
         file_open(f, C304_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c304_mvalid = '1' and (and c304_mready) = '1';
+            wait until rising_edge(clk) and c304_mvalid = '1' and c304_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35286,7 +35284,7 @@ begin
         wait until c305_rst = '0';
         file_open(f, C305_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c305_mvalid = '1' and (and c305_mready) = '1';
+            wait until rising_edge(clk) and c305_mvalid = '1' and c305_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35324,7 +35322,7 @@ begin
         wait until c306_rst = '0';
         file_open(f, C306_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c306_mvalid = '1' and (and c306_mready) = '1';
+            wait until rising_edge(clk) and c306_mvalid = '1' and c306_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35362,7 +35360,7 @@ begin
         wait until c307_rst = '0';
         file_open(f, C307_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c307_mvalid = '1' and (and c307_mready) = '1';
+            wait until rising_edge(clk) and c307_mvalid = '1' and c307_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35400,7 +35398,7 @@ begin
         wait until c308_rst = '0';
         file_open(f, C308_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c308_mvalid = '1' and (and c308_mready) = '1';
+            wait until rising_edge(clk) and c308_mvalid = '1' and c308_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35438,7 +35436,7 @@ begin
         wait until c309_rst = '0';
         file_open(f, C309_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c309_mvalid = '1' and (and c309_mready) = '1';
+            wait until rising_edge(clk) and c309_mvalid = '1' and c309_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35476,7 +35474,7 @@ begin
         wait until c310_rst = '0';
         file_open(f, C310_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c310_mvalid = '1' and (and c310_mready) = '1';
+            wait until rising_edge(clk) and c310_mvalid = '1' and c310_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35514,7 +35512,7 @@ begin
         wait until c311_rst = '0';
         file_open(f, C311_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c311_mvalid = '1' and (and c311_mready) = '1';
+            wait until rising_edge(clk) and c311_mvalid = '1' and c311_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35552,7 +35550,7 @@ begin
         wait until c312_rst = '0';
         file_open(f, C312_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c312_mvalid = '1' and (and c312_mready) = '1';
+            wait until rising_edge(clk) and c312_mvalid = '1' and c312_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35590,7 +35588,7 @@ begin
         wait until c313_rst = '0';
         file_open(f, C313_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c313_mvalid = '1' and (and c313_mready) = '1';
+            wait until rising_edge(clk) and c313_mvalid = '1' and c313_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35628,7 +35626,7 @@ begin
         wait until c314_rst = '0';
         file_open(f, C314_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c314_mvalid = '1' and (and c314_mready) = '1';
+            wait until rising_edge(clk) and c314_mvalid = '1' and c314_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35666,7 +35664,7 @@ begin
         wait until c315_rst = '0';
         file_open(f, C315_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c315_mvalid = '1' and (and c315_mready) = '1';
+            wait until rising_edge(clk) and c315_mvalid = '1' and c315_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35704,7 +35702,7 @@ begin
         wait until c316_rst = '0';
         file_open(f, C316_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c316_mvalid = '1' and (and c316_mready) = '1';
+            wait until rising_edge(clk) and c316_mvalid = '1' and c316_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35742,7 +35740,7 @@ begin
         wait until c317_rst = '0';
         file_open(f, C317_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c317_mvalid = '1' and (and c317_mready) = '1';
+            wait until rising_edge(clk) and c317_mvalid = '1' and c317_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35780,7 +35778,7 @@ begin
         wait until c318_rst = '0';
         file_open(f, C318_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c318_mvalid = '1' and (and c318_mready) = '1';
+            wait until rising_edge(clk) and c318_mvalid = '1' and c318_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35818,7 +35816,7 @@ begin
         wait until c319_rst = '0';
         file_open(f, C319_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c319_mvalid = '1' and (and c319_mready) = '1';
+            wait until rising_edge(clk) and c319_mvalid = '1' and c319_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35856,7 +35854,7 @@ begin
         wait until c320_rst = '0';
         file_open(f, C320_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c320_mvalid = '1' and (and c320_mready) = '1';
+            wait until rising_edge(clk) and c320_mvalid = '1' and c320_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35894,7 +35892,7 @@ begin
         wait until c321_rst = '0';
         file_open(f, C321_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c321_mvalid = '1' and (and c321_mready) = '1';
+            wait until rising_edge(clk) and c321_mvalid = '1' and c321_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35932,7 +35930,7 @@ begin
         wait until c322_rst = '0';
         file_open(f, C322_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c322_mvalid = '1' and (and c322_mready) = '1';
+            wait until rising_edge(clk) and c322_mvalid = '1' and c322_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -35970,7 +35968,7 @@ begin
         wait until c323_rst = '0';
         file_open(f, C323_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c323_mvalid = '1' and (and c323_mready) = '1';
+            wait until rising_edge(clk) and c323_mvalid = '1' and c323_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
@@ -36008,7 +36006,7 @@ begin
         wait until c324_rst = '0';
         file_open(f, C324_EXP_FILE, read_mode);
         while not endfile(f) loop
-            wait until rising_edge(clk) and c324_mvalid = '1' and (and c324_mready) = '1';
+            wait until rising_edge(clk) and c324_mvalid = '1' and c324_mready = '1';
             readline(f, ln);
             for tap in 0 to 49-1 loop
                 read(ln, tv);
