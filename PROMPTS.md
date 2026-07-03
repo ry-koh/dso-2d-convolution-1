@@ -67,16 +67,9 @@ Once the project memory file (`CLAUDE.md`) was written, phases were started with
 ok let's begin with phase 1
 ```
 
-When outputs were confusing, clarification was asked for directly rather than guessing:
-```
-i don't understand what i am supposed to do
-```
-
 Workflow preferences were stated as they came up, and Claude was instructed to save them permanently:
 ```
-i'm very confused over how to set all of this up in vivado, so i want you to save this
-as my workflow — i will create a file in vivado, and then copy and paste your generated
-files into vivado
+i will create a file in vivado, and then copy and paste your generated files into vivado
 ```
 
 Synthesis results were pasted back verbatim from the Vivado Tcl console for Claude to interpret:
@@ -172,17 +165,16 @@ like all possible configurations, can try changing the following:
 
 ### Clarifying behavioural definitions
 
-The most important debugging step in the project was stopping to align on the definition of "toroidal" before touching any RTL. This was done through a structured dialogue:
+The most important debugging step in the project was stopping to align on the definition of "toroidal" before touching any RTL. This was done by requesting an explanation of the planned RTL approach first, then steering it through targeted questions:
 
 ```
-ok i think there is some confusion over what toroidal means — can you explain to me
-your RTL plan before continuing
+explain to me your RTL plan before continuing
 ```
 ```
-yes, then my question is — for an 8x8 grid, what is to the left of pixel 16
+for an 8x8 grid, what is to the left of pixel 16
 ```
 ```
-ok but pixel 23 has not entered yet, that's in the future, which is why we will output
+pixel 23 has not entered yet — that's in the future, which is why we will output
 pixel 15 instead
 ```
 ```
@@ -312,7 +304,7 @@ m_tready : in std_logic_vector(KERN_ROWS * KERN_COLS - 1 downto 0); should be on
 |---|---|
 | Long, detailed initial prompt with locked decisions | Prevented Claude from gold-plating or drifting in later sessions |
 | Pasting raw Vivado output back verbatim | Gave Claude the exact error context without any translation loss |
-| Asking "explain your plan before continuing" when confused | Caught misaligned assumptions before they were baked into RTL |
+| Asking "explain your plan before continuing" | Caught misaligned assumptions before they were baked into RTL |
 | Cold-start prompt that forces CLAUDE.md re-read | Maintained continuity across context resets |
 | Uploading a reference file as a specification | More precise than describing behaviour in words |
 | Asking "what does X do?" before deciding to delete it | Avoided deleting files that turned out to still be needed |
