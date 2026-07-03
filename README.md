@@ -364,9 +364,6 @@ tb/
 scripts/
   gen_tb.py           Regenerates conv2d_tb.vhd, all 648 vector files, and visualize.html.
                       Run: python scripts/gen_tb.py [--html]  (from repo root)
-  visualize.py        Regenerates tb/visualize.html from existing vector files only,
-                      without touching the testbench or vectors.
-                      Run: python scripts/visualize.py  (from repo root)
 
 CLAUDE.md             Full project log: decisions, bug log, phase status, constraints
 README.md             This file
@@ -511,8 +508,7 @@ python scripts/gen_tb.py --html
 ```
 
 Run from the repo root. Regenerates `tb/conv2d_tb.vhd`, all 648 vector files, and
-`tb/visualize.html` in one pass. To regenerate only the HTML from existing vector
-files, run `python scripts/visualize.py`.
+`tb/visualize.html` in one pass.
 
 ### Selecting a Configuration
 
