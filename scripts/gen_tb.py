@@ -1488,7 +1488,6 @@ button:hover, button:focus-visible {
           <option value="-1">— none selected —</option>
         </select>
       </label>
-      <button id="stressClearBtn" style="display:none">← Back to base configs</button>
     </div>
   </aside>
   <main>
@@ -1552,34 +1551,78 @@ button:hover, button:focus-visible {
   </main>
 </div>
 <!-- Stress scenario info overlay (hidden until a stress scenario is selected) -->
-<div id="stressOverlay" style="display:none;position:absolute;inset:0;background:var(--paper);overflow:auto;padding:24px;z-index:10">
-  <h2 id="stressTitle" style="margin:0 0 6px;color:var(--amber)"></h2>
-  <p id="stressSubtitle" style="margin:0 0 20px;color:var(--muted);font-size:13px"></p>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px">
-    <div class="plate" style="padding:14px">
-      <span>Base config</span><strong id="stressBase"></strong>
-    </div>
-    <div class="plate" style="padding:14px">
-      <span>Kernel / Frame</span><strong id="stressKernFrame"></strong>
-    </div>
-    <div class="plate" style="padding:14px">
-      <span>Edge mode / Flush</span><strong id="stressEdge"></strong>
-    </div>
-    <div class="plate" style="padding:14px">
-      <span>Pattern</span><strong id="stressPattern"></strong>
-    </div>
+<div id="stressOverlay" style="display:none;position:absolute;inset:0;background:var(--paper);overflow:auto;z-index:10;box-sizing:border-box">
+  <!-- sticky nav bar -->
+  <div style="position:sticky;top:0;z-index:1;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <button id="stressBackBtn" onclick="stressSelect.value='-1';hideStress()"
+      style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:transparent;border:1.5px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;font-size:14px;font-weight:600">
+      &#8592; Back to base configs
+    </button>
+    <span id="stressNavId" style="font-family:monospace;font-size:13px;color:var(--muted)"></span>
+    <button id="stressGotoCfg" onclick="hideStress()"
+      style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--amber);border:none;border-radius:6px;color:#000;cursor:pointer;font-size:13px;font-weight:700">
+      View cycle trace &#8594;
+    </button>
   </div>
-  <div style="margin-top:20px">
-    <h3 style="color:var(--muted);font-size:12px;text-transform:uppercase;margin:0 0 10px">Signal waveform (first 30 cycles after reset)</h3>
-    <div id="stressWave" style="font-family:monospace;font-size:13px;overflow-x:auto"></div>
-  </div>
-  <div style="margin-top:20px;padding:14px;border:2px solid var(--line);max-width:800px">
-    <p style="margin:0;color:var(--muted);font-size:13px">
-      This stress scenario uses the same golden vectors as the base config above. The DUT produces
-      identical outputs — only the timing of <code>s_tvalid</code> and <code>m_tready</code> varies.
-      A PASS in the simulation confirms the pipeline correctly handles all stall/restart combinations.
-      Switch back to the base config to view the cycle-accurate trace.
-    </p>
+
+  <!-- body -->
+  <div style="padding:24px;max-width:900px;margin:0 auto">
+
+    <!-- title + what-is explanation -->
+    <div style="margin-bottom:24px">
+      <h2 id="stressTitle" style="margin:0 0 6px;font-size:20px;color:var(--ink)"></h2>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted)" id="stressSubtitle"></p>
+      <div style="padding:14px 16px;background:var(--sidebar);border-left:3px solid var(--amber);border-radius:0 6px 6px 0;font-size:13px;line-height:1.6;color:var(--ink)">
+        <strong>What is a stress test?</strong> It runs the same convolution as the base config but varies
+        when the input source produces data (<code>s_tvalid</code>) and when the output consumer
+        is ready to accept data (<code>m_tready</code>). The DUT must stall, hold, and resume
+        correctly — producing bit-identical results regardless of timing pressure. A PASS here
+        confirms the pipeline handles all stall / restart combinations correctly.
+      </div>
+    </div>
+
+    <!-- config grid -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+      <div class="plate" style="padding:14px">
+        <span>Base config</span><strong id="stressBase" style="color:var(--amber)"></strong>
+      </div>
+      <div class="plate" style="padding:14px">
+        <span>Kernel size</span><strong id="stressKernel"></strong>
+      </div>
+      <div class="plate" style="padding:14px">
+        <span>Frame size</span><strong id="stressFrame"></strong>
+      </div>
+      <div class="plate" style="padding:14px">
+        <span>Edge / Flush</span><strong id="stressEdge"></strong>
+      </div>
+    </div>
+
+    <!-- waveform section -->
+    <div style="margin-bottom:24px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;font-weight:700">
+        Signal pattern &mdash; first 48 cycles after reset
+      </div>
+      <div style="padding:20px;background:var(--sidebar);border:1px solid var(--line);border-radius:8px;overflow-x:auto">
+        <div style="margin-bottom:10px;font-size:12px;color:var(--muted)" id="stressPatternDesc"></div>
+        <svg id="stressWave" width="760" height="110" style="display:block;min-width:480px;max-width:100%"></svg>
+        <div style="margin-top:10px;display:flex;gap:20px;font-size:11px;color:var(--muted)">
+          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:24px;height:2px;background:var(--green)"></span>s_tvalid — data source sends pixel</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:24px;height:2px;background:var(--amber)"></span>m_tready — output consumer accepts data</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- what to look for -->
+    <div style="padding:16px;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.65;color:var(--ink)">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;font-weight:700">What to look for in simulation</div>
+      <ul style="margin:0;padding-left:18px">
+        <li>When <code>s_tvalid=0</code>, no new pixel enters the pipeline &mdash; the DUT must hold its state.</li>
+        <li>When <code>m_tready=0</code>, the DUT must assert backpressure upstream and freeze the window buffer.</li>
+        <li>Outputs must remain bit-identical to the base config golden vectors, just shifted in time.</li>
+        <li>A simulation <strong>PASS</strong> confirms correct stall and recovery across all scenarios.</li>
+      </ul>
+    </div>
+
   </div>
 </div>
 <script id="sim-data" type="application/json">__JSON_DATA__</script>
@@ -2046,34 +2089,66 @@ init();
 
 // ---- Stress scenario UI ------------------------------------------------
 const stressSelect   = el('stressSelect');
-const stressClearBtn = el('stressClearBtn');
 const stressOverlay  = el('stressOverlay');
 const mainEl = document.querySelector('main');
 
-function buildStressWave(svh, svl, mrh, mrl, cycles) {
+function buildStressWaveSvg(svh, svl, mrh, mrl, cycles, svgEl) {
+  const W = 760, H = 110;
+  const labelW = 72, padR = 12, padT = 14;
+  const trackH = 36, gap = 14;
+  const waveW = W - labelW - padR;
+  const cw = waveW / cycles;
+
+  // build bit arrays
   const alwaysV = svh === 0 && svl === 0;
   const alwaysR = mrh === 0 && mrl === 0;
-  let sv = '', mr = '', time = 'Cycle: ';
+  const svBits = [], mrBits = [];
   for (let t = 0; t < cycles; t++) {
-    const hi = t < 10 ? t.toString() : (t % 10).toString();
-    time += hi;
-    if (alwaysV) { sv += '▀'; }
-    else { sv += (t % (svh + svl)) < svh ? '▀' : '░'; }
-    if (alwaysR) { mr += '▀'; }
-    else { mr += (t % (mrh + mrl)) < mrh ? '▀' : '░'; }
+    svBits.push(alwaysV ? 1 : ((t % (svh + svl)) < svh ? 1 : 0));
+    mrBits.push(alwaysR ? 1 : ((t % (mrh + mrl)) < mrh ? 1 : 0));
   }
-  const row = (label, wave, color) =>
-    `<div style="display:grid;grid-template-columns:90px 1fr;gap:8px;margin-bottom:6px;align-items:center">` +
-    `<span style="color:${color};white-space:nowrap">${label}</span>` +
-    `<span style="color:${color};letter-spacing:2px;white-space:nowrap">${wave}</span></div>`;
-  return `<div style="white-space:nowrap;overflow-x:auto">`
-    + `<div style="display:grid;grid-template-columns:90px 1fr;gap:8px;margin-bottom:4px">` +
-    `<span style="color:var(--muted);font-size:11px">       </span>` +
-    `<span style="color:var(--muted);font-size:11px">${[...time].join('')}</span></div>`
-    + row('s_tvalid', sv, 'var(--green)')
-    + row('m_tready', mr, 'var(--amber)')
-    + `<div style="margin-top:8px;color:var(--muted);font-size:11px">▀ = HIGH &nbsp; ░ = LOW</div>`
-    + '</div>';
+
+  function makePath(bits, y0, color) {
+    const hi = y0 + 4, lo = y0 + trackH - 4;
+    let d = '';
+    for (let t = 0; t < bits.length; t++) {
+      const x = labelW + t * cw;
+      const yNow = bits[t] ? hi : lo;
+      const yPrev = t > 0 ? (bits[t-1] ? hi : lo) : yNow;
+      if (t === 0) { d += `M${x},${yNow}`; }
+      else {
+        if (yNow !== yPrev) d += `L${x},${yPrev}L${x},${yNow}`;
+        else d += `L${x},${yNow}`;
+      }
+    }
+    d += `L${labelW + cycles*cw},${bits[bits.length-1] ? hi : lo}`;
+    return `<path d="${d}" stroke="${color}" stroke-width="2" fill="none" stroke-linejoin="miter"/>`;
+  }
+
+  // tick marks + labels every 8 cycles
+  let ticks = '';
+  for (let t = 0; t <= cycles; t += 8) {
+    const x = labelW + t * cw;
+    ticks += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${H - 4}" stroke="var(--line)" stroke-width="1"/>`;
+    ticks += `<text x="${x+2}" y="${H}" font-size="10" fill="var(--muted)" font-family="monospace">${t}</text>`;
+  }
+
+  // shaded LOW regions for s_tvalid (stall periods)
+  let shades = '';
+  for (let t = 0; t < cycles; t++) {
+    if (!svBits[t]) {
+      shades += `<rect x="${labelW + t*cw}" y="${padT + 2}" width="${cw}" height="${trackH*2 + gap - 4}" fill="var(--ink)" opacity="0.04"/>`;
+    }
+  }
+
+  const y1 = padT, y2 = padT + trackH + gap;
+  const paths = makePath(svBits, y1, 'var(--green)') + makePath(mrBits, y2, 'var(--amber)');
+  const labels =
+    `<text x="${labelW - 6}" y="${y1 + trackH/2 + 4}" text-anchor="end" font-size="11" font-family="monospace" fill="var(--green)">s_tvalid</text>` +
+    `<text x="${labelW - 6}" y="${y2 + trackH/2 + 4}" text-anchor="end" font-size="11" font-family="monospace" fill="var(--amber)">m_tready</text>`;
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = ticks + shades + paths + labels;
 }
 
 (DATA.stress || []).forEach((ss, i) => {
@@ -2089,28 +2164,31 @@ stressSelect.addEventListener('change', () => {
   showStress(DATA.stress[val]);
 });
 
-stressClearBtn.addEventListener('click', () => {
-  stressSelect.value = '-1';
-  hideStress();
-});
-
 function showStress(ss) {
-  el('stressTitle').textContent = `SS${String(ss.id).padStart(3,'0')}: ${ss.kr}×${ss.kc} ${ss.mode} — ${ss.desc}`;
-  el('stressSubtitle').textContent = `Stress scenario — golden vectors from base config CFG${String(ss.base_cfg).padStart(3,'0')}`;
-  el('stressBase').textContent  = `CFG${String(ss.base_cfg).padStart(3,'0')}`;
-  el('stressKernFrame').textContent = `${ss.kr}×${ss.kc} / ${ss.lw}×${ss.fh}`;
-  el('stressEdge').textContent = `${ss.mode} / FLUSH=${ss.flush ? 'on' : 'off'}`;
-  const svDesc = ss.sv_h === 0 && ss.sv_l === 0 ? 'always high'  : `${ss.sv_h}H ${ss.sv_l}L`;
-  const mrDesc = ss.mr_h === 0 && ss.mr_l === 0 ? 'always high' : `${ss.mr_h}H ${ss.mr_l}L`;
-  el('stressPattern').textContent = `s_tvalid: ${svDesc} / m_tready: ${mrDesc}`;
-  el('stressWave').innerHTML = buildStressWave(ss.sv_h, ss.sv_l, ss.mr_h, ss.mr_l, 48);
+  const ssId = `SS${String(ss.id).padStart(3,'0')}`;
+  const cfgId = `CFG${String(ss.base_cfg).padStart(3,'0')}`;
+  el('stressTitle').textContent = `${ssId}: ${ss.kr}×${ss.kc} ${ss.mode} — ${ss.desc}`;
+  el('stressSubtitle').textContent = `Stress scenario — same DUT configuration as ${cfgId}, different timing`;
+  el('stressNavId').textContent = `${ssId} / ${cfgId}`;
+  el('stressBase').textContent  = cfgId;
+  el('stressKernel').textContent = `${ss.kr}×${ss.kc}`;
+  el('stressFrame').textContent  = `${ss.lw}×${ss.fh}`;
+  el('stressEdge').textContent   = `${ss.mode} / ${ss.flush ? 'FLUSH on' : 'FLUSH off'}`;
+  const svDesc = ss.sv_h === 0 && ss.sv_l === 0 ? 'always HIGH (continuous)' : `${ss.sv_h} cycles HIGH, ${ss.sv_l} cycles LOW`;
+  const mrDesc = ss.mr_h === 0 && ss.mr_l === 0 ? 'always HIGH (never stalls)' : `${ss.mr_h} cycles HIGH, ${ss.mr_l} cycles LOW`;
+  el('stressPatternDesc').textContent = `s_tvalid: ${svDesc}   ·   m_tready: ${mrDesc}`;
+  // wire "View cycle trace" button to jump to base config
+  el('stressGotoCfg').onclick = () => {
+    hideStress();
+    const idx = DATA.configs.findIndex(c => c.id === ss.base_cfg);
+    if (idx >= 0) { cfgIndex = idx; cycleIndex = 0; renderAll(); }
+  };
+  buildStressWaveSvg(ss.sv_h, ss.sv_l, ss.mr_h, ss.mr_l, 48, el('stressWave'));
   stressOverlay.style.display = 'block';
-  stressClearBtn.style.display = 'block';
 }
 
 function hideStress() {
   stressOverlay.style.display = 'none';
-  stressClearBtn.style.display = 'none';
 }
 </script>
 </body>
