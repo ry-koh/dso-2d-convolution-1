@@ -28,6 +28,7 @@
 -- BRAM count: KERN_ROWS-1 (same as bottom-right design).
 -- Pipeline depth: 3 stages (accept -> delay -> output).
 -- Back-pressure: single m_tready stalls the pipeline; BRAM read gated by all_ready.
+-- Pipeline depth: 3 fixed stages + max(HALF_R,HALF_C) REPLICATE propagation stages.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -151,11 +152,20 @@ architecture rtl of conv2d is
     signal tor_tlast_r  : std_logic := '0';
     signal tor_tuser_r  : std_logic := '0';
 
-    signal edge_tdata   : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
-    signal edge_tdata_r : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
-    signal edge_tvalid_r : std_logic := '0';
-    signal edge_tlast_r  : std_logic := '0';
-    signal edge_tuser_r  : std_logic := '0';
+    -- REPLICATE propagation pipeline: max(HALF_R, HALF_C) stages of 2:1 mux per tap.
+    constant PROP_STAGES : natural := HALF_R when HALF_R > HALF_C else HALF_C;
+
+    type prop_data_t is array (0 to PROP_STAGES) of std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
+    type prop_col_t  is array (0 to PROP_STAGES) of natural range 0 to LINE_WIDTH   - 1;
+    type prop_row_t  is array (0 to PROP_STAGES) of natural range 0 to FRAME_HEIGHT - 1;
+    type prop_sl_t   is array (0 to PROP_STAGES) of std_logic;
+
+    signal prop_data  : prop_data_t;
+    signal prop_col   : prop_col_t := (others => 0);
+    signal prop_row   : prop_row_t := (others => 0);
+    signal prop_valid : prop_sl_t  := (others => '0');
+    signal prop_last  : prop_sl_t  := (others => '0');
+    signal prop_user  : prop_sl_t  := (others => '0');
 
 begin
 
@@ -695,115 +705,79 @@ begin
         end if;
     end process p_toroidal;
 
-    m_tvalid <= tor_tvalid_r  when STREAM_DIRECT else edge_tvalid_r;
-    m_tlast  <= tor_tlast_r   when STREAM_DIRECT else edge_tlast_r;
-    m_tuser  <= tor_tuser_r   when STREAM_DIRECT else edge_tuser_r;
-    m_tdata  <= tor_tdata_r   when STREAM_DIRECT else edge_tdata_r;
+    -- Stage 0: wire registered window and coordinates into the propagation array.
+    prop_data(0)  <= m_tdata_r;
+    prop_col(0)   <= m_col_r;
+    prop_row(0)   <= m_row_r;
+    prop_valid(0) <= m_tvalid_r;
+    prop_last(0)  <= m_tlast_r;
+    prop_user(0)  <= m_tuser_r;
+
+    m_tvalid <= tor_tvalid_r          when STREAM_DIRECT else prop_valid(PROP_STAGES);
+    m_tlast  <= tor_tlast_r           when STREAM_DIRECT else prop_last(PROP_STAGES);
+    m_tuser  <= tor_tuser_r           when STREAM_DIRECT else prop_user(PROP_STAGES);
+    m_tdata  <= tor_tdata_r           when STREAM_DIRECT else prop_data(PROP_STAGES);
 
     -- -----------------------------------------------------------------------
-    -- Edge mode output mux (combinational into edge_tdata; registered by p_edge_reg).
+    -- REPLICATE propagation pipeline.
     --
-    -- Centred coordinate of tap[tr][tc]:
-    --   coord_x = m_col_r + (tc - HALF_C)
-    --   coord_y = m_row_r + (tr - HALF_R)
+    -- Each stage: every OOB tap copies one step toward the nearest in-bounds
+    -- tap (orthogonally for edge OOB; diagonally for corner OOB).
+    -- After PROP_STAGES = max(HALF_R, HALF_C) cycles, all OOB taps hold the
+    -- correct border pixel value — never more than 1 LUT of logic depth per tap
+    -- per stage, regardless of kernel size.
     --
-    -- OOB on all four sides (left, right, top, bottom).
-    -- ZERO: win_buf already stores 0 for all OOB positions — pass through.
-    -- REPLICATE/EXTEND: clamp both coords to [0,dim-1]; derive source tap indices.
-    -- TOROIDAL: pass through the stream-linear window built by prefix columns
-    -- and, when FLUSH=false, next-frame continuation.
+    -- ZERO:     win_buf already stores 0 for all OOB positions; propagation
+    --           copies zeros into zeros — a harmless no-op.
+    -- TOROIDAL: STREAM_DIRECT bypasses this path entirely.
     -- -----------------------------------------------------------------------
-    p_edge_out : process (m_tdata_r, m_col_r, m_row_r)
-        variable cx   : integer;
-        variable cy   : integer;
-        variable flat_idx : integer;
-        variable src_row  : integer;
-        variable src_col  : integer;
-        variable cxc  : integer;
-        variable cyc  : integer;
-        variable tc_s : integer;
-        variable tr_s : integer;
-        variable pix  : std_logic_vector(DATA_WIDTH - 1 downto 0);
-    begin
-        for tr in 0 to KERN_ROWS - 1 loop
-            for tc in 0 to KERN_COLS - 1 loop
-                cx := integer(m_col_r) + tc - integer(HALF_C);
-                cy := integer(m_row_r) + tr - integer(HALF_R);
-                flat_idx := integer(m_row_r) * LINE_WIDTH + integer(m_col_r)
-                            + (tr - integer(HALF_R)) * LINE_WIDTH
-                            + (tc - integer(HALF_C));
-
-                if EDGE_MODE = "TOROIDAL"
-                   and (flat_idx < 0
-                        or (FLUSH and flat_idx >= FRAME_HEIGHT * LINE_WIDTH))
-                then
-                    pix := (others => '0');
-                elsif EDGE_MODE = "TOROIDAL" and flat_idx < FRAME_HEIGHT * LINE_WIDTH then
-                    src_row := flat_idx / LINE_WIDTH;
-                    src_col := flat_idx mod LINE_WIDTH;
-                    tr_s := src_row - integer(m_row_r) + integer(HALF_R);
-                    tc_s := src_col - integer(m_col_r) + integer(HALF_C);
-
-                    if tr_s >= 0 and tr_s < KERN_ROWS
-                       and tc_s >= 0 and tc_s < KERN_COLS
-                    then
-                        pix := m_tdata_r((tr_s * KERN_COLS + tc_s + 1) * DATA_WIDTH - 1
-                                          downto (tr_s * KERN_COLS + tc_s) * DATA_WIDTH);
-                    else
-                        pix := m_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
-                                          downto (tr * KERN_COLS + tc) * DATA_WIDTH);
-                    end if;
-                elsif (EDGE_MODE = "REPLICATE" or EDGE_MODE = "EXTEND")
-                   and (cx < 0 or cx >= LINE_WIDTH or cy < 0 or cy >= FRAME_HEIGHT)
-                then
-                    -- Clamp each axis independently.
-                    if    cx < 0          then cxc := 0;
-                    elsif cx >= LINE_WIDTH then cxc := LINE_WIDTH   - 1;
-                    else                       cxc := cx;
-                    end if;
-
-                    if    cy < 0            then cyc := 0;
-                    elsif cy >= FRAME_HEIGHT then cyc := FRAME_HEIGHT - 1;
-                    else                         cyc := cy;
-                    end if;
-
-                    -- Convert clamped image coord back to tap index.
-                    tc_s := cxc - integer(m_col_r) + integer(HALF_C);
-                    tr_s := cyc - integer(m_row_r) + integer(HALF_R);
-
-                    pix := m_tdata_r((tr_s * KERN_COLS + tc_s + 1) * DATA_WIDTH - 1
-                                      downto (tr_s * KERN_COLS + tc_s) * DATA_WIDTH);
-                elsif EDGE_MODE = "ZERO"
-                   and (cx < 0 or cx >= LINE_WIDTH or cy < 0 or cy >= FRAME_HEIGHT)
-                then
-                    pix := (others => '0');
-                else
-                    pix := m_tdata_r((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
-                                      downto (tr * KERN_COLS + tc) * DATA_WIDTH);
+    g_prop : for stage in 1 to PROP_STAGES generate
+        p_prop : process (clk)
+            variable cx  : integer;
+            variable cy  : integer;
+            variable nr  : integer;
+            variable nc  : integer;
+            variable pix : std_logic_vector(DATA_WIDTH - 1 downto 0);
+        begin
+            if rising_edge(clk) then
+                if rst = '1' then
+                    prop_valid(stage) <= '0';
+                    prop_last(stage)  <= '0';
+                    prop_user(stage)  <= '0';
+                elsif all_ready = '1' then
+                    prop_valid(stage) <= prop_valid(stage - 1);
+                    prop_last(stage)  <= prop_last(stage - 1);
+                    prop_user(stage)  <= prop_user(stage - 1);
+                    prop_col(stage)   <= prop_col(stage - 1);
+                    prop_row(stage)   <= prop_row(stage - 1);
+                    for tr in 0 to KERN_ROWS - 1 loop
+                        for tc in 0 to KERN_COLS - 1 loop
+                            cx := integer(prop_col(stage - 1)) + tc - HALF_C;
+                            cy := integer(prop_row(stage - 1)) + tr - HALF_R;
+                            -- Default: move toward centre on each OOB axis.
+                            -- In-bounds axis keeps its own index (nr=tr or nc=tc).
+                            if cy < 0             then nr := tr + 1;
+                            elsif cy >= FRAME_HEIGHT then nr := tr - 1;
+                            else                        nr := tr;
+                            end if;
+                            if cx < 0             then nc := tc + 1;
+                            elsif cx >= LINE_WIDTH   then nc := tc - 1;
+                            else                        nc := tc;
+                            end if;
+                            -- nr=tr and nc=tc → in-bounds: copy own value (pass-through).
+                            -- Otherwise: copy from the neighbour one step toward centre.
+                            pix := prop_data(stage - 1)
+                                       ((nr * KERN_COLS + nc + 1) * DATA_WIDTH - 1
+                                        downto (nr * KERN_COLS + nc) * DATA_WIDTH);
+                            prop_data(stage)
+                                ((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                 downto (tr * KERN_COLS + tc) * DATA_WIDTH) <= pix;
+                        end loop;
+                    end loop;
                 end if;
-
-                edge_tdata((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
-                            downto (tr * KERN_COLS + tc) * DATA_WIDTH) <= pix;
-            end loop;
-        end loop;
-    end process p_edge_out;
-
-    -- Register the edge-mux output to cut the combinational path for large kernels.
-    p_edge_reg : process (clk)
-    begin
-        if rising_edge(clk) then
-            if rst = '1' then
-                edge_tvalid_r <= '0';
-                edge_tlast_r  <= '0';
-                edge_tuser_r  <= '0';
-            elsif all_ready = '1' then
-                edge_tdata_r  <= edge_tdata;
-                edge_tvalid_r <= m_tvalid_r;
-                edge_tlast_r  <= m_tlast_r;
-                edge_tuser_r  <= m_tuser_r;
             end if;
-        end if;
-    end process p_edge_reg;
+        end process p_prop;
+    end generate g_prop;
 
     -- -----------------------------------------------------------------------
     -- Sub-block instantiation
