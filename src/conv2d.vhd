@@ -153,7 +153,11 @@ architecture rtl of conv2d is
     signal tor_tuser_r  : std_logic := '0';
 
     -- REPLICATE propagation pipeline: max(HALF_R, HALF_C) stages of 2:1 mux per tap.
-    constant PROP_STAGES : natural := HALF_R when HALF_R > HALF_C else HALF_C;
+    function nat_max (a, b : natural) return natural is
+    begin
+        if a > b then return a; else return b; end if;
+    end function nat_max;
+    constant PROP_STAGES : natural := nat_max(HALF_R, HALF_C);
 
     type prop_data_t is array (0 to PROP_STAGES) of std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
     type prop_col_t  is array (0 to PROP_STAGES) of natural range 0 to LINE_WIDTH   - 1;
