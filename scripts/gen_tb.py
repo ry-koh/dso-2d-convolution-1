@@ -302,6 +302,53 @@ for idx, info in [
 
 
 # -------------------------------------------------------------------------
+# Stress scenarios: 30 configs exercising varied s_tvalid and m_tready
+# timing patterns.  sv_h/sv_l = s_tvalid HIGH/LOW counts (0,0 = always high).
+# mr_h/mr_l = m_tready HIGH/LOW counts (0,0 = always high).
+# Base config identified by (kr, kc, mode, flush, lw, fh); vectors reused.
+# -------------------------------------------------------------------------
+
+# Each entry: (kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc)
+STRESS_SCENARIOS = [
+    # ---- s_tvalid pattern only (m_tready always high) ------------------
+    (3, 3, "ZERO",       False, 8, 8,  1, 1, 0, 0, "svalid 1H1L"),
+    (3, 3, "ZERO",       False, 8, 8,  1, 2, 0, 0, "svalid 1H2L"),
+    (3, 3, "ZERO",       False, 8, 8,  1, 4, 0, 0, "svalid 1H4L"),
+    (3, 3, "ZERO",       False, 8, 8,  1, 7, 0, 0, "svalid 1H7L"),
+    (3, 3, "REPLICATE",  False, 8, 8,  2, 1, 0, 0, "svalid 2H1L"),
+    (5, 5, "ZERO",       False, 8, 8,  3, 2, 0, 0, "svalid 3H2L"),
+    (5, 5, "REPLICATE",  False, 8, 8,  1, 3, 0, 0, "svalid 1H3L"),
+    (7, 7, "ZERO",       False, 8, 8,  4, 1, 0, 0, "svalid 4H1L"),
+    (7, 7, "REPLICATE",  False, 8, 8,  1, 6, 0, 0, "svalid 1H6L"),
+    (3, 3, "TOROIDAL",   False, 8, 8,  2, 3, 0, 0, "svalid 2H3L"),
+    (3, 3, "ZERO",        True, 8, 8,  1, 2, 0, 0, "svalid 1H2L flush"),
+    (5, 3, "REPLICATE",   True, 8, 8,  3, 1, 0, 0, "svalid 3H1L flush"),
+    (3, 5, "TOROIDAL",    True, 8, 8,  2, 2, 0, 0, "svalid 2H2L tor+flush"),
+    # ---- m_tready pattern only (s_tvalid always high) ------------------
+    (3, 3, "ZERO",       False, 8, 8,  0, 0, 2, 3, "mready 2H3L"),
+    (3, 3, "REPLICATE",  False, 8, 8,  0, 0, 1, 4, "mready 1H4L"),
+    (5, 5, "ZERO",       False, 8, 8,  0, 0, 3, 2, "mready 3H2L"),
+    (7, 7, "ZERO",       False, 8, 8,  0, 0, 1, 1, "mready 1H1L"),
+    (3, 3, "TOROIDAL",    True, 8, 8,  0, 0, 4, 1, "mready 4H1L tor+flush"),
+    (5, 7, "REPLICATE",  False, 8, 8,  0, 0, 1, 3, "mready 1H3L"),
+    (7, 3, "ZERO",        True, 8, 8,  0, 0, 2, 5, "mready 2H5L flush"),
+    # ---- combined: both s_tvalid and m_tready vary ---------------------
+    (3, 3, "ZERO",       False, 8, 8,  2, 3, 3, 2, "svalid 2H3L mready 3H2L"),
+    (3, 5, "REPLICATE",  False, 8, 8,  1, 2, 2, 1, "svalid 1H2L mready 2H1L"),
+    (5, 5, "ZERO",       False, 8, 8,  3, 1, 1, 3, "svalid 3H1L mready 1H3L"),
+    (7, 3, "REPLICATE",  False, 8, 8,  1, 4, 4, 1, "svalid 1H4L mready 4H1L"),
+    (3, 3, "TOROIDAL",   False, 8, 8,  2, 1, 1, 2, "svalid 2H1L mready 1H2L"),
+    (5, 5, "REPLICATE",   True, 8, 8,  1, 3, 3, 1, "svalid 1H3L mready 3H1L"),
+    (3, 7, "ZERO",       False, 8, 8,  4, 3, 2, 5, "svalid 4H3L mready 2H5L"),
+    (7, 7, "REPLICATE",   True, 8, 8,  1, 1, 1, 1, "svalid 1H1L mready 1H1L"),
+    (7, 7, "ZERO",       False, 8, 8,  2, 1, 1, 2, "svalid 2H1L mready 1H2L"),
+    (3, 5, "ZERO",        True, 8, 8,  1, 7, 5, 2, "svalid 1H7L mready 5H2L"),
+]
+
+NS = len(STRESS_SCENARIOS)  # 30
+
+
+# -------------------------------------------------------------------------
 # VHDL generation helpers
 # -------------------------------------------------------------------------
 
@@ -457,6 +504,239 @@ def gen_check(i, cfg, label):
         done_flags({i-1}) <= '1';
         wait;
     end process p_check{i:03d};"""
+
+
+# -------------------------------------------------------------------------
+# Stress scenario VHDL generation
+# -------------------------------------------------------------------------
+
+def _stress_base_idx(kr, kc, mode, flush, lw, fh):
+    """Return 1-based config index for the stress scenario's base config."""
+    idx0 = _find(kr, kc, mode, flush, lw, fh)
+    assert idx0 is not None, f"Stress base config not found: {kr}x{kc} {mode} flush={flush} {lw}x{fh}"
+    return idx0 + 1  # 1-based
+
+
+def gen_stress_signals(j, sc):
+    """Declare AXI signals for stress scenario SSjjj (j is 1-based)."""
+    kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+    dw = 8
+    nt = kr * kc
+    sp = f"ss{j:03d}"
+    # Default mready: '1' unless a pattern is active
+    mr_init = "'1'" if (mr_h == 0 and mr_l == 0) else "'0'"
+    return f"""\
+    signal {sp}_rst    : std_logic := '1';
+    signal {sp}_sdata  : std_logic_vector({dw}-1 downto 0) := (others => '0');
+    signal {sp}_svalid : std_logic := '0';
+    signal {sp}_sready : std_logic;
+    signal {sp}_slast  : std_logic := '0';
+    signal {sp}_suser  : std_logic := '0';
+    signal {sp}_mdata  : std_logic_vector({dw}*{nt}-1 downto 0);
+    signal {sp}_mvalid : std_logic;
+    signal {sp}_mready : std_logic := {mr_init};
+    signal {sp}_mlast  : std_logic;
+    signal {sp}_muser  : std_logic;"""
+
+
+def gen_stress_instance(j, sc):
+    """DUT instance for stress scenario SSjjj."""
+    kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+    sp = f"ss{j:03d}"
+    return f"""\
+    u_ss{j:03d} : entity work.conv2d
+        generic map (
+            DATA_WIDTH   => 8,
+            KERN_ROWS    => {kr},
+            KERN_COLS    => {kc},
+            LINE_WIDTH   => {lw},
+            FRAME_HEIGHT => {fh},
+            EDGE_MODE    => "{mode}",
+            FLUSH        => {vbool(flush)}
+        )
+        port map (
+            clk      => clk,             rst      => {sp}_rst,
+            s_tdata  => {sp}_sdata,      s_tvalid => {sp}_svalid,
+            s_tready => {sp}_sready,     s_tlast  => {sp}_slast,
+            s_tuser  => {sp}_suser,      m_tdata  => {sp}_mdata,
+            m_tvalid => {sp}_mvalid,     m_tready => {sp}_mready,
+            m_tlast  => {sp}_mlast,      m_tuser  => {sp}_muser
+        );"""
+
+
+def gen_stress_stim(j, sc, base_idx_1):
+    """
+    Stimulus process for stress scenario SSjjj.
+    Drives s_tvalid in a sv_h HIGH / sv_l LOW repeating pattern.
+    (sv_h=0, sv_l=0) → always valid (same as the normal stim process).
+    """
+    kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+    dw = 8
+    sp = f"ss{j:03d}"
+    base_pre = f"c{base_idx_1:03d}_"
+    in_file  = f'"{base_pre}input.txt"'
+
+    always_valid = (sv_h == 0 and sv_l == 0)
+    period = sv_h + sv_l
+
+    if always_valid:
+        # Identical to gen_stim — always assert svalid, wait on sready
+        return f"""\
+    p_stim_ss{j:03d} : process
+        file     f   : text;
+        variable ln  : line;
+        variable pv  : integer;
+        variable col : natural range 0 to {lw}-1;
+        variable row : natural range 0 to {fh}-1;
+    begin
+        wait for CLK_PERIOD * 5;
+        wait until rising_edge(clk);
+        {sp}_rst <= '0';
+        file_open(f, {in_file}, read_mode);
+        col := 0;  row := 0;
+        while not endfile(f) loop
+            readline(f, ln);  read(ln, pv);
+            {sp}_sdata  <= std_logic_vector(to_unsigned(pv, 8));
+            if row = 0 and col = 0 then {sp}_suser <= '1'; else {sp}_suser <= '0'; end if;
+            if col = {lw}-1 then {sp}_slast <= '1'; else {sp}_slast <= '0'; end if;
+            {sp}_svalid <= '1';
+            wait until rising_edge(clk) and {sp}_sready = '1';
+            if col = {lw}-1 then
+                col := 0;
+                if row = {fh}-1 then row := 0; else row := row+1; end if;
+            else
+                col := col+1;
+            end if;
+        end loop;
+        {sp}_svalid <= '0';  {sp}_slast <= '0';  {sp}_suser <= '0';
+        file_close(f);
+        wait;
+    end process p_stim_ss{j:03d};"""
+    else:
+        # Pattern: sv_h HIGH then sv_l LOW, repeating.
+        # A variable 'was_valid' records whether svalid was high this cycle,
+        # avoiding the delta-cycle ambiguity of reading the signal after assignment.
+        return f"""\
+    p_stim_ss{j:03d} : process
+        file     f        : text;
+        variable ln       : line;
+        variable pv       : integer;
+        variable col      : natural range 0 to {lw}-1;
+        variable row      : natural range 0 to {fh}-1;
+        variable sv_phase : natural range 0 to {period}-1 := 0;
+        variable was_valid : boolean;
+    begin
+        wait for CLK_PERIOD * 5;
+        wait until rising_edge(clk);
+        {sp}_rst <= '0';
+        file_open(f, {in_file}, read_mode);
+        col := 0;  row := 0;
+        while not endfile(f) loop
+            readline(f, ln);  read(ln, pv);
+            {sp}_sdata  <= std_logic_vector(to_unsigned(pv, 8));
+            if row = 0 and col = 0 then {sp}_suser <= '1'; else {sp}_suser <= '0'; end if;
+            if col = {lw}-1 then {sp}_slast <= '1'; else {sp}_slast <= '0'; end if;
+            -- Drive svalid in {sv_h}H/{sv_l}L pattern until the pixel is accepted.
+            loop
+                if sv_phase < {sv_h} then
+                    {sp}_svalid <= '1';
+                    was_valid := true;
+                else
+                    {sp}_svalid <= '0';
+                    was_valid := false;
+                end if;
+                wait until rising_edge(clk);
+                sv_phase := (sv_phase + 1) mod {period};
+                exit when was_valid and {sp}_sready = '1';
+            end loop;
+            if col = {lw}-1 then
+                col := 0;
+                if row = {fh}-1 then row := 0; else row := row+1; end if;
+            else
+                col := col+1;
+            end if;
+        end loop;
+        {sp}_svalid <= '0';  {sp}_slast <= '0';  {sp}_suser <= '0';
+        file_close(f);
+        wait;
+    end process p_stim_ss{j:03d};"""
+
+
+def gen_stress_mready_proc(j, sc):
+    """
+    m_tready pattern process for stress scenario SSjjj.
+    Returns None when mr_h=0 and mr_l=0 (always ready; no process needed).
+    """
+    kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+    if mr_h == 0 and mr_l == 0:
+        return None
+    sp = f"ss{j:03d}"
+    period = mr_h + mr_l
+    return f"""\
+    -- Stress SS{j:03d}: m_tready {mr_h}H/{mr_l}L pattern
+    p_mr_ss{j:03d} : process
+        variable mr_phase : natural range 0 to {period}-1 := 0;
+    begin
+        wait until {sp}_rst = '0';
+        loop
+            if mr_phase < {mr_h} then
+                {sp}_mready <= '1';
+            else
+                {sp}_mready <= '0';
+            end if;
+            wait until rising_edge(clk);
+            mr_phase := (mr_phase + 1) mod {period};
+        end loop;
+    end process p_mr_ss{j:03d};"""
+
+
+def gen_stress_check(j, sc, base_idx_1, done_offset):
+    """Check process for stress scenario SSjjj; reads base config's expected file."""
+    kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+    dw = 8
+    nt = kr * kc
+    sp = f"ss{j:03d}"
+    base_pre = f"c{base_idx_1:03d}_"
+    exp_file = f'"{base_pre}expected.txt"'
+    label = f"SS{j:03d} {kr}x{kc} {mode} {'FLUSH=on' if flush else 'FLUSH=off'} [{desc}]"
+    return f"""\
+    p_check_ss{j:03d} : process
+        file     f         : text;
+        variable ln        : line;
+        variable tv        : integer;
+        variable exp_vec   : std_logic_vector(8*{nt}-1 downto 0);
+        variable out_count : natural := 0;
+        variable err_count : natural := 0;
+    begin
+        wait until {sp}_rst = '0';
+        file_open(f, {exp_file}, read_mode);
+        while not endfile(f) loop
+            wait until rising_edge(clk) and {sp}_mvalid = '1' and {sp}_mready = '1';
+            readline(f, ln);
+            for tap in 0 to {nt}-1 loop
+                read(ln, tv);
+                exp_vec((tap+1)*8-1 downto tap*8)
+                    := std_logic_vector(to_unsigned(tv, 8));
+            end loop;
+            if {sp}_mdata /= exp_vec then
+                report "SS{j:03d} MISMATCH at output " & integer'image(out_count)
+                    severity error;
+                err_count := err_count+1;
+            end if;
+            out_count := out_count+1;
+        end loop;
+        file_close(f);
+        if err_count = 0 then
+            report "SS{j:03d} PASS ({label}): "
+                & integer'image(out_count) & " outputs checked." severity note;
+        else
+            report "SS{j:03d} FAIL ({label}): " & integer'image(err_count)
+                & " mismatches in " & integer'image(out_count)
+                & " outputs." severity failure;
+        end if;
+        done_flags({done_offset}) <= '1';
+        wait;
+    end process p_check_ss{j:03d};"""
 
 
 # -------------------------------------------------------------------------
@@ -738,7 +1018,24 @@ def build_html_json(vec_dir):
             'bp':             bp_info,
             'trace':          trace,
         })
-    return json.dumps({'configs': cs}, separators=(',', ':'))
+
+    # Build stress scenario metadata for the HTML.
+    ss_list = []
+    for j, sc in enumerate(STRESS_SCENARIOS, start=1):
+        kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+        base_idx_1 = _stress_base_idx(kr, kc, mode, flush, lw, fh)
+        ss_list.append({
+            'id':        j,
+            'label':     f"SS{j:03d}: {kr}×{kc} {mode} {'FLUSH=on' if flush else 'FLUSH=off'} — {desc}",
+            'kr':        kr, 'kc': kc, 'mode': mode, 'flush': flush,
+            'lw':        lw, 'fh': fh,
+            'sv_h':      sv_h, 'sv_l': sv_l,
+            'mr_h':      mr_h, 'mr_l': mr_l,
+            'desc':      desc,
+            'base_cfg':  base_idx_1,
+        })
+
+    return json.dumps({'configs': cs, 'stress': ss_list}, separators=(',', ':'))
 
 
 HTML_TEMPLATE = """<!doctype html>
@@ -797,6 +1094,7 @@ main {
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
+  position: relative;
 }
 h1 {
   margin: 0 0 8px;
@@ -1226,6 +1524,15 @@ button:hover, button:focus-visible {
       <div><span class="swatch" style="background:#64a8ff"></span>current output centre</div>
       <div><span class="swatch" style="background:#78e08f"></span>current input pixel</div>
     </div>
+    <div class="controls" style="margin-top:18px">
+      <label style="color:var(--amber);font-size:12px;text-transform:uppercase">
+        Stress scenarios
+        <select id="stressSelect" style="margin-top:4px">
+          <option value="-1">— none selected —</option>
+        </select>
+      </label>
+      <button id="stressClearBtn" style="display:none">← Back to base configs</button>
+    </div>
   </aside>
   <main>
     <div class="top">
@@ -1286,6 +1593,37 @@ button:hover, button:focus-visible {
       </div>
     </div>
   </main>
+</div>
+<!-- Stress scenario info overlay (hidden until a stress scenario is selected) -->
+<div id="stressOverlay" style="display:none;position:absolute;inset:0;background:var(--paper);overflow:auto;padding:24px;z-index:10">
+  <h2 id="stressTitle" style="margin:0 0 6px;color:var(--amber)"></h2>
+  <p id="stressSubtitle" style="margin:0 0 20px;color:var(--muted);font-size:13px"></p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:800px">
+    <div class="plate" style="padding:14px">
+      <span>Base config</span><strong id="stressBase"></strong>
+    </div>
+    <div class="plate" style="padding:14px">
+      <span>Kernel / Frame</span><strong id="stressKernFrame"></strong>
+    </div>
+    <div class="plate" style="padding:14px">
+      <span>Edge mode / Flush</span><strong id="stressEdge"></strong>
+    </div>
+    <div class="plate" style="padding:14px">
+      <span>Pattern</span><strong id="stressPattern"></strong>
+    </div>
+  </div>
+  <div style="margin-top:20px">
+    <h3 style="color:var(--muted);font-size:12px;text-transform:uppercase;margin:0 0 10px">Signal waveform (first 30 cycles after reset)</h3>
+    <div id="stressWave" style="font-family:monospace;font-size:13px;overflow-x:auto"></div>
+  </div>
+  <div style="margin-top:20px;padding:14px;border:2px solid var(--line);max-width:800px">
+    <p style="margin:0;color:var(--muted);font-size:13px">
+      This stress scenario uses the same golden vectors as the base config above. The DUT produces
+      identical outputs — only the timing of <code>s_tvalid</code> and <code>m_tready</code> varies.
+      A PASS in the simulation confirms the pipeline correctly handles all stall/restart combinations.
+      Switch back to the base config to view the cycle-accurate trace.
+    </p>
+  </div>
 </div>
 <script id="sim-data" type="application/json">__JSON_DATA__</script>
 <script>
@@ -1646,6 +1984,75 @@ function updateTimelineCursor() {
 }
 
 init();
+
+// ---- Stress scenario UI ------------------------------------------------
+const stressSelect   = el('stressSelect');
+const stressClearBtn = el('stressClearBtn');
+const stressOverlay  = el('stressOverlay');
+const mainEl = document.querySelector('main');
+
+function buildStressWave(svh, svl, mrh, mrl, cycles) {
+  const alwaysV = svh === 0 && svl === 0;
+  const alwaysR = mrh === 0 && mrl === 0;
+  let sv = '', mr = '', time = 'Cycle: ';
+  for (let t = 0; t < cycles; t++) {
+    const hi = t < 10 ? t.toString() : (t % 10).toString();
+    time += hi;
+    if (alwaysV) { sv += '▀'; }
+    else { sv += (t % (svh + svl)) < svh ? '▀' : '░'; }
+    if (alwaysR) { mr += '▀'; }
+    else { mr += (t % (mrh + mrl)) < mrh ? '▀' : '░'; }
+  }
+  const row = (label, wave, color) =>
+    `<div style="display:grid;grid-template-columns:90px 1fr;gap:8px;margin-bottom:6px;align-items:center">` +
+    `<span style="color:${color};white-space:nowrap">${label}</span>` +
+    `<span style="color:${color};letter-spacing:2px;white-space:nowrap">${wave}</span></div>`;
+  return `<div style="white-space:nowrap;overflow-x:auto">`
+    + `<div style="display:grid;grid-template-columns:90px 1fr;gap:8px;margin-bottom:4px">` +
+    `<span style="color:var(--muted);font-size:11px">       </span>` +
+    `<span style="color:var(--muted);font-size:11px">${[...time].join('')}</span></div>`
+    + row('s_tvalid', sv, 'var(--green)')
+    + row('m_tready', mr, 'var(--amber)')
+    + `<div style="margin-top:8px;color:var(--muted);font-size:11px">▀ = HIGH &nbsp; ░ = LOW</div>`
+    + '</div>';
+}
+
+(DATA.stress || []).forEach((ss, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = ss.label;
+  stressSelect.appendChild(opt);
+});
+
+stressSelect.addEventListener('change', () => {
+  const val = Number(stressSelect.value);
+  if (val < 0) { hideStress(); return; }
+  showStress(DATA.stress[val]);
+});
+
+stressClearBtn.addEventListener('click', () => {
+  stressSelect.value = '-1';
+  hideStress();
+});
+
+function showStress(ss) {
+  el('stressTitle').textContent = `SS${String(ss.id).padStart(3,'0')}: ${ss.kr}×${ss.kc} ${ss.mode} — ${ss.desc}`;
+  el('stressSubtitle').textContent = `Stress scenario — golden vectors from base config CFG${String(ss.base_cfg).padStart(3,'0')}`;
+  el('stressBase').textContent  = `CFG${String(ss.base_cfg).padStart(3,'0')}`;
+  el('stressKernFrame').textContent = `${ss.kr}×${ss.kc} / ${ss.lw}×${ss.fh}`;
+  el('stressEdge').textContent = `${ss.mode} / FLUSH=${ss.flush ? 'on' : 'off'}`;
+  const svDesc = ss.sv_h === 0 && ss.sv_l === 0 ? 'always high'  : `${ss.sv_h}H ${ss.sv_l}L`;
+  const mrDesc = ss.mr_h === 0 && ss.mr_l === 0 ? 'always high' : `${ss.mr_h}H ${ss.mr_l}L`;
+  el('stressPattern').textContent = `s_tvalid: ${svDesc} / m_tready: ${mrDesc}`;
+  el('stressWave').innerHTML = buildStressWave(ss.sv_h, ss.sv_l, ss.mr_h, ss.mr_l, 48);
+  stressOverlay.style.display = 'block';
+  stressClearBtn.style.display = 'block';
+}
+
+function hideStress() {
+  stressOverlay.style.display = 'none';
+  stressClearBtn.style.display = 'none';
+}
 </script>
 </body>
 </html>
@@ -1682,14 +2089,17 @@ def main():
         label = cfg_label(cfg)
         print(f"  cfg{i:03d} {label:<60s}  {nin} in / {nout} expected")
 
+    total_flags = N + NS  # 324 base configs + 30 stress scenarios
+
     header = f"""\
--- conv2d_tb.vhd -- exhaustive Phase 4 testbench ({N} configurations)
+-- conv2d_tb.vhd -- exhaustive testbench ({N} configs + {NS} stress scenarios)
 -- MACHINE-GENERATED by scripts/gen_tb.py -- do not hand-edit.
 --
 -- Configuration matrix: {N} = 9 kernels x 3 edge modes x 2 flush x 6 frame sizes, 8-bit.
+-- Stress scenarios: {NS} additional DUTs with varied s_tvalid and m_tready timing patterns.
 --
 -- Before simulation: copy tb/vectors/c???_{{input,expected}}.txt into the xsim working dir.
--- Recommended run time: 20000 ns.
+-- Recommended run time: 40000 ns (stress scenarios run longer due to timing gaps).
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -1704,7 +2114,7 @@ architecture tb of conv2d_tb is
     constant CLK_PERIOD : time := 10 ns;
 
     signal clk        : std_logic := '0';
-    signal done_flags : std_logic_vector({N}-1 downto 0) := (others => '0');
+    signal done_flags : std_logic_vector({total_flags}-1 downto 0) := (others => '0');
     signal sim_done   : boolean := false;
 
 """
@@ -1759,24 +2169,52 @@ architecture tb of conv2d_tb is
         wait;
     end process p_bp_{n:03d};""")
 
+    # Stress scenario blocks.
+    ss_sig_blocks   = []
+    ss_inst_blocks  = []
+    ss_stim_blocks  = []
+    ss_mr_blocks    = []
+    ss_check_blocks = []
+
+    for j, sc in enumerate(STRESS_SCENARIOS, start=1):
+        kr, kc, mode, flush, lw, fh, sv_h, sv_l, mr_h, mr_l, desc = sc
+        base_idx_1  = _stress_base_idx(kr, kc, mode, flush, lw, fh)
+        done_offset = N + j - 1  # index into done_flags
+        ss_sig_blocks  .append(gen_stress_signals(j, sc))
+        ss_inst_blocks .append(gen_stress_instance(j, sc))
+        ss_stim_blocks .append(gen_stress_stim(j, sc, base_idx_1))
+        mr_proc = gen_stress_mready_proc(j, sc)
+        if mr_proc:
+            ss_mr_blocks.append(mr_proc)
+        ss_check_blocks.append(gen_stress_check(j, sc, base_idx_1, done_offset))
+
     body = "\n\n".join([
         "    -- Per-DUT configuration constants and file names",
         "\n\n".join(const_blocks),
         "    -- Per-DUT AXI signals",
         "\n\n".join(signal_blocks),
+        "    -- Stress scenario AXI signals",
+        "\n\n".join(ss_sig_blocks),
     ])
 
-    begin_section = "\n\n".join([
+    begin_section = "\n\n".join(filter(None, [
         f"    sim_done <= true when done_flags = (done_flags'range => '1') else false;",
         "    clk <= not clk after CLK_PERIOD / 2 when not sim_done else '0';",
-        "    -- DUT instances",
+        "    -- DUT instances (base 324 configs)",
         "\n\n".join(inst_blocks),
-        "\n\n".join(bp_blocks),
-        "    -- Stimulus processes",
+        "\n\n".join(bp_blocks) if bp_blocks else None,
+        "    -- Stress scenario DUT instances",
+        "\n\n".join(ss_inst_blocks),
+        "    -- Stimulus processes (base configs)",
         "\n\n".join(stim_blocks),
-        "    -- Checker processes",
+        "    -- Stress scenario stimulus processes",
+        "\n\n".join(ss_stim_blocks),
+        ("    -- Stress scenario m_tready pattern processes\n\n" + "\n\n".join(ss_mr_blocks)) if ss_mr_blocks else None,
+        "    -- Checker processes (base configs)",
         "\n\n".join(check_blocks),
-    ])
+        "    -- Stress scenario checker processes",
+        "\n\n".join(ss_check_blocks),
+    ]))
 
     vhdl = (
         header
@@ -1789,8 +2227,8 @@ architecture tb of conv2d_tb is
     with open(tb_path, 'w') as f:
         f.write(vhdl)
 
-    print(f"\nWrote {tb_path}  ({N} configs, {len(bp_blocks)} BP scenarios)")
-    print(f"Recommended simulation run time: 20000 ns")
+    print(f"\nWrote {tb_path}  ({N} base configs, {len(bp_blocks)} BP scenarios, {NS} stress scenarios)")
+    print(f"Recommended simulation run time: 40000 ns")
 
     if args.html:
         gen_html(vec_dir, html_path)
