@@ -750,25 +750,31 @@ def cfg_label_html(c):
     return f"{c['data_width']}b {c['kern_rows']}×{c['kern_cols']} {c['edge_mode']} {fl}{fs}"
 
 
-def _no_out():
-    return {'valid': False, 'frame': None, 'row': None, 'col': None,
-            'kind': None, 'taps': None, 'expectedIndex': None}
-
-
-def _bram_snap(bram_phys, buf_wr_row, num_brams):
-    physical = [list(r) for r in bram_phys]
-    logical  = [list(bram_phys[(buf_wr_row + s) % num_brams]) for s in range(num_brams)] \
-               if num_brams > 0 else []
-    return {'writeRow': buf_wr_row, 'physical': physical, 'logical': logical}
-
-
 def gen_trace(cfg, frames_2d, expected_taps, bp_stall=0):
     """
-    Build a cycle-accurate trace for the HTML visualiser.
+    Build a delta-compressed cycle-accurate trace for the HTML visualiser.
 
-    frames_2d    : list of nf frames; frame[fn] is a 2-D list [row][col] -> int
-    expected_taps: flat list of expected tap vectors (from gen_vectors)
-    bp_stall     : number of STALL (back-pressure) cycles after RESET
+    Returns a dict:
+      { 'nrows': int, 'lw': int, 'c': [compressed_cycle, ...] }
+
+    Each compressed cycle omits null/default fields and uses short keys:
+      cy   - cycle number
+      ph   - phase string (RESET/STALL/INPUT/DUMMY_COL/FLUSH/DRAIN)
+      v    - input pixel value (INPUT/FLUSH only)
+      fn   - frame index
+      r    - row index
+      ec   - effective column index
+      wr   - BRAM write [phys_row, col, value] (only when write occurs)
+      wrow - buf_wr_row (only emitted when it changes)
+      er   - True when endRow (last DUMMY_COL of a row)
+      oi   - expected vector index when output fires
+      ok   - output kind: 's'=stream, 'f'=flush
+      ofn  - output frame
+      or   - output row
+      oc   - output col
+
+    BRAM state is reconstructed in JS by replaying 'wr' events.
+    Tap vectors are looked up from cfg.expected[oi] in JS.
     """
     kr, kc = cfg['kern_rows'], cfg['kern_cols']
     lw, fh, nf = cfg['line_width'], cfg['frame_height'], cfg['num_frames']
@@ -779,30 +785,18 @@ def gen_trace(cfg, frames_2d, expected_taps, bp_stall=0):
     num_brams  = kr - 1
     eff_width  = lw + half_c
 
-    # Flush rows per frame (in the push sequence)
-    flush_rows = half_r if flush else 0
-    rows_per_frame  = fh + flush_rows
-    frame_pushes    = rows_per_frame * eff_width
+    flush_rows     = half_r if flush else 0
+    rows_per_frame = fh + flush_rows
+    frame_pushes   = rows_per_frame * eff_width
 
     # ---------- build push_to_exp mapping ----------
-    # push_to_exp[push_idx] = (exp_idx, out_fn, out_r, out_c)
-    # Ordering must match gen_vectors exactly.
-    #
-    # Unified output timing formula:
-    #   output_push = fn_input * frame_pushes + row_input * eff_width + fc_input + half_c + 2
-    # where (fn_input, row_input, fc_input) is the position of the center pixel
-    # in the PUSH sequence (which may differ from the OUTPUT frame/row for
-    # streaming-tail configs).
     push_to_exp = {}
     exp_i = 0
-
-    total_pushes = nf * frame_pushes + 2   # +2 drain
+    total_pushes = nf * frame_pushes + 2
 
     if mode == "TOROIDAL" or is_stream_direct(kr, kc, fh, flush, mode):
         delay = half_r * eff_width + half_c + 2
-
         if mode == "TOROIDAL" and flush:
-            # TOROIDAL FLUSH=on: fh*lw outputs per frame, no skip
             for fn in range(nf):
                 for fr in range(fh):
                     for fc in range(lw):
@@ -810,7 +804,6 @@ def gen_trace(cfg, frames_2d, expected_taps, bp_stall=0):
                         push_to_exp[op] = (exp_i, fn, fr, fc)
                         exp_i += 1
         else:
-            # TOROIDAL FLUSH=off or STREAM_DIRECT FLUSH=off: skip if out of window
             max_cp = total_pushes - delay - 1
             for fn in range(nf):
                 for fr in range(fh):
@@ -821,34 +814,30 @@ def gen_trace(cfg, frames_2d, expected_taps, bp_stall=0):
                         op = cp + delay
                         push_to_exp[op] = (exp_i, fn, fr, fc)
                         exp_i += 1
-
     elif not flush:
-        # Normal ZERO/REPLICATE FLUSH=off (FH > HALF_R) with streaming tail
         for fn in range(nf):
             for row in range(fh):
                 global_row = fn * fh + row
                 for col_eff in range(eff_width):
                     if col_eff >= half_c and global_row >= half_r:
-                        fc = col_eff - half_c
+                        fc      = col_eff - half_c
                         out_r_g = global_row - half_r
                         out_fn  = out_r_g // fh
                         out_r   = out_r_g % fh
-                        # Center pixel is at input (fn, row, fc); FLUSH=off so frame_pushes=fh*eff_width
                         op = fn * fh * eff_width + row * eff_width + fc + half_c + 2
                         push_to_exp[op] = (exp_i, out_fn, out_r, fc)
                         exp_i += 1
     else:
-        # FLUSH=on non-TOROIDAL
         for fn in range(nf):
             for row in range(fh):
                 for col_eff in range(eff_width):
                     if col_eff >= half_c and row >= half_r:
-                        fc   = col_eff - half_c
+                        fc = col_eff - half_c
                         op = fn * frame_pushes + row * eff_width + fc + half_c + 2
                         push_to_exp[op] = (exp_i, fn, row - half_r, fc)
                         exp_i += 1
             for flush_row in range(half_r):
-                vr = fh + flush_row
+                vr    = fh + flush_row
                 out_r = vr - half_r
                 for col_eff in range(eff_width):
                     if col_eff >= half_c and out_r >= 0:
@@ -874,93 +863,62 @@ def gen_trace(cfg, frames_2d, expected_taps, bp_stall=0):
     for _ in range(2):
         pushes.append(('DRAIN', None, None, None, None))
 
-    # ---------- simulate ----------
-    bram_phys  = [[0] * lw for _ in range(num_brams)]
-    buf_wr_row = 0
-    trace  = []
+    # ---------- emit compressed cycles ----------
+    cycles = []
     cycle  = 0
+    buf_wr_row    = 0
+    prev_wrow     = -1   # sentinel so first wrow is always emitted
 
-    def append_static(phase, note, in_kind, stalled=False):
-        """Append a RESET / STALL cycle."""
-        trace.append({
-            'cycle': cycle, 'phase': phase, 'note': note, 'stalled': stalled,
-            'input': {'kind': in_kind, 'valid': False, 'value': None,
-                      'frame': None, 'row': None, 'col': None,
-                      'effectiveCol': None, 'endRow': False, 'write': None},
-            'output': _no_out(),
-            'bram': _bram_snap(bram_phys, buf_wr_row, num_brams),
-        })
-
-    # RESET cycles (always 2)
+    # RESET cycles
     for _ in range(2):
-        append_static('RESET', 'Synchronous reset active.', 'reset')
+        cycles.append({'cy': cycle, 'ph': 'RESET'})
         cycle += 1
 
-    # STALL cycles (back-pressure post-reset)
+    # STALL cycles
     for _ in range(bp_stall):
-        append_static('STALL', 'Downstream back-pressure; pipeline stalled.', 'stall', stalled=True)
+        cycles.append({'cy': cycle, 'ph': 'STALL'})
         cycle += 1
 
     # Push cycles
     for pidx, (phase, fn, fr, ec, val) in enumerate(pushes):
-        # Increment buf_wr_row on first dummy/flush column past real data
         if phase in ('DUMMY_COL', 'FLUSH') and ec == lw and num_brams > 0:
             buf_wr_row = (buf_wr_row + 1) % num_brams
 
-        # BRAM write
-        write_info = None
-        if phase in ('INPUT', 'FLUSH') and num_brams > 0 and ec < lw:
-            bram_phys[buf_wr_row][ec] = val
-            write_info = {'row': buf_wr_row, 'col': ec, 'value': val}
+        cc = {'cy': cycle, 'ph': phase}
 
-        # Output event
-        out_event = _no_out()
+        # wrow delta (only emit when it changes)
+        if buf_wr_row != prev_wrow:
+            cc['wrow'] = buf_wr_row
+            prev_wrow = buf_wr_row
+
+        # BRAM write
+        if phase in ('INPUT', 'FLUSH') and num_brams > 0 and ec < lw:
+            cc['wr'] = [buf_wr_row, ec, val]
+
+        # Input fields (omit for DRAIN)
+        if phase in ('INPUT', 'DUMMY_COL', 'FLUSH'):
+            cc['fn'] = fn
+            cc['r']  = fr
+            cc['ec'] = ec
+            if val is not None:
+                cc['v'] = val
+            if phase == 'DUMMY_COL' and ec == eff_width - 1:
+                cc['er'] = True
+
+        # Output fields
         if pidx in push_to_exp:
             ei, out_fn, out_r, out_c = push_to_exp[pidx]
             if ei < len(expected_taps):
-                ok = 'flush' if flush and out_r is not None and out_r >= fh else 'stream'
-                out_event = {
-                    'valid': True, 'frame': out_fn, 'row': out_r, 'col': out_c,
-                    'kind': ok, 'taps': expected_taps[ei], 'expectedIndex': ei,
-                }
+                cc['oi']  = ei
+                cc['ok']  = 'f' if (flush and out_r is not None and out_r >= fh) else 's'
+                cc['ofn'] = out_fn
+                cc['or']  = out_r
+                cc['oc']  = out_c
 
-        # Input field
-        if phase == 'INPUT':
-            in_kind, in_valid = 'real', True
-            note = f"Frame {fn}, row {fr}, col {ec} accepted; BRAM row {buf_wr_row} col {ec} updated."
-        elif phase == 'DUMMY_COL':
-            in_kind, in_valid = 'column-pad', True
-            d = ec - lw + 1
-            note = f"Dummy column {d}/{half_c} for frame {fn}, row {fr}."
-        elif phase == 'FLUSH':
-            in_kind, in_valid = 'flush', True
-            note = f"Flush zero, frame {fn} row {fr - fh}/{half_r}, col {ec}; BRAM row {buf_wr_row} col {ec} cleared."
-        else:
-            in_kind, in_valid = 'drain', False
-            note = "No new input; draining pipeline tail."
-
-        trace.append({
-            'cycle':  cycle,
-            'phase':  phase,
-            'note':   note,
-            'stalled': False,
-            'input': {
-                'kind':        in_kind,
-                'valid':       in_valid,
-                'value':       val,
-                'frame':       fn,
-                'row':         fr,
-                'col':         ec if ec is not None and ec < lw else None,
-                'effectiveCol': ec,
-                'endRow':      (phase == 'DUMMY_COL' and ec == eff_width - 1),
-                'write':       write_info,
-            },
-            'output': out_event,
-            'bram': _bram_snap(bram_phys, buf_wr_row, num_brams),
-        })
+        cycles.append(cc)
         cycle += 1
 
-    return trace
+    return {'nrows': num_brams, 'lw': lw, 'c': cycles}
 
 
 def build_html_json(vec_dir):
@@ -992,15 +950,10 @@ def build_html_json(vec_dir):
 
         eff_width = lw + half_c
         bp_info = BP_INFO.get(idx)
-        # Only generate cycle-accurate trace for the 3 BP configs; all others
-        # get an empty trace to keep the HTML small enough for browser parsing.
-        if bp_info and frames_data:
-            bp_stall = (bp_info['stall_cycles']
-                        if bp_info.get('type') == 'post_reset'
-                        else 0)
-            trace = gen_trace(cfg, frames_data, expected_data, bp_stall)
-        else:
-            trace = []
+        bp_stall = (bp_info['stall_cycles']
+                    if bp_info and bp_info.get('type') == 'post_reset'
+                    else 0)
+        trace = gen_trace(cfg, frames_data, expected_data, bp_stall) if frames_data else None
 
         cs.append({
             'id':             idx + 1,
@@ -1018,6 +971,7 @@ def build_html_json(vec_dir):
             'effective_width': eff_width,
             'label':          cfg_label_html(cfg),
             'frames':         frames_data,
+            'expected':       expected_data,
             'bp':             bp_info,
             'trace':          trace,
         })
@@ -1645,7 +1599,102 @@ const cycleRange = el('cycleRange');
 
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 function currentConfig() { return DATA.configs[cfgIndex]; }
-function currentCycle() { return currentConfig().trace[cycleIndex]; }
+function traceLen(cfg) { return cfg.trace && cfg.trace.c ? cfg.trace.c.length : 0; }
+function lastCycleCy(cfg) { const t = cfg.trace; return t && t.c && t.c.length ? t.c[t.c.length - 1].cy : 0; }
+
+// ---- Delta-compressed trace expansion ------------------------------------
+// Traces are stored as short-key dicts (see gen_trace in gen_tb.py).
+// getBramAt() replays BRAM writes up to index idx using cached checkpoints.
+// expandCycle() reconstructs the full cycle object the renderer expects.
+
+function initBramCheckpoints(cfg) {
+  if (cfg._bcp !== undefined) return;
+  const t = cfg.trace;
+  if (!t || !t.c || !t.c.length || !t.nrows) { cfg._bcp = null; return; }
+  const nrows = t.nrows, lw = t.lw;
+  const emptyRows = () => Array.from({length: nrows}, () => new Array(lw).fill(0));
+  const cps = [{ idx: 0, rows: emptyRows(), wrow: 0 }];
+  let rows = emptyRows(), wrow = 0;
+  t.c.forEach((cc, i) => {
+    if (cc.wrow !== undefined) wrow = cc.wrow;
+    if (cc.wr) rows[cc.wr[0]][cc.wr[1]] = cc.wr[2];
+    if ((i + 1) % 64 === 0) cps.push({ idx: i + 1, rows: rows.map(r => r.slice()), wrow });
+  });
+  cfg._bcp = cps;
+}
+
+function getBramAt(cfg, idx) {
+  const t = cfg.trace;
+  if (!t || !t.c || !t.nrows) return { physical: [], logical: [], writeRow: 0 };
+  initBramCheckpoints(cfg);
+  if (!cfg._bcp) return { physical: [], logical: [], writeRow: 0 };
+  const nrows = t.nrows, lw = t.lw;
+  const cps = cfg._bcp;
+  let cp = cps[0];
+  for (let i = 1; i < cps.length && cps[i].idx <= idx; i++) cp = cps[i];
+  const rows = cp.rows.map(r => r.slice());
+  let wrow = cp.wrow;
+  for (let i = cp.idx; i <= idx; i++) {
+    const cc = t.c[i]; if (!cc) break;
+    if (cc.wrow !== undefined) wrow = cc.wrow;
+    if (cc.wr) rows[cc.wr[0]][cc.wr[1]] = cc.wr[2];
+  }
+  const logical = Array.from({length: nrows}, (_, s) => rows[(wrow + s) % nrows]);
+  return { physical: rows, logical, writeRow: wrow };
+}
+
+function expandCycle(cfg, idx) {
+  const t = cfg.trace;
+  if (!t || !t.c || !t.c.length) return null;
+  const cc = t.c[idx];
+  const ph = cc.ph;
+  const hasInput = ph === 'INPUT' || ph === 'DUMMY_COL' || ph === 'FLUSH';
+  const inKinds = { RESET: 'reset', STALL: 'stall', INPUT: 'real', DUMMY_COL: 'column-pad', FLUSH: 'flush', DRAIN: 'drain' };
+  const inCol = (cc.ec !== undefined && cc.ec < t.lw) ? cc.ec : null;
+  const write = cc.wr ? { row: cc.wr[0], col: cc.wr[1], value: cc.wr[2] } : null;
+  const hasOut = cc.oi !== undefined;
+  const taps = hasOut && cfg.expected ? cfg.expected[cc.oi] : null;
+  const bram = getBramAt(cfg, idx);
+  return {
+    cycle:   cc.cy,
+    phase:   ph,
+    note:    buildNote(ph, cc, t.lw),
+    stalled: ph === 'STALL',
+    input: {
+      kind:         inKinds[ph] || 'drain',
+      valid:        hasInput,
+      value:        cc.v !== undefined ? cc.v : null,
+      frame:        cc.fn !== undefined ? cc.fn : null,
+      row:          cc.r  !== undefined ? cc.r  : null,
+      col:          inCol,
+      effectiveCol: cc.ec !== undefined ? cc.ec : null,
+      endRow:       cc.er === true,
+      write,
+    },
+    output: {
+      valid:         hasOut,
+      frame:         hasOut ? cc.ofn : null,
+      row:           hasOut ? cc.or  : null,
+      col:           hasOut ? cc.oc  : null,
+      kind:          hasOut ? (cc.ok === 'f' ? 'flush' : 'stream') : null,
+      taps,
+      expectedIndex: hasOut ? cc.oi : null,
+    },
+    bram,
+  };
+}
+
+function buildNote(ph, cc, lw) {
+  if (ph === 'RESET') return 'Synchronous reset active.';
+  if (ph === 'STALL') return 'Downstream back-pressure; pipeline stalled.';
+  if (ph === 'DRAIN') return 'No new input; draining pipeline tail.';
+  if (ph === 'INPUT') return `Frame ${cc.fn}, row ${cc.r}, col ${cc.ec} accepted; BRAM row ${cc.wr ? cc.wr[0] : '?'} col ${cc.ec} updated.`;
+  if (ph === 'DUMMY_COL') return `Dummy column ${cc.ec - lw + 1} for frame ${cc.fn}, row ${cc.r}.`;
+  if (ph === 'FLUSH') return `Flush zero, frame ${cc.fn} row ${cc.r}, col ${cc.ec}; BRAM row ${cc.wr ? cc.wr[0] : '?'} col ${cc.ec} cleared.`;
+  return '';
+}
+
+function currentCycle() { return expandCycle(currentConfig(), cycleIndex); }
 
 function init() {
   populateSelector(windowSelect, uniqueValues(cfg => `${cfg.kern_rows}x${cfg.kern_cols}`));
@@ -1660,9 +1709,9 @@ function init() {
     renderCycleOnly();
   });
   el('firstBtn').onclick = () => { cycleIndex = 0; stop(); renderCycleOnly(); };
-  el('prevBtn').onclick = () => { cycleIndex = clamp(cycleIndex - 1, 0, currentConfig().trace.length - 1); stop(); renderCycleOnly(); };
-  el('nextBtn').onclick = () => { cycleIndex = clamp(cycleIndex + 1, 0, currentConfig().trace.length - 1); stop(); renderCycleOnly(); };
-  el('lastBtn').onclick = () => { cycleIndex = currentConfig().trace.length - 1; stop(); renderCycleOnly(); };
+  el('prevBtn').onclick = () => { cycleIndex = clamp(cycleIndex - 1, 0, traceLen(currentConfig()) - 1); stop(); renderCycleOnly(); };
+  el('nextBtn').onclick = () => { cycleIndex = clamp(cycleIndex + 1, 0, traceLen(currentConfig()) - 1); stop(); renderCycleOnly(); };
+  el('lastBtn').onclick = () => { cycleIndex = traceLen(currentConfig()) - 1; stop(); renderCycleOnly(); };
   el('playBtn').onclick = togglePlay;
   el('firstOutputBtn').onclick = () => jumpTo('first-output');
   el('nextOutputBtn').onclick = () => jumpTo('next-output');
@@ -1719,24 +1768,26 @@ function renderDataVisibility() {
   el('logicalSection').classList.toggle('hidden', viewMode !== 'all');
 }
 
-function findCycleIndex(predicate, start = 0) {
-  const trace = currentConfig().trace;
-  for (let i = start; i < trace.length; i++) {
-    if (predicate(trace[i])) return i;
+// Fast scan on raw compressed cycles — avoids full expandCycle per entry
+function findCycleIndex(rawPred, start = 0) {
+  const t = currentConfig().trace;
+  if (!t || !t.c) return -1;
+  for (let i = start; i < t.c.length; i++) {
+    if (rawPred(t.c[i])) return i;
   }
   return -1;
 }
 
 function jumpTo(kind) {
-  const predicates = {
-    'first-output': cyc => cyc.output.valid,
-    'next-output': cyc => cyc.output.valid,
-    'next-stall': cyc => cyc.phase === 'STALL',
-    'next-flush': cyc => cyc.phase === 'FLUSH',
+  const rawPreds = {
+    'first-output': cc => cc.oi !== undefined,
+    'next-output':  cc => cc.oi !== undefined,
+    'next-stall':   cc => cc.ph === 'STALL',
+    'next-flush':   cc => cc.ph === 'FLUSH',
   };
   const start = kind === 'first-output' ? 0 : cycleIndex + 1;
-  let idx = findCycleIndex(predicates[kind], start);
-  if (idx < 0 && kind !== 'first-output') idx = findCycleIndex(predicates[kind], 0);
+  let idx = findCycleIndex(rawPreds[kind], start);
+  if (idx < 0 && kind !== 'first-output') idx = findCycleIndex(rawPreds[kind], 0);
   if (idx >= 0) {
     cycleIndex = idx;
     stop();
@@ -1748,7 +1799,7 @@ function togglePlay() {
   if (timer) { stop(); return; }
   el('playBtn').textContent = 'Pause';
   timer = setInterval(() => {
-    if (cycleIndex >= currentConfig().trace.length - 1) { stop(); return; }
+    if (cycleIndex >= traceLen(currentConfig()) - 1) { stop(); return; }
     cycleIndex += 1;
     renderCycleOnly();
   }, 220);
@@ -1766,12 +1817,12 @@ function render() {
   edgeSelect.value = cfg.edge_mode;
   flushSelect.value = cfg.flush ? 'on' : 'off';
   frameSizeSelect.value = `${cfg.line_width}x${cfg.frame_height}`;
-  el('configTitle').textContent = `CFG${String(cfg.id).padStart(2, '0')}`;
+  el('configTitle').textContent = `CFG${String(cfg.id).padStart(3, '0')}`;
   el('kernelPlate').textContent = `${cfg.kern_rows}x${cfg.kern_cols}`;
   el('framePlate').textContent = `${cfg.line_width}x${cfg.frame_height} x ${cfg.num_frames}`;
   el('edgePlate').textContent = cfg.edge_mode;
   el('modePlate').textContent = cfg.streaming ? 'streaming' : 'flush';
-  cycleRange.max = String(cfg.trace.length - 1);
+  cycleRange.max = String(traceLen(cfg) - 1);
   renderTimeline();
   renderCycleOnly();
   renderDataVisibility();
@@ -1779,10 +1830,11 @@ function render() {
 
 function renderCycleOnly() {
   const cfg = currentConfig();
-  cycleIndex = clamp(cycleIndex, 0, cfg.trace.length - 1);
+  cycleIndex = clamp(cycleIndex, 0, traceLen(cfg) - 1);
   cycleRange.value = String(cycleIndex);
   const cyc = currentCycle();
-  el('cycleMeter').textContent = `${cyc.cycle} / ${cfg.trace[cfg.trace.length - 1].cycle}`;
+  if (!cyc) return;
+  el('cycleMeter').textContent = `${cyc.cycle} / ${lastCycleCy(cfg)}`;
   el('phaseBadge').textContent = cyc.phase;
   el('phaseBadge').className = `badge phase-${cyc.phase}`;
   el('cycleStory').textContent = cycleStory(cfg, cyc);
@@ -1791,7 +1843,7 @@ function renderCycleOnly() {
   renderInput(cyc);
   renderOutput(cfg, cyc);
   renderTapGrid(cfg, cyc.output.taps);
-  renderBram(cfg, cyc);
+  renderBram(cyc);
   renderFrames(cfg, cyc);
   updateTimelineCursor();
   renderDataVisibility();
@@ -1882,7 +1934,7 @@ function axisCell(label) {
   return cell;
 }
 
-function renderBram(cfg, cyc) {
+function renderBram(cyc) {
   renderBramRows(el('bramPhysical'), cyc.bram.physical, 'physical');
   renderBramRows(el('bramLogical'), cyc.bram.logical, 'logical age');
 }
@@ -1966,13 +2018,17 @@ function renderTimeline() {
   const cfg = currentConfig();
   const host = el('timeline');
   host.innerHTML = '';
-  cfg.trace.forEach((cyc, i) => {
+  const t = cfg.trace;
+  if (!t || !t.c) { host.textContent = 'No trace data.'; return; }
+  t.c.forEach((cc, i) => {
     const tick = document.createElement('div');
     tick.className = 'tick';
     tick.dataset.index = String(i);
     tick.onclick = () => { cycleIndex = i; stop(); renderCycleOnly(); };
-    const out = cyc.output.valid ? `out f${cyc.output.frame} (${cyc.output.row},${cyc.output.col})` : 'no output';
-    tick.innerHTML = `<span class="mono">#${cyc.cycle}</span><span>${cyc.phase}</span><span>${out}</span>`;
+    const outStr = cc.oi !== undefined
+      ? `out f${cc.ofn} (${cc.or},${cc.oc})`
+      : 'no output';
+    tick.innerHTML = `<span class="mono">#${cc.cy}</span><span>${cc.ph}</span><span>${outStr}</span>`;
     host.appendChild(tick);
   });
 }
