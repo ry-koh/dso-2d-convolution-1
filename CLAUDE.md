@@ -402,8 +402,7 @@ The repo here stores the source text for version control.*
 │   └── vectors/            # 648 golden vector files: c001..c324_{input,expected}.txt
 ├── scripts/
 │   ├── gen_tb.py           # Generates conv2d_tb.vhd + all 648 vector files + visualize.html
-│   ├── gen_vectors.py      # Standalone single-config vector generator (parametric)
-│   └── visualize.py        # Standalone HTML visualiser generator (reads existing vectors)
+│   └── visualize.py        # Thin wrapper: regenerates visualize.html from existing vectors only
 └── synth/
     └── phase*/             # Reference files for synthesis-only utilization runs
 ```
