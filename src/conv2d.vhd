@@ -738,11 +738,12 @@ begin
     -- -----------------------------------------------------------------------
     g_prop : for stage in 1 to PROP_STAGES generate
         p_prop : process (clk)
-            variable cx  : integer;
-            variable cy  : integer;
-            variable nr  : integer;
-            variable nc  : integer;
-            variable pix : std_logic_vector(DATA_WIDTH - 1 downto 0);
+            variable cx       : integer;
+            variable cy       : integer;
+            variable nr       : integer;
+            variable nc       : integer;
+            variable pix      : std_logic_vector(DATA_WIDTH - 1 downto 0);
+            variable zero_tap : boolean;
         begin
             if rising_edge(clk) then
                 if rst = '1' then
@@ -757,9 +758,10 @@ begin
                     prop_row(stage)   <= prop_row(stage - 1);
                     for tr in 0 to KERN_ROWS - 1 loop
                         for tc in 0 to KERN_COLS - 1 loop
+                            cx       := integer(prop_col(stage - 1)) + tc - HALF_C;
+                            cy       := integer(prop_row(stage - 1)) + tr - HALF_R;
+                            zero_tap := false;
                             if EDGE_MODE = "REPLICATE" or EDGE_MODE = "EXTEND" then
-                                cx := integer(prop_col(stage - 1)) + tc - HALF_C;
-                                cy := integer(prop_row(stage - 1)) + tr - HALF_R;
                                 -- Move toward centre on each OOB axis; stay on in-bounds axis.
                                 if cy < 0                then nr := tr + 1;
                                 elsif cy >= FRAME_HEIGHT then nr := tr - 1;
@@ -770,16 +772,31 @@ begin
                                 else                          nc := tc;
                                 end if;
                             else
-                                -- ZERO: pass every tap through unchanged.
+                                -- ZERO: zero OOB taps using coordinate check.
+                                -- win_buf zeros warmup rows and left-column edge, but
+                                -- FLUSH=off lets the next frame's pixels appear in the
+                                -- bottom OOB row — coordinate gating is the only safe fix.
                                 nr := tr;
                                 nc := tc;
+                                if cy < 0 or cy >= FRAME_HEIGHT
+                                   or cx < 0 or cx >= LINE_WIDTH
+                                then
+                                    zero_tap := true;
+                                end if;
                             end if;
-                            pix := prop_data(stage - 1)
-                                       ((nr * KERN_COLS + nc + 1) * DATA_WIDTH - 1
-                                        downto (nr * KERN_COLS + nc) * DATA_WIDTH);
-                            prop_data(stage)
-                                ((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
-                                 downto (tr * KERN_COLS + tc) * DATA_WIDTH) <= pix;
+                            if zero_tap then
+                                prop_data(stage)
+                                    ((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                     downto (tr * KERN_COLS + tc) * DATA_WIDTH)
+                                    <= (others => '0');
+                            else
+                                pix := prop_data(stage - 1)
+                                           ((nr * KERN_COLS + nc + 1) * DATA_WIDTH - 1
+                                            downto (nr * KERN_COLS + nc) * DATA_WIDTH);
+                                prop_data(stage)
+                                    ((tr * KERN_COLS + tc + 1) * DATA_WIDTH - 1
+                                     downto (tr * KERN_COLS + tc) * DATA_WIDTH) <= pix;
+                            end if;
                         end loop;
                     end loop;
                 end if;
