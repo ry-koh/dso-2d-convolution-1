@@ -731,8 +731,9 @@ begin
     -- correct border pixel value — never more than 1 LUT of logic depth per tap
     -- per stage, regardless of kernel size.
     --
-    -- ZERO:     win_buf already stores 0 for all OOB positions; propagation
-    --           copies zeros into zeros — a harmless no-op.
+    -- ZERO:     the neighbour-copy is disabled; each tap copies its own value
+    --           (pass-through). win_buf already stores 0 in all OOB positions
+    --           via row_valid / new_row masking, so zeros pass through unchanged.
     -- TOROIDAL: STREAM_DIRECT bypasses this path entirely.
     -- -----------------------------------------------------------------------
     g_prop : for stage in 1 to PROP_STAGES generate
@@ -756,20 +757,23 @@ begin
                     prop_row(stage)   <= prop_row(stage - 1);
                     for tr in 0 to KERN_ROWS - 1 loop
                         for tc in 0 to KERN_COLS - 1 loop
-                            cx := integer(prop_col(stage - 1)) + tc - HALF_C;
-                            cy := integer(prop_row(stage - 1)) + tr - HALF_R;
-                            -- Default: move toward centre on each OOB axis.
-                            -- In-bounds axis keeps its own index (nr=tr or nc=tc).
-                            if cy < 0             then nr := tr + 1;
-                            elsif cy >= FRAME_HEIGHT then nr := tr - 1;
-                            else                        nr := tr;
+                            if EDGE_MODE = "REPLICATE" or EDGE_MODE = "EXTEND" then
+                                cx := integer(prop_col(stage - 1)) + tc - HALF_C;
+                                cy := integer(prop_row(stage - 1)) + tr - HALF_R;
+                                -- Move toward centre on each OOB axis; stay on in-bounds axis.
+                                if cy < 0                then nr := tr + 1;
+                                elsif cy >= FRAME_HEIGHT then nr := tr - 1;
+                                else                          nr := tr;
+                                end if;
+                                if cx < 0               then nc := tc + 1;
+                                elsif cx >= LINE_WIDTH   then nc := tc - 1;
+                                else                          nc := tc;
+                                end if;
+                            else
+                                -- ZERO: pass every tap through unchanged.
+                                nr := tr;
+                                nc := tc;
                             end if;
-                            if cx < 0             then nc := tc + 1;
-                            elsif cx >= LINE_WIDTH   then nc := tc - 1;
-                            else                        nc := tc;
-                            end if;
-                            -- nr=tr and nc=tc → in-bounds: copy own value (pass-through).
-                            -- Otherwise: copy from the neighbour one step toward centre.
                             pix := prop_data(stage - 1)
                                        ((nr * KERN_COLS + nc + 1) * DATA_WIDTH - 1
                                         downto (nr * KERN_COLS + nc) * DATA_WIDTH);
