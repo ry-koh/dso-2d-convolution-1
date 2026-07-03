@@ -375,6 +375,104 @@ README.md             This file
 
 ---
 
+## Test Generation (`scripts/gen_tb.py`)
+
+`gen_tb.py` is a code generator. Running it produces the 648 vector files, the VHDL
+testbench, and optionally the HTML visualiser. Nothing in `tb/` should be hand-edited —
+it all comes from this script.
+
+```
+python scripts/gen_tb.py [--html]
+```
+
+### 1. Helper functions
+
+**`make_frame(n, fh, lw, dw)`** — generates synthetic pixel data for frame `n`. Frame 0
+is a ramp (`r*lw+c mod 256`), frame 1 is flat `128`, frame 2 is a checkerboard of
+`0xAA`/`0x55`. Deterministic and chosen to be easy to reason about.
+
+**`get_pixel(frame, r, c, fh, lw, mode)`** — looks up a pixel with ZERO or REPLICATE
+boundary handling. Returns 0 for out-of-bounds with ZERO; clamps to the nearest edge
+with REPLICATE.
+
+**`compute_taps(frame, out_r, out_c, kr, kc, fh, lw, mode)`** — assembles the full
+M×N tap window centred on `(out_r, out_c)` by calling `get_pixel` for each tap position.
+
+**`compute_taps_toroidal(global_stream, center_g, kr, kc, lw, fh, flush)`** — the
+TOROIDAL version. Indexes into the flat `global_stream` list using
+`center_g + (tr−HALF_R)*LINE_WIDTH + (tc−HALF_C)`. Negative indices return 0 (warmup
+zeros before frame 0). With FLUSH=true it also zeroes taps that fall outside the current
+frame's row range.
+
+**`is_stream_direct(kr, kc, fh, flush, mode)`** — returns True when the RTL uses the
+`tor_buf` path instead of `line_buf`/`win_buf`. This is always true for TOROIDAL, and
+also true for degenerate frame heights where `FH <= HALF_R` with FLUSH=false.
+
+### 2. Configuration matrix
+
+Builds the 324-entry `CONFIGS` list using `itertools.product` over all axis combinations.
+Then identifies the three back-pressure config indices using `_find()`:
+
+| CFG | Config | Scenario |
+|---|---|---|
+| CFG001 | 3×3 ZERO FLUSH=off 8×8 | `m_tready(0)` held low 10 cycles post-reset |
+| CFG040 | 3×5 ZERO FLUSH=off 3×3 frame | `m_tready(0)` held low 15 cycles from cycle 210 |
+| CFG055 | 3×5 REPLICATE FLUSH=on 8×8 | `m_tready(NUM_TAPS−1)` held low 10 cycles post-reset |
+
+### 3. `gen_vectors` — writing the vector files
+
+For each configuration, computes what the DUT should output and writes two files.
+`c???_input.txt` contains one integer per line — every pixel of every frame in raster
+order, fed into `s_tdata`. `c???_expected.txt` contains one line per output event, each
+line holding `KERN_ROWS × KERN_COLS` space-separated tap values for the checker to
+compare against `m_tdata`.
+
+Four code paths, matching the four RTL paths:
+
+| Path | Condition | How taps are computed |
+|---|---|---|
+| TOROIDAL FLUSH=on | `EDGE_MODE="TOROIDAL"`, `FLUSH=true` | `compute_taps_toroidal` with per-frame zeroing |
+| TOROIDAL FLUSH=off | `EDGE_MODE="TOROIDAL"`, `FLUSH=false` | `compute_taps_toroidal` using global stream |
+| STREAM_DIRECT non-TOROIDAL | `FH <= HALF_R`, `FLUSH=false` | `compute_taps` with ZERO/REPLICATE, per-frame |
+| Normal FLUSH=off | `FH > HALF_R`, `FLUSH=false` | `compute_taps` with streaming tail logic |
+| Normal FLUSH=on | non-TOROIDAL, `FLUSH=true` | `compute_taps` per frame + flush rows |
+
+### 4. VHDL testbench generation
+
+`main()` loops over all 324 configs and assembles the VHDL file from five types of
+per-DUT block, plus shared boilerplate:
+
+**Constants** — `C???_DW`, `C???_KR`, `C???_KC`, `C???_LW`, `C???_FH`, and the input/
+expected file path strings for one DUT instance.
+
+**Signals** — all AXI signals (`c???_sdata`, `c???_mready`, etc.) for one DUT.
+
+**Instance** — one `conv2d` entity instantiated with the correct generic map and port
+map.
+
+**Stimulus process** — reads `c???_input.txt` line by line via VHDL textio, drives
+`s_tdata`/`s_tvalid`/`s_tlast`/`s_tuser` with correct AXI handshake and SOF/TLAST
+framing, and waits for `s_tready` on each pixel.
+
+**Checker process** — reads `c???_expected.txt` line by line, waits for `m_tvalid`,
+compares the full `m_tdata` vector against the expected value, and prints `PASS` or
+`FAIL cfg???` with mismatch details. Sets its bit in `done_flags` when all expected
+outputs have been checked.
+
+**Back-pressure processes** — one process per BP scenario, deasserts the appropriate
+`m_tready` bit at the configured time and reasserts it after the stall period.
+
+`sim_done` goes true when all 324 `done_flags` bits are set, which stops the clock.
+
+### 5. HTML generation (`--html`)
+
+`build_html_json()` reads every `c???_input.txt` and `c???_expected.txt` already on
+disk, calls `gen_trace()` to build the cycle-accurate push/output mapping for the
+visualiser timeline, and serialises everything to a JSON blob. `gen_html()` injects
+that blob into the self-contained HTML/CSS/JS template and writes `tb/visualize.html`.
+
+---
+
 ## How to Run in Vivado
 
 1. Create a Vivado project targeting **XC7Z020-CLG484-1**.
