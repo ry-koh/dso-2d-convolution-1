@@ -575,12 +575,19 @@ button:hover, button:focus-visible {
     <div style="margin-bottom:24px">
       <h2 id="stressTitle" style="margin:0 0 6px;font-size:20px;color:var(--ink)"></h2>
       <p style="margin:0 0 12px;font-size:13px;color:var(--muted)" id="stressSubtitle"></p>
-      <div style="padding:14px 16px;background:var(--sidebar);border-left:3px solid var(--amber);border-radius:0 6px 6px 0;font-size:13px;line-height:1.6;color:var(--ink)">
-        <strong>What is a stress test?</strong> It runs the same convolution as the base config but varies
-        when the input source produces data (<code>s_tvalid</code>) and when the output consumer
-        is ready to accept data (<code>m_tready</code>). The DUT must stall, hold, and resume
-        correctly — producing bit-identical results regardless of timing pressure. A PASS here
-        confirms the pipeline handles all stall / restart combinations correctly.
+      <div style="padding:14px 16px;background:var(--sidebar);border-left:3px solid var(--amber);border-radius:0 6px 6px 0;font-size:13px;line-height:1.7;color:var(--ink)">
+        <strong>What is a stress test?</strong><br>
+        In a real system, two things can throttle the pipeline independently:
+        <ul style="margin:8px 0 0;padding-left:18px">
+          <li><strong style="color:var(--green)">s_tvalid = 0</strong> — the <em>input source</em> isn't ready (e.g. camera sensor gap, FIFO empty). No new pixel enters the pipeline.</li>
+          <li><strong style="color:var(--amber)">m_tready = 0</strong> — the <em>output consumer</em> isn't ready (e.g. downstream FIFO full). The pipeline must freeze and hold its state.</li>
+          <li><strong style="color:#4a9eff">Both HIGH</strong> — a pixel actually moves through. This is the only time real work happens.</li>
+        </ul>
+        <div style="margin-top:10px">
+        A stress test runs the same convolution as the base config (same kernel, same frame, same golden vectors) but deliberately introduces gaps in <code>s_tvalid</code> and/or <code>m_tready</code>.
+        The DUT must produce <em>exactly the same output pixels</em> in the <em>same order</em> — just with some cycles of waiting in between.
+        A <strong>PASS</strong> here means the pipeline correctly freezes, holds state, and resumes with no data corruption.
+        </div>
       </div>
     </div>
 
@@ -606,24 +613,37 @@ button:hover, button:focus-visible {
         Signal pattern &mdash; first 48 cycles after reset
       </div>
       <div style="padding:20px;background:var(--sidebar);border:1px solid var(--line);border-radius:8px;overflow-x:auto">
-        <div style="margin-bottom:10px;font-size:12px;color:var(--muted)" id="stressPatternDesc"></div>
-        <svg id="stressWave" width="760" height="110" style="display:block;min-width:480px;max-width:100%"></svg>
-        <div style="margin-top:10px;display:flex;gap:20px;font-size:11px;color:var(--muted)">
-          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:24px;height:2px;background:var(--green)"></span>s_tvalid — data source sends pixel</span>
-          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:24px;height:2px;background:var(--amber)"></span>m_tready — output consumer accepts data</span>
+        <div style="margin-bottom:12px;font-size:12px;color:var(--muted)" id="stressPatternDesc"></div>
+        <svg id="stressWave" width="760" height="160" style="display:block;min-width:480px;max-width:100%"></svg>
+        <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:var(--muted)">
+          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:20px;height:2px;background:var(--green)"></span><strong style="color:var(--green)">s_tvalid</strong> — input source has a pixel to send</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:20px;height:2px;background:var(--amber)"></span><strong style="color:var(--amber)">m_tready</strong> — output consumer can accept data</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:12px;height:12px;background:#4a9eff;border-radius:2px"></span><strong style="color:#4a9eff">data flows</strong> — pixel actually moves (both HIGH)</span>
         </div>
       </div>
     </div>
 
     <!-- what to look for -->
     <div style="padding:16px;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.65;color:var(--ink)">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;font-weight:700">What to look for in simulation</div>
-      <ul style="margin:0;padding-left:18px">
-        <li>When <code>s_tvalid=0</code>, no new pixel enters the pipeline &mdash; the DUT must hold its state.</li>
-        <li>When <code>m_tready=0</code>, the DUT must assert backpressure upstream and freeze the window buffer.</li>
-        <li>Outputs must remain bit-identical to the base config golden vectors, just shifted in time.</li>
-        <li>A simulation <strong>PASS</strong> confirms correct stall and recovery across all scenarios.</li>
-      </ul>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;font-weight:700">How to read the waveform above</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="padding:12px;background:var(--sidebar);border-radius:6px;border-left:3px solid var(--green)">
+          <div style="font-weight:700;margin-bottom:4px;color:var(--green)">s_tvalid drops LOW</div>
+          <div style="color:var(--muted)">The camera / source pauses. No new pixel arrives. The DUT must <strong>wait</strong> with its current window buffer intact. Nothing is lost.</div>
+        </div>
+        <div style="padding:12px;background:var(--sidebar);border-radius:6px;border-left:3px solid var(--amber)">
+          <div style="font-weight:700;margin-bottom:4px;color:var(--amber)">m_tready drops LOW</div>
+          <div style="color:var(--muted)">The downstream consumer is full. The DUT must <strong>freeze</strong> — it asserts backpressure so the source also stops. The window buffer holds.</div>
+        </div>
+        <div style="padding:12px;background:var(--sidebar);border-radius:6px;border-left:3px solid #4a9eff">
+          <div style="font-weight:700;margin-bottom:4px;color:#4a9eff">Both HIGH → pixel moves</div>
+          <div style="color:var(--muted)">This is the only cycle when real data flows: one pixel in from the source, and/or one tap-set out to the consumer. Shown as the blue "data flows" row.</div>
+        </div>
+        <div style="padding:12px;background:var(--sidebar);border-radius:6px;border-left:3px solid var(--line)">
+          <div style="font-weight:700;margin-bottom:4px">Expected result</div>
+          <div style="color:var(--muted)">Same output pixels as the base config, same order — just spread out over more cycles. A PASS confirms no corruption from the gaps.</div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -1096,23 +1116,23 @@ const stressOverlay  = el('stressOverlay');
 const mainEl = document.querySelector('main');
 
 function buildStressWaveSvg(svh, svl, mrh, mrl, cycles, svgEl) {
-  const W = 760, H = 110;
-  const labelW = 72, padR = 12, padT = 14;
-  const trackH = 36, gap = 14;
+  const W = 760, H = 160;
+  const labelW = 80, padR = 12, padT = 10;
+  const trackH = 30, gap = 10;
   const waveW = W - labelW - padR;
   const cw = waveW / cycles;
 
-  // build bit arrays
   const alwaysV = svh === 0 && svl === 0;
   const alwaysR = mrh === 0 && mrl === 0;
-  const svBits = [], mrBits = [];
+  const svBits = [], mrBits = [], flBits = [];
   for (let t = 0; t < cycles; t++) {
-    svBits.push(alwaysV ? 1 : ((t % (svh + svl)) < svh ? 1 : 0));
-    mrBits.push(alwaysR ? 1 : ((t % (mrh + mrl)) < mrh ? 1 : 0));
+    const sv = alwaysV ? 1 : ((t % (svh + svl)) < svh ? 1 : 0);
+    const mr = alwaysR ? 1 : ((t % (mrh + mrl)) < mrh ? 1 : 0);
+    svBits.push(sv); mrBits.push(mr); flBits.push(sv & mr);
   }
 
-  function makePath(bits, y0, color) {
-    const hi = y0 + 4, lo = y0 + trackH - 4;
+  function makePath(bits, y0, color, strokeW) {
+    const hi = y0 + 3, lo = y0 + trackH - 3;
     let d = '';
     for (let t = 0; t < bits.length; t++) {
       const x = labelW + t * cw;
@@ -1125,33 +1145,71 @@ function buildStressWaveSvg(svh, svl, mrh, mrl, cycles, svgEl) {
       }
     }
     d += `L${labelW + cycles*cw},${bits[bits.length-1] ? hi : lo}`;
-    return `<path d="${d}" stroke="${color}" stroke-width="2" fill="none" stroke-linejoin="miter"/>`;
+    return `<path d="${d}" stroke="${color}" stroke-width="${strokeW||2}" fill="none" stroke-linejoin="miter"/>`;
   }
 
-  // tick marks + labels every 8 cycles
+  // filled "data flows" bars — filled rect for each HIGH cycle
+  function makeFilledBars(bits, y0, color) {
+    let out = '';
+    for (let t = 0; t < bits.length; t++) {
+      if (bits[t]) {
+        out += `<rect x="${labelW + t*cw + 0.5}" y="${y0 + 4}" width="${cw - 1}" height="${trackH - 8}" fill="${color}" rx="2"/>`;
+      }
+    }
+    return out;
+  }
+
+  // tick marks
   let ticks = '';
+  const totalH = padT + 3*(trackH + gap);
   for (let t = 0; t <= cycles; t += 8) {
     const x = labelW + t * cw;
-    ticks += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${H - 4}" stroke="var(--line)" stroke-width="1"/>`;
-    ticks += `<text x="${x+2}" y="${H}" font-size="10" fill="var(--muted)" font-family="monospace">${t}</text>`;
+    ticks += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${totalH - 6}" stroke="var(--line)" stroke-width="1" stroke-dasharray="3,3"/>`;
+    ticks += `<text x="${x+2}" y="${H - 2}" font-size="10" fill="var(--muted)" font-family="monospace">${t}</text>`;
   }
 
-  // shaded LOW regions for s_tvalid (stall periods)
+  // stall shading: any cycle where sv=0 OR mr=0 = pipeline stalled
   let shades = '';
   for (let t = 0; t < cycles; t++) {
-    if (!svBits[t]) {
-      shades += `<rect x="${labelW + t*cw}" y="${padT + 2}" width="${cw}" height="${trackH*2 + gap - 4}" fill="var(--ink)" opacity="0.04"/>`;
+    if (!flBits[t]) {
+      shades += `<rect x="${labelW + t*cw}" y="${padT}" width="${cw}" height="${totalH - padT - 10}" fill="var(--ink)" opacity="0.05"/>`;
     }
   }
 
-  const y1 = padT, y2 = padT + trackH + gap;
-  const paths = makePath(svBits, y1, 'var(--green)') + makePath(mrBits, y2, 'var(--amber)');
+  const y1 = padT;
+  const y2 = y1 + trackH + gap;
+  const y3 = y2 + trackH + gap;
+
+  const paths =
+    makePath(svBits, y1, 'var(--green)', 2) +
+    makePath(mrBits, y2, 'var(--amber)', 2) +
+    makeFilledBars(flBits, y3, '#4a9eff');
+
+  // label text
+  const midText = (y) => y + trackH/2 + 4;
   const labels =
-    `<text x="${labelW - 6}" y="${y1 + trackH/2 + 4}" text-anchor="end" font-size="11" font-family="monospace" fill="var(--green)">s_tvalid</text>` +
-    `<text x="${labelW - 6}" y="${y2 + trackH/2 + 4}" text-anchor="end" font-size="11" font-family="monospace" fill="var(--amber)">m_tready</text>`;
+    `<text x="${labelW - 6}" y="${midText(y1)}" text-anchor="end" font-size="11" font-family="monospace" fill="var(--green)">s_tvalid</text>` +
+    `<text x="${labelW - 6}" y="${midText(y2)}" text-anchor="end" font-size="11" font-family="monospace" fill="var(--amber)">m_tready</text>` +
+    `<text x="${labelW - 6}" y="${midText(y3)}" text-anchor="end" font-size="11" font-family="monospace" fill="#4a9eff">data flows</text>`;
+
+  // "STALL" annotation label above first stall run
+  let annotations = '';
+  let stallStart = -1;
+  for (let t = 0; t <= cycles; t++) {
+    const stalled = t < cycles && !flBits[t];
+    if (stalled && stallStart < 0) { stallStart = t; }
+    else if (!stalled && stallStart >= 0) {
+      const cx = labelW + (stallStart + (t - stallStart)/2) * cw;
+      if (t - stallStart >= 2) {
+        annotations += `<text x="${cx}" y="${y1 - 2}" text-anchor="middle" font-size="9" fill="var(--muted)" font-family="monospace">STALL</text>`;
+      }
+      stallStart = -1;
+      if (annotations.split('STALL').length > 3) break; // max 2 labels
+    }
+  }
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svgEl.innerHTML = ticks + shades + paths + labels;
+  svgEl.innerHTML = ticks + shades + paths + labels + annotations;
 }
 
 (DATA.stress || []).forEach((ss, i) => {
