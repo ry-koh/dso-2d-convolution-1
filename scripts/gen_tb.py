@@ -992,11 +992,15 @@ def build_html_json(vec_dir):
 
         eff_width = lw + half_c
         bp_info = BP_INFO.get(idx)
-        # Show STALL cycles for any post_reset BP scenario in the trace
-        bp_stall = (bp_info['stall_cycles']
-                    if bp_info and bp_info.get('type') == 'post_reset'
-                    else 0)
-        trace = gen_trace(cfg, frames_data, expected_data, bp_stall) if frames_data else []
+        # Only generate cycle-accurate trace for the 3 BP configs; all others
+        # get an empty trace to keep the HTML small enough for browser parsing.
+        if bp_info and frames_data:
+            bp_stall = (bp_info['stall_cycles']
+                        if bp_info.get('type') == 'post_reset'
+                        else 0)
+            trace = gen_trace(cfg, frames_data, expected_data, bp_stall)
+        else:
+            trace = []
 
         cs.append({
             'id':             idx + 1,
@@ -1014,7 +1018,6 @@ def build_html_json(vec_dir):
             'effective_width': eff_width,
             'label':          cfg_label_html(cfg),
             'frames':         frames_data,
-            'expected':       expected_data,
             'bp':             bp_info,
             'trace':          trace,
         })
