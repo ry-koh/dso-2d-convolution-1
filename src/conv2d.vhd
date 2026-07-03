@@ -151,7 +151,11 @@ architecture rtl of conv2d is
     signal tor_tlast_r  : std_logic := '0';
     signal tor_tuser_r  : std_logic := '0';
 
-    signal edge_tdata : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
+    signal edge_tdata   : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
+    signal edge_tdata_r : std_logic_vector(DATA_WIDTH * NUM_TAPS - 1 downto 0);
+    signal edge_tvalid_r : std_logic := '0';
+    signal edge_tlast_r  : std_logic := '0';
+    signal edge_tuser_r  : std_logic := '0';
 
 begin
 
@@ -691,13 +695,13 @@ begin
         end if;
     end process p_toroidal;
 
-    m_tvalid <= tor_tvalid_r when STREAM_DIRECT else m_tvalid_r;
-    m_tlast  <= tor_tlast_r  when STREAM_DIRECT else m_tlast_r;
-    m_tuser  <= tor_tuser_r  when STREAM_DIRECT else m_tuser_r;
-    m_tdata  <= tor_tdata_r  when STREAM_DIRECT else edge_tdata;
+    m_tvalid <= tor_tvalid_r  when STREAM_DIRECT else edge_tvalid_r;
+    m_tlast  <= tor_tlast_r   when STREAM_DIRECT else edge_tlast_r;
+    m_tuser  <= tor_tuser_r   when STREAM_DIRECT else edge_tuser_r;
+    m_tdata  <= tor_tdata_r   when STREAM_DIRECT else edge_tdata_r;
 
     -- -----------------------------------------------------------------------
-    -- Edge mode output mux (combinational, centred-window coordinates).
+    -- Edge mode output mux (combinational into edge_tdata; registered by p_edge_reg).
     --
     -- Centred coordinate of tap[tr][tc]:
     --   coord_x = m_col_r + (tc - HALF_C)
@@ -783,6 +787,23 @@ begin
             end loop;
         end loop;
     end process p_edge_out;
+
+    -- Register the edge-mux output to cut the combinational path for large kernels.
+    p_edge_reg : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                edge_tvalid_r <= '0';
+                edge_tlast_r  <= '0';
+                edge_tuser_r  <= '0';
+            elsif all_ready = '1' then
+                edge_tdata_r  <= edge_tdata;
+                edge_tvalid_r <= m_tvalid_r;
+                edge_tlast_r  <= m_tlast_r;
+                edge_tuser_r  <= m_tuser_r;
+            end if;
+        end if;
+    end process p_edge_reg;
 
     -- -----------------------------------------------------------------------
     -- Sub-block instantiation
