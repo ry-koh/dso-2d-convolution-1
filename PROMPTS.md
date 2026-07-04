@@ -298,6 +298,90 @@ m_tready : in std_logic_vector(KERN_ROWS * KERN_COLS - 1 downto 0); should be on
 
 ---
 
+## Post-Phase 4 — Visualiser Iteration and Debugging
+
+### Updating synthesis numbers
+
+When new Vivado synthesis results were available, three screenshots were uploaded directly
+and the instruction was as terse as possible:
+```
+update these as utilisation
+```
+Claude extracted the numbers from the screenshots and updated CLAUDE.md's synthesis block.
+No text description was needed — images of the Vivado report were sufficient.
+
+### Fixing a performance regression (42 MB HTML file)
+
+After the stress scenarios were added, the visualiser stopped loading. The diagnosis came
+from a short observation rather than an error message:
+```
+the visualization does not show the stress tests
+```
+The root cause was that embedding full cycle-by-cycle traces for all 324 configs produced a
+42 MB file that caused the browser to hang before the JavaScript dropdown population
+finished. Three options were presented; the user picked one by number:
+```
+option 3
+```
+(Delta compression — short-key dicts omitting null fields, BRAM stored as write events
+rather than full snapshots, with a lazy checkpoint cache in JS.) This reduced the file from
+42 MB to 8 MB while restoring the full cycle view for all 324 configs.
+
+### Clarifying scope of the stress scenario overlay
+
+After seeing the stress scenario overlay, the user identified two concrete problems:
+```
+1) theres no way to go back to main screen
+2) i don't know what im looking at, can you use a design skill to make the screen more
+   clear and understandable what im looking at
+```
+The fix was:
+- Moving the back button inside the overlay (the sidebar button was unreachable behind
+  the overlay at z-index:10)
+- Adding an SVG digital waveform replacing block characters
+- Adding plain-language explanations of what the scenario tests
+
+### Asking for a third signal row
+
+Rather than requesting a specific implementation, the user described what they didn't
+understand and asked a conceptual question:
+```
+i don't understand what the output is supposed to be? like is it s_tvalid HIGH and
+m_tready HIGH then there should be output?
+```
+This led to adding a third waveform row — "data flows" (blue filled bars) showing
+`s_tvalid AND m_tready` — and rewriting the explanation panels to make the handshake
+rule explicit.
+
+### Asking how verification actually works
+
+Two sharp questions about correctness came as plain natural language:
+```
+how do we check if the clock cycle actually doesn't send anything, in those clock cycles
+where either s_tvalid is low or m_tready is low, since the output file is the same both
+when we vary s_tvalid and m_tready and when we don't
+
+also, if s_tvalid is low in this clock cycle, then should it not send data in this clock
+cycle or the next clock cycle
+```
+These were answered by reading the generated VHDL checker process (`wait until rising_edge(clk) and mvalid='1' and mready='1'`) and explaining exactly how the handshake gates the comparison, including the blind spot and why it's acceptable.
+
+### Directory audit
+
+The audit was requested with a numbered list of concrete targets rather than a vague
+"check everything":
+```
+i want you to audit the whole directory now
+
+1) update the prompts.md with the new prompts i used
+2) update README for information especially where we change e.g. testbench
+3) update README to show what each file in this directory is for like gen_tb.py
+4) audit any other markdown files and just make sure that it accurately depicts what
+   is actually in this directory
+```
+
+---
+
 ## Patterns That Worked Well
 
 | Pattern | Why it worked |
@@ -310,3 +394,7 @@ m_tready : in std_logic_vector(KERN_ROWS * KERN_COLS - 1 downto 0); should be on
 | Asking "what does X do?" before deciding to delete it | Avoided deleting files that turned out to still be needed |
 | Full replan prompt when incremental fixes stalled | Broke out of local optima in the UI iteration |
 | Single-word approvals ("approved", "yes correct") | Kept pace high after decisions were already made |
+| Uploading screenshots for data entry | "update these as utilisation" + three screenshots was faster and less error-prone than transcribing numbers |
+| Describing what you don't understand, not what to fix | "I don't understand what the output is supposed to be" led to a better solution than "add a third row" would have |
+| Numbered list for audit requests | Gave Claude a checklist to tick off rather than a vague directive |
+| Presenting options and letting the user choose | "option 3" kept the user in control of the size/fidelity trade-off without requiring them to understand the implementation |
