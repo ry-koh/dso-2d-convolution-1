@@ -173,11 +173,16 @@ def gen_vectors(cfg, prefix, out_dir):
                         all_taps.append(taps)
             else:
                 # FLUSH=false: output for every center that fits in simulation window.
+                # RTL makes NO dummy column pushes for TOROIDAL, so effective width = lw.
+                eff_width_tor = lw
+                delay_tor = half_r * eff_width_tor + half_c + 2
+                total_pushes_tor = nf * fh * eff_width_tor + 2
+                max_center_push_tor = total_pushes_tor - delay_tor - 1
                 for fn in range(nf):
                     for fr in range(fh):
                         for fc in range(lw):
-                            center_push = fn * fh * eff_width + fr * eff_width + fc
-                            if center_push > max_center_push:
+                            center_push = fn * fh * eff_width_tor + fr * eff_width_tor + fc
+                            if center_push > max_center_push_tor:
                                 continue
                             center_g = fn * frame_pixels + fr * lw + fc
                             taps = compute_taps_toroidal(
