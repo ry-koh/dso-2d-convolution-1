@@ -621,27 +621,16 @@ Resource counts scale with kernel size and data width — see the Scaling sectio
 
 ### Utilisation by block
 
-| Block | Slice LUTs (/ 53,200) | Slice Registers (/ 106,400) | Block RAM Tiles (/ 140) |
-|---|---|---|---|
-| **conv2d** (total) | **208** | **390** | **1** |
-| u_line_buf | 51 | 0 | 1 |
-| u_win_buf | 8 | 72 | 0 |
-| conv2d logic | 149 | 318 | 0 |
+| Block | Slice LUTs (/ 53,200) | Slice Registers (/ 106,400) | Block RAM Tiles (/ 140) | Bonded IOB (/ 200) | BUFGCTRL (/ 32) |
+|---|---|---|---|---|---|
+| **conv2d** (total) | **208** | **390** | **1** | **89** | **1** |
+| u_line_buf | 51 | 0 | 1 | 0 | 0 |
+| u_win_buf | 8 | 72 | 0 | 0 | 0 |
+| conv2d logic | 149 | 318 | 0 | — | — |
 
 1 Block RAM Tile = 1 RAMB36 = 2 RAMB18. BRAM inference confirmed: `u_line_buf` uses the
 RAMB36 and 0 LUT-as-RAM. `u_win_buf`'s 72 registers are the 9-pixel × 8-bit FF shift
 register. No DSP48E1 used (0 / 220).
-
-### Timing
-
-| Metric | Value |
-|---|---|
-| Worst Negative Slack (WNS) | inf (no constraints) |
-| Total Negative Slack (TNS) | 0.000 ns |
-| Failing endpoints | 0 / 1308 |
-
-No user timing constraints were applied. To obtain a meaningful Fmax estimate, add a
-clock constraint (e.g. `create_clock -period 10.0 [get_ports clk]`) before synthesis.
 
 ### Scaling
 
