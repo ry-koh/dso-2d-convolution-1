@@ -85,7 +85,7 @@ Defined in `STRESS_CONFIGS` in `gen_tb.py` as `(kr, kc, mode, flush, lw, fh, sv_
 5. Copy `tb/vectors/` into the xsim working directory:
    `<project>.sim/sim_1/behav/xsim/vectors/`
 6. Set `conv2d_tb` as the simulation top.
-7. Run Behavioral Simulation. Recommended run time: **40 000 ns**.
+7. Run Behavioral Simulation. Recommended run time: **22 000 ns**.
 
 ---
 

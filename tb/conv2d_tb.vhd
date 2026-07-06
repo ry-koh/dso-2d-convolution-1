@@ -5,7 +5,7 @@
 -- Stress scenarios: 30 additional DUTs with varied s_tvalid and m_tready timing patterns.
 --
 -- Before simulation: copy tb/vectors/c???_{input,expected}.txt into the xsim working dir.
--- Recommended run time: 40000 ns (stress scenarios run longer due to timing gaps).
+-- Recommended run time: 22000 ns.
 
 library ieee;
 use ieee.std_logic_1164.all;

@@ -2299,7 +2299,7 @@ def main():
 -- Stress scenarios: {NS} additional DUTs with varied s_tvalid and m_tready timing patterns.
 --
 -- Before simulation: copy tb/vectors/c???_{{input,expected}}.txt into the xsim working dir.
--- Recommended run time: 40000 ns (stress scenarios run longer due to timing gaps).
+-- Recommended run time: 22000 ns.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -2428,7 +2428,7 @@ architecture tb of conv2d_tb is
         f.write(vhdl)
 
     print(f"\nWrote {tb_path}  ({N} base configs, {len(bp_blocks)} BP scenarios, {NS} stress scenarios)")
-    print(f"Recommended simulation run time: 40000 ns")
+    print(f"Recommended simulation run time: 22000 ns")
 
     if args.html:
         gen_html(vec_dir, html_path)
