@@ -85,6 +85,11 @@ with the symptom, root cause, and fix.
 
 ### Bug 1 — BRAM row ordering (Phase 2)
 
+**Identified by prompt:** Simulation log pasted verbatim after the first xsim run:
+> `Error: MISMATCH at output index 1` (at 195 ns)
+
+The log was pasted back into the chat and Claude diagnosed the root cause from the mismatch pattern.
+
 **Symptom:** Older rows fed to `win_buf` were swapped on odd-numbered input rows.
 The output taps for rows 1, 3, 5… were wrong; even rows were correct.
 
@@ -99,6 +104,10 @@ the `rd_data` output so slot 0 is always the oldest row:
 ---
 
 ### Bug 2 — Delta-cycle timing in output register (Phase 3)
+
+**Identified by prompt:** Same simulation log as Bug 1 — the MISMATCH error at output index 1
+persisted after the Bug 1 fix. The updated log was pasted back and Claude identified the
+delta-cycle ordering issue from the remaining mismatch pattern.
 
 **Symptom:** All outputs from index 1 onwards were the window for the *previous* pixel,
 not the current one.
@@ -116,6 +125,9 @@ At delta 0, `wb_tap_out` still reflects the old window; `p_shift` updates `win` 
 
 ### Bug 3 — Win_buf column boundary stale data (Phase 3)
 
+**Identified by prompt:** Continued simulation log review after Bugs 1 and 2 were fixed.
+Mismatches remained at specific column positions, which were pasted back for diagnosis.
+
 **Symptom:** For columns 0 and 1 of every row after row 0, the two oldest column tap
 positions contained the previous row's trailing pixels instead of zero.
 
@@ -130,6 +142,11 @@ previous row's end.
 ---
 
 ### Bug 4 — BRAM inter-frame stale data (Phase 3)
+
+**Identified by prompt:** Request to expand testing to multiple frames:
+> *"can we create more test benches to fully test everything"* → *"like all possible configurations"*
+
+Running 3 frames revealed the inter-frame corruption that was invisible in single-frame tests.
 
 **Symptom:** Rows 0 and 1 of frames 1 and 2 used the previous frame's last two rows
 from BRAM instead of zero-padding.
@@ -148,6 +165,12 @@ re-arms automatically for every new frame.
 ---
 
 ### Bug 5 — REPLICATE coordinate wrong at start-of-frame after FLUSH (Phase 4)
+
+**Identified by prompt:** After expanding to the full 324-configuration testbench:
+> `Error: CFG10 MISMATCH at output 96` / `Error: CFG28 MISMATCH at output 96`
+
+The failing configs were specifically REPLICATE+FLUSH combinations. The simulation log
+was pasted back and Claude narrowed the fault to the SOF cycle of each new frame.
 
 **Symptom:** For REPLICATE+FLUSH configurations, the first real output of each frame
 after a flush had zeros in the older-row taps instead of the correct clamped
@@ -171,6 +194,13 @@ for the first output of every new frame.
 
 ### Bug 6 — TOROIDAL xsim BRAM uninitialised propagation (Phase 4)
 
+**Identified by prompt:** Same 324-config run that surfaced Bug 5:
+> `Error: CFG005 MISMATCH at output 20` / `Error: CFG112 MISMATCH at output 16`
+
+The pattern of all TOROIDAL configs failing from output 0 or very early was distinctive.
+Claude identified it as xsim's `'U'` initialisation leaking through via the unconditional
+`row_valid` override.
+
 **Symptom:** All 12 TOROIDAL configurations failed from output 0 in xsim. CFG05
 (3×3 TOROIDAL) had exactly 18 mismatches in 192 outputs.
 
@@ -188,6 +218,14 @@ before that, normal `row_valid` masking zeros unwritten slots.
 ---
 
 ### Bug 7 — BRAM read-ahead during s_tvalid LOW cycles (stress scenarios)
+
+**Identified by prompt:** Supervisor requirement to test non-continuous handshaking:
+> *"supervisor says that we need to test backpressure and making the input data not smooth
+> (e.g. not every clock cycle have input data) he mentions that we can vary like 2-high 3-low
+> or 4-high 1-low and vary tready and tvalid to catch any issues"*
+
+Adding the stress scenarios exposed this bug immediately on first run:
+> `Error: SS004 MISMATCH at output 26`
 
 **Symptom:** SS001–SS008 and SS011–SS012 failed when `s_tvalid` was patterned LOW.
 Output taps from BRAM-sourced rows were shifted by one or more columns relative to
@@ -208,6 +246,12 @@ were unaffected by this change.
 
 ### Bug 8 — TOROIDAL spurious flush on s_tvalid LOW cycles (stress scenarios)
 
+**Identified by prompt:** Same stress scenario run that surfaced Bug 7:
+> `Error: SS010 MISMATCH`
+
+SS010 uses a TOROIDAL base config with a `s_tvalid` 2H/3L pattern — the combination
+that triggered the spurious flush path.
+
 **Symptom:** SS010 (TOROIDAL, `s_tvalid` 2H/3L pattern) produced extra outputs that
 had no match in the expected file.
 
@@ -223,6 +267,12 @@ cycle, producing spurious outputs.
 ---
 
 ### Bug 9 — TOROIDAL FLUSH=off golden model expected output count (post-simulation)
+
+**Identified by prompt:** After the full 354-scenario run appeared to hang:
+> *"I suspect that there is an issue in the code because I ran for 160,000 ns and it is still not done"*
+
+The `done_flags` hex value was shared and decoded to show exactly which 53 scenarios
+(all TOROIDAL FLUSH=off) had never completed. This was a golden model bug, not an RTL bug.
 
 **Symptom:** All 51 TOROIDAL FLUSH=off base configurations (and SS010, SS025) never
 set their `done_flag`. The simulation ran to 160,000 ns without completing.
