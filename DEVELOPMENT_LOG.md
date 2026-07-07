@@ -264,8 +264,37 @@ generic (
 These represent a realistic HD video pipeline configuration: 7×7 kernel on 720p input
 with REPLICATE edge padding and no end-of-frame flush.
 
-Synthesis resource reference at the 3×3 / 8-bit testbench configuration
-(XC7Z020-CLG484-1, project-mode synthesis, no timing constraints):
+### Synthesis results — reference generics (7×7, 8-bit, 1280×720, REPLICATE, FLUSH=false)
+
+XC7Z020-CLG484-1, project-mode synthesis, no timing constraints:
+
+| Block | Slice LUTs (/ 53,200) | Slice Registers (/ 106,400) | F7 Muxes (/ 26,600) | F8 Muxes (/ 13,300) | Block RAM Tiles (/ 140) | Bonded IOB (/ 200) | BUFGCTRL (/ 32) |
+|---|---|---|---|---|---|---|---|
+| **conv2d** (total) | **10,794** | **2,500** | **3,487** | **647** | **3** | **409** ⚠ | **1** |
+| u_win_buf | 42 | 392 | 0 | 0 | 0 | 0 | 0 |
+| u_line_buf | 111 | 0 | 0 | 0 | 3 | 0 | 0 |
+| conv2d logic | 10,641 | 2,108 | 3,487 | 647 | 0 | — | — |
+
+**⚠ IOB over-limit (409 / 200):** A 7×7 kernel exposes 49 output tap ports. Each tap carries
+TDATA (8 bits) + TVALID + TREADY + TLAST + TUSER = 12 signals; 49 taps + 1 input port + clk/rst
+gives over 590 port pins, which exceeds the XC7Z020's 200 physical IOBs. This is expected and
+is not a problem for simulation — xsim simulates logic, not pin assignment. In a real
+implementation, the tap outputs would connect on-chip (to a MAC array or PS interconnect) and
+would never need to reach physical pins. The IOB count in the table reflects Vivado treating every
+top-level port as a candidate for a physical pin during synthesis.
+
+**BRAM tiles (3):** `KERN_ROWS − 1 = 6` row buffer slots, each 1,280 × 8 = 10,240 bits.
+Vivado packs pairs of row buffers into single RAMB36 tiles (each 36 Kb), giving 3 RAMB36 tiles
+for 6 rows.
+
+**F7/F8 Muxes:** The large mux count arises from the combinational `p_edge_out` remapping stage,
+which selects among 49 tap positions for REPLICATE clamping using cascaded LUT6+MUXF7+MUXF8
+primitives. This is a direct consequence of choosing the coordinate-based output mux approach
+(option A in Phase 4) for area efficiency over a pipeline-fill approach.
+
+### Synthesis results — testbench configuration (3×3, 8-bit, DATA_WIDTH=8)
+
+XC7Z020-CLG484-1, project-mode synthesis, no timing constraints:
 
 | Block | Slice LUTs (/ 53,200) | Slice Registers (/ 106,400) | Block RAM Tiles (/ 140) | Bonded IOB (/ 200) | BUFGCTRL (/ 32) |
 |---|---|---|---|---|---|
@@ -274,8 +303,15 @@ Synthesis resource reference at the 3×3 / 8-bit testbench configuration
 | u_win_buf | 8 | 72 | 0 | 0 | 0 |
 | conv2d logic | 149 | 318 | 0 | — | — |
 
-Resource counts scale with `KERN_ROWS × KERN_COLS` (tap output registers) and
-`KERN_ROWS − 1` (BRAM row buffer slots).
+### Scaling summary
+
+| Resource | Scales with |
+|---|---|
+| Slice LUTs (logic) | `KERN_ROWS × KERN_COLS` (output mux for each tap) |
+| Slice Registers | `KERN_ROWS × KERN_COLS × DATA_WIDTH` (tap pipeline registers) |
+| F7/F8 Muxes | `KERN_ROWS × KERN_COLS` (REPLICATE/ZERO mux tree depth) |
+| Block RAM Tiles | `ceil((KERN_ROWS − 1) × LINE_WIDTH × DATA_WIDTH / 36,864)` |
+| Bonded IOB | `(KERN_ROWS × KERN_COLS + 1) × (DATA_WIDTH + 4) + 2` — exceeds device limit for large kernels |
 
 ---
 
